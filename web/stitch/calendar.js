@@ -171,7 +171,7 @@
     return records;
   }
 
-  function mount(doc, { request, navigate, identity, state = {}, onState = () => {}, readRescueContext = null }) {
+  function mount(doc, { request, navigate, identity, state = {}, onState = () => {}, readRescueContext = null, selectRescueOption = null }) {
     const root = doc.getElementById('live-calendar-root');
     const win = doc.defaultView;
     const mobile = win.innerWidth <= 780;
@@ -186,6 +186,7 @@
     let mode = state.mode === 'manual' || state.mode === 'smart' ? state.mode : 'smart';
     let options = readOptions();
     let entries = [], loaded = false, pending = false, error = null, generation = 0, timer = null, disposed = false;
+    let serverConflicts = null, conflictTurn = 0;
     let lastToday = dayKey(new Date());
     // 救援摘要侧栏的数据：服务端救援历史（最近一次救援快照卡）与生成守卫。
     let rescueHistory = null;
@@ -272,27 +273,40 @@
         Array.isArray(context?.currentEntries) && JSON.stringify(context.currentEntries) === JSON.stringify(entries);
       const generated = matchesBaseline && Array.isArray(context?.options) ? context.options : [];
       const idle = !generated.length;
-      const idleTitles = { A: '优先保护截止期', B: '最小化团队扰动', C: '顺延次日非核心目标' };
+      const idleTitles = { A: '优先保护截止期', B: '最小化原计划变动', C: '优先保留恢复缓冲' };
+      const strategyByLetter = { A: 'protectDeadline', B: 'minimizeChanges', C: 'protectRecovery' };
+      const preferred = context?.selectedOptionId
+        ? generated.find(option => option.id === context.selectedOptionId)
+        : generated.find(option => option.strategy === context?.preferredRescueStrategy);
+      const selectedId = preferred?.id || generated.find(option => option.recommended)?.id || generated[0]?.id ||
+        `strategy:${context?.preferredRescueStrategy || strategyByLetter.A}`;
       for (let index = 0; index < 3; index++) {
         const letter = 'ABC'[index];
         const card = root.querySelector(`[data-rescue-preview-option="${letter}"]`);
         if (!card) continue;
         const option = generated[index] || null;
         card.classList.toggle('cal-rescue-preview-idle', idle);
+        const selected = option ? option.id === selectedId : selectedId === `strategy:${strategyByLetter[letter]}`;
+        card.classList.toggle('cal-rescue-preview-selected', selected);
+        card.setAttribute('aria-pressed', String(selected));
+        const radio = card.querySelector('input[type="radio"]');
+        if (radio) radio.checked = selected;
         const titleNode = card.querySelector('[data-rescue-preview-title]');
         const checkNode = card.querySelector('[data-rescue-preview-check]');
         const noteNode = card.querySelector('[data-rescue-preview-note]');
+        const statusNode = card.querySelector('[data-rescue-preview-status]');
         const metric = name => card.querySelector(`[data-rescue-preview-metric="${name}"]`);
+        if (statusNode) statusNode.textContent = idle ? (selected ? '默认策略' : '备选方案') : (selected ? '当前选中' : '可执行方案');
         if (option) {
           if (titleNode) titleNode.textContent = `方案 ${letter} · ${option.title || '服务端方案'}`;
-          if (checkNode) checkNode.hidden = !option.recommended;
+          if (checkNode) checkNode.hidden = option.id !== selectedId;
           const moved = metric('moved');
           if (moved) moved.textContent = `${option.movedEntryCount ?? 0} 项`;
           const buffer = metric('buffer');
-          if (buffer) buffer.textContent = `${option.recoveryMinutes ?? 0}m`;
+          if (buffer) buffer.textContent = `${option.protectionBufferMinutes ?? option.recoveryMinutes ?? 0} 分钟`;
           const score = metric('score');
-          if (score) score.textContent = Number.isFinite(Number(option.score))
-            ? String(Math.round(Number(option.score) * 10) / 10)
+          if (score) score.textContent = Number.isFinite(Number(option.disturbanceScore))
+            ? `${Math.round(Number(option.disturbanceScore) * 10) / 10} 分`
             : '—';
           if (noteNode && (option.rationale || option.tradeoff)) {
             noteNode.textContent = option.rationale || option.tradeoff;
@@ -380,7 +394,17 @@
       const periodView = view === 'gantt' ? ganttScale : view;
       const range = visibleRange(periodView, selected), today = dayKey(new Date()), date = parseDay(selected);
       const items = occurrences(entries, range.start, range.end), chosen = occurrences(entries, selected, selected);
-      const conflictPairList = conflictPairs(chosen);
+      const localConflictPairs = conflictPairs(chosen);
+      const byId = new Map(chosen.map(entry => [String(entry.id), entry]));
+      const serviceConflictPairs = Array.isArray(serverConflicts)
+        ? serverConflicts.map(conflict => (conflict.entryIds || []).map(id => byId.get(String(id)))).filter(pair => pair.length === 2 && pair.every(Boolean))
+        : [];
+      // Server conflicts cover persisted date-bound rows; local occurrence checks also
+      // include recurring entries expanded onto the selected day.
+      const conflictPairList = [...new Map([...localConflictPairs, ...serviceConflictPairs].map(pair => {
+        const key = pair.map(entry => `${entry.id}:${entry.occurrenceDay || entry.day}`).sort().join('|');
+        return [key, pair];
+      })).values()];
       const conflicts = conflictPairList.length;
       root.dataset.calendarView = view; root.dataset.selectedDay = selected; root.setAttribute('aria-busy', String(pending));
       syncModeControls();
@@ -546,6 +570,8 @@
         if (state.mode === 'manual' || state.mode === 'smart') mode = state.mode;
       }
       const turn = ++generation;
+      const requestedDay = selected;
+      serverConflicts = null;
       pending = true; error = null;
       const previousScroll = activeScroll();
       const position = previousScroll && { top: previousScroll.scrollTop, left: previousScroll.scrollLeft };
@@ -564,6 +590,13 @@
         const pos = activeScroll();
         const keep = pos && { top: pos.scrollTop, left: pos.scrollLeft };
         render(); if (firstLoad) scrollTime(); else if (keep) restoreScroll(keep);
+        const conflictRequest = ++conflictTurn;
+        request(`/schedule/conflicts?day=${encodeURIComponent(requestedDay)}`).then(result => {
+          if (disposed || turn !== generation || conflictRequest !== conflictTurn || requestedDay !== selected) return;
+          if (Array.isArray(result?.conflicts)) { serverConflicts = result.conflicts; render(); }
+        }).catch(() => {
+          // The schedule response remains authoritative when an older server has no conflict endpoint.
+        });
         onState('online', `已连接 · 日程 ${records.length} 条`);
       } catch (failure) {
         if (disposed || turn !== generation || account !== identity()) return;
@@ -583,10 +616,22 @@
       selected = day; view = mode; remember(); render(); scrollTime(); refresh();
     }
     root.addEventListener('click', event => {
-      const target = event.target.closest('button[data-cal-action], button[data-cal-select], button[data-calendar-event], button[data-rescue-preview-option]'); if (!target) return;
+      const target = event.target.closest('button[data-cal-action], button[data-cal-select], button[data-calendar-event], [data-rescue-preview-option]'); if (!target) return;
       event.preventDefault(); event.stopPropagation();
       if (target.dataset.calendarEvent) { navigate(`schedule-detail?id=${encodeURIComponent(target.dataset.calendarEvent)}`); return; }
-      if (target.dataset.rescuePreviewOption) { navigate('urgent-task'); return; }
+      if (target.dataset.rescuePreviewOption) {
+        const context = rescueContext();
+        const index = 'ABC'.indexOf(target.dataset.rescuePreviewOption);
+        const option = index >= 0 && Array.isArray(context?.options) ? context.options[index] : null;
+        if (typeof selectRescueOption === 'function') {
+          const strategy = { A: 'protectDeadline', B: 'minimizeChanges', C: 'protectRecovery' }[target.dataset.rescuePreviewOption];
+          selectRescueOption(option?.id || strategy);
+          render();
+        } else {
+          navigate('urgent-task');
+        }
+        return;
+      }
       if (target.dataset.calSelect) { select(target.dataset.calSelect, target.hasAttribute('data-cal-open-day') ? 'day' : view); return; }
       const name = target.dataset.calAction;
       if (views.includes(name)) select(selected, name);
@@ -601,6 +646,12 @@
       else if (name === 'options') navigate('calendar-options');
       else if (name === 'retry') refresh();
       else if (name === 'login') navigate('login');
+    });
+    root.addEventListener('keydown', event => {
+      const target = event.target.closest('[data-rescue-preview-option][role="button"]');
+      if (!target || (event.key !== 'Enter' && event.key !== ' ')) return;
+      event.preventDefault();
+      target.click();
     });
     root.addEventListener('change', event => { if (event.target.matches('[data-cal-date]')) select(event.target.value); });
     function tick() {

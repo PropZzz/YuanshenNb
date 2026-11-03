@@ -20,8 +20,19 @@
 #live-calendar-root .cal-mode-button[aria-pressed="true"]{background:#163d3d;color:#81a8a7;font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,.06)}
 #live-calendar-root .cal-mode-button[aria-pressed="true"] .material-symbols-outlined{color:#53e16f}
 /* 救援摘要侧栏：方案预览卡与撤销按钮的真实数据状态 */
-#live-calendar-root button[data-rescue-preview-option]:focus-visible,#live-calendar-root [data-rescue-undo]:focus-visible{outline:2px solid #005db5;outline-offset:2px}
-#live-calendar-root button[data-rescue-preview-option].cal-rescue-preview-idle{opacity:.62}
+#live-calendar-root [data-rescue-preview-option]:focus-visible,#live-calendar-root [data-rescue-undo]:focus-visible{outline:2px solid #005db5;outline-offset:2px}
+#live-calendar-root [data-rescue-preview-option]{min-height:44px;border:1px solid transparent;text-align:left}
+#live-calendar-root [data-rescue-preview-option]:not(.cal-rescue-preview-selected){background:#f4f3f8!important;color:#414848!important;box-shadow:none!important}
+#live-calendar-root [data-rescue-preview-option]:not(.cal-rescue-preview-selected) [data-rescue-preview-title]{color:#1a1b1f!important}
+#live-calendar-root [data-rescue-preview-option]:not(.cal-rescue-preview-selected) [data-rescue-preview-metric]{color:#002727!important}
+#live-calendar-root [data-rescue-preview-option]:not(.cal-rescue-preview-selected) [data-rescue-preview-note]{color:#414848!important;opacity:1}
+#live-calendar-root [data-rescue-preview-option]:not(.cal-rescue-preview-selected) [class~="bg-primary/40"]{background:#e9e7ed!important}
+#live-calendar-root [data-rescue-preview-option].cal-rescue-preview-selected{background:#163d3d!important;color:#f4f3f8!important;border-color:rgba(83,225,111,.34);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+#live-calendar-root [data-rescue-preview-option].cal-rescue-preview-selected [data-rescue-preview-title],#live-calendar-root [data-rescue-preview-option].cal-rescue-preview-selected [data-rescue-preview-metric]{color:#f4f3f8!important}
+#live-calendar-root [data-rescue-preview-option].cal-rescue-preview-selected [data-rescue-preview-note]{color:rgba(244,243,248,.82)!important}
+#live-calendar-root [data-rescue-preview-option].cal-rescue-preview-selected [data-rescue-preview-check]{display:inline-block!important;color:#53e16f}
+#live-calendar-root [data-rescue-preview-option].cal-rescue-preview-selected [class~="bg-primary/40"]{background:rgba(0,39,39,.4)!important}
+#live-calendar-root [data-rescue-preview-option].cal-rescue-preview-selected .text-outline{color:rgba(244,243,248,.68)!important}
 #live-calendar-root [data-rescue-undo]:disabled{opacity:.45;cursor:not-allowed}
 .cal-mobile-period button{display:inline-flex;align-items:center;justify-content:center;min-height:32px;min-width:28px}
 .cal-mobile-period .material-symbols-outlined{font-size:18px}

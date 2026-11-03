@@ -175,6 +175,8 @@ def test_rescue_options_returns_three_options_with_metadata(tmp_path):
         assert isinstance(option["recommended"], bool)
         assert isinstance(option["movedEntryCount"], int)
         assert isinstance(option["recoveryMinutes"], int)
+        assert isinstance(option["protectionBufferMinutes"], int)
+        assert isinstance(option["disturbanceScore"], float)
         assert isinstance(option["issueCount"], int)
         assert isinstance(option["overdueRisk"], float)
         assert isinstance(option["affectedEntries"], list)

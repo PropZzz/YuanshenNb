@@ -539,6 +539,8 @@ class RescueOptionOut(APIModel):
     tradeoff: str
     moved_entry_count: int = Field(alias="movedEntryCount")
     recovery_minutes: int = Field(alias="recoveryMinutes")
+    protection_buffer_minutes: int = Field(default=0, alias="protectionBufferMinutes")
+    disturbance_score: float = Field(default=0.0, alias="disturbanceScore")
     issue_count: int = Field(alias="issueCount")
     hard_issue_count: int = Field(default=0, alias="hardIssueCount")
     overdue_risk: float = Field(default=0.0, alias="overdueRisk")

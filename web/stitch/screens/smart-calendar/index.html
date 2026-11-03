@@ -202,7 +202,7 @@
 <div class="flex flex-col gap-2">
 <span class="text-[11px] font-bold text-on-surface uppercase tracking-wide">推荐救援方案预览</span>
 <!-- 方案 A：由服务端救援接口回填真实指标；未生成时显示待计算状态 -->
-<button type="button" data-rescue-preview-option="A" class="p-3 rounded-xl bg-primary-container text-on-primary-container shadow-sm flex flex-col gap-2 text-left cursor-pointer transition-all w-full">
+<button type="button" data-rescue-preview-option="A" aria-pressed="false" class="cal-rescue-preview-option p-3 rounded-xl bg-primary-container text-on-primary-container shadow-sm flex flex-col gap-2 text-left cursor-pointer transition-all w-full">
 <span class="flex items-center justify-between w-full">
 <span class="text-xs font-bold text-on-primary" data-rescue-preview-title>方案 A · 优先保护截止期</span>
 <span class="material-symbols-outlined text-[16px] text-tertiary-fixed" data-rescue-preview-check hidden>check_circle</span>
@@ -226,23 +226,33 @@
             </span>
 </button>
 <!-- 方案 B -->
-<button type="button" data-rescue-preview-option="B" class="p-3 rounded-xl bg-surface-container hover:bg-surface-container-high transition-colors flex flex-col gap-1.5 text-left cursor-pointer w-full">
+<button type="button" data-rescue-preview-option="B" aria-pressed="false" class="cal-rescue-preview-option p-3 rounded-xl bg-surface-container hover:bg-surface-container-high transition-colors flex flex-col gap-2 text-left cursor-pointer w-full">
 <span class="flex items-center justify-between w-full">
 <span class="text-xs font-bold text-on-surface" data-rescue-preview-title>方案 B · 最小化团队扰动</span>
-<span class="text-[10px] text-outline tabular-nums" data-rescue-preview-metric="moved">待计算</span>
+<span class="material-symbols-outlined text-[16px] text-tertiary-fixed" data-rescue-preview-check hidden>check_circle</span>
+</span>
+<span class="grid grid-cols-3 gap-1 text-[10px] bg-primary/40 p-2 rounded-lg text-center tabular-nums">
+<span class="block"><span class="block text-outline">任务位移</span><span class="font-bold text-on-primary" data-rescue-preview-metric="moved">待计算</span></span>
+<span class="block"><span class="block text-outline">保护缓冲</span><span class="font-bold text-tertiary-fixed" data-rescue-preview-metric="buffer">待计算</span></span>
+<span class="block"><span class="block text-outline">扰动评分</span><span class="font-bold text-on-primary" data-rescue-preview-metric="score">待计算</span></span>
 </span>
 <span class="text-[10px] text-on-surface-variant leading-normal text-left" data-rescue-preview-note>
-              在保护团队协作约束的前提下，计算可行的任务调整方案。
+              锁定原有日程，仅在可用空档安排紧急任务，减少既有计划变化。
             </span>
 </button>
 <!-- 方案 C -->
-<button type="button" data-rescue-preview-option="C" class="p-3 rounded-xl bg-surface-container hover:bg-surface-container-high transition-colors flex flex-col gap-1.5 text-left cursor-pointer w-full">
+<button type="button" data-rescue-preview-option="C" aria-pressed="false" class="cal-rescue-preview-option p-3 rounded-xl bg-surface-container hover:bg-surface-container-high transition-colors flex flex-col gap-2 text-left cursor-pointer w-full">
 <span class="flex items-center justify-between w-full">
-<span class="text-xs font-bold text-on-surface" data-rescue-preview-title>方案 C · 顺延次日非核心目标</span>
-<span class="text-[10px] text-outline tabular-nums" data-rescue-preview-metric="moved">待计算</span>
+<span class="text-xs font-bold text-on-surface" data-rescue-preview-title>方案 C · 优先保留恢复缓冲</span>
+<span class="material-symbols-outlined text-[16px] text-tertiary-fixed" data-rescue-preview-check hidden>check_circle</span>
+</span>
+<span class="grid grid-cols-3 gap-1 text-[10px] bg-primary/40 p-2 rounded-lg text-center tabular-nums">
+<span class="block"><span class="block text-outline">任务位移</span><span class="font-bold text-on-primary" data-rescue-preview-metric="moved">待计算</span></span>
+<span class="block"><span class="block text-outline">保护缓冲</span><span class="font-bold text-tertiary-fixed" data-rescue-preview-metric="buffer">待计算</span></span>
+<span class="block"><span class="block text-outline">扰动评分</span><span class="font-bold text-on-primary" data-rescue-preview-metric="score">待计算</span></span>
 </span>
 <span class="text-[10px] text-on-surface-variant leading-normal text-left" data-rescue-preview-note>
-              结合实际截止时间与弹性空间，计算后续可承接的时段。
+              降低能量目标并插入真实可用的恢复缓冲，避免连续高负荷安排。
             </span>
 </button>
 </div>

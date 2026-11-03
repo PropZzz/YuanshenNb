@@ -79,6 +79,7 @@
   let activeRoute = 'focus';
   let loginReturnRoute = 'focus';
   let rescueState = null;
+  let preferredRescueStrategy = null;
   let settingsOverlayHost = null;
   let settingsOverlayFrame = null;
   let settingsMotion = null;
@@ -1012,7 +1013,8 @@
       const doc = nextFrame.contentDocument;
       if (route === 'create-schedule') hydrateScheduleForm(doc);
       if (route === 'schedule-detail') hydrateScheduleDetail(doc);
-      return route !== 'rescue-comparison' || hydrateRescueComparisonView(nextFrame.contentDocument);
+      if (route !== 'rescue-comparison') return true;
+      return hydrateRescueComparisonView(nextFrame.contentDocument);
     },
     activate(nextFrame, route) {
       frame = nextFrame;
@@ -1513,8 +1515,15 @@
           currentEntries: rescueState?.currentEntries || null,
           day: rescueState?.day || null,
           snapshotId: rescueState?.snapshotId || null,
+          selectedOptionId: rescueState?.selectedOptionId || null,
+          preferredRescueStrategy,
           hasSnapshot: readRescueSnapshots().length > 0,
         }),
+        selectRescueOption: (optionId) => {
+          const option = rescueState?.options?.find(item => item.id === optionId || item.strategy === optionId);
+          preferredRescueStrategy = option?.strategy || optionId;
+          if (option) rescueState.selectedOptionId = option.id;
+        },
         onState(state, label, error) {
           document.documentElement.dataset.backendState = state;
           updateSyncLabel(document, label);
@@ -1666,6 +1675,15 @@
     return rows;
   }
 
+  function selectedRescueOptionIndex(options) {
+    const selectedIndex = options.findIndex((option) => option.id === rescueState?.selectedOptionId);
+    if (selectedIndex >= 0) return selectedIndex;
+    const preferredIndex = options.findIndex((option) => option.strategy === preferredRescueStrategy);
+    if (preferredIndex >= 0) return preferredIndex;
+    const recommendedIndex = options.findIndex((option) => option.recommended);
+    return recommendedIndex >= 0 ? recommendedIndex : 0;
+  }
+
   function hydrateMobileRescueComparisonView(document, options, dayEntries, urgentTask, dueDate) {
     const cards = Array.from(document.querySelectorAll('.plan-card'));
     const pageTitle = document.querySelector('header h1');
@@ -1675,10 +1693,8 @@
       protectRecovery: '恢复优先',
       minimizeChanges: '最小变动',
     };
-    const recommendationIndex = Math.max(
-      options.findIndex((option) => option.recommended),
-      0,
-    );
+    const recommendationIndex = selectedRescueOptionIndex(options);
+    const selectedOption = options[recommendationIndex];
     const minutesRemaining = dueDate
       ? Math.ceil((dueDate.getTime() - Date.now()) / 60000)
       : null;
@@ -1726,10 +1742,35 @@
       card.dataset.rescueRecommended = String(Boolean(option.recommended));
       if (tab) {
         tab.hidden = false;
+        tab.dataset.rescueSelectionOptionId = option.id;
         tab.title = option.title;
         tab.setAttribute('aria-pressed', String(index === recommendationIndex));
         const label = tab.querySelector('[data-rescue-tab-title]');
         if (label) label.textContent = `方案 ${String.fromCharCode(65 + index)}`;
+        const recommendationMarker = tab.querySelector('[data-rescue-tab-recommended]');
+        if (recommendationMarker) {
+          recommendationMarker.hidden = !option.recommended;
+          recommendationMarker.classList.toggle('hidden', !option.recommended);
+        }
+        if (!tab.dataset.rescueSelectionBound) {
+          tab.dataset.rescueSelectionBound = 'true';
+          tab.addEventListener('click', () => {
+            if (!rescueState?.options?.length) return;
+            const selected = rescueState.options.find(item => item.id === tab.dataset.rescueSelectionOptionId);
+            if (!selected) return;
+            preferredRescueStrategy = selected.strategy;
+            rescueState.selectedOptionId = selected.id;
+            const selectedDayEntries = rescueState.currentEntries.filter(entry => entry.day === rescueState.day);
+            const selectedDueDate = rescueState.urgentTask?.due ? new Date(rescueState.urgentTask.due) : null;
+            hydrateMobileRescueComparisonView(
+              document,
+              rescueState.options,
+              selectedDayEntries,
+              rescueState.urgentTask,
+              selectedDueDate,
+            );
+          });
+        }
       }
       const letter = String.fromCharCode(65 + index);
       const heading = card.querySelector('h3');
@@ -1810,19 +1851,17 @@
       }
     }
 
-    const recommended = options.find((option) => option.recommended) || options[0];
-    const selectedRecommendationIndex = Math.max(options.indexOf(recommended), 0);
-    document.defaultView.switchPlan?.(String.fromCharCode(97 + selectedRecommendationIndex));
+    document.defaultView.switchPlan?.(String.fromCharCode(97 + recommendationIndex));
     const detailSection = document.querySelector('[data-rescue-details]');
     const detailRows = detailSection?.querySelector('[data-rescue-details-list]');
-    if (detailRows && recommended) {
-      const moved = Number(recommended.movedEntryCount || 0);
+    if (detailRows && selectedOption) {
+      const moved = Number(selectedOption.movedEntryCount || 0);
       const retained = Math.max(dayEntries.length - moved, 0);
       const heading = detailSection.querySelector('[data-rescue-details-heading]');
       const summary = detailSection.querySelector('[data-rescue-details-summary]');
-      if (heading) heading.textContent = `执行明细 · 方案 ${String.fromCharCode(65 + selectedRecommendationIndex)}：${recommended.title}`;
+      if (heading) heading.textContent = `执行明细 · 方案 ${String.fromCharCode(65 + recommendationIndex)}：${selectedOption.title}`;
       if (summary) summary.textContent = `${moved} 项调整 · ${retained} 项未调整`;
-      detailRows.replaceChildren(...buildRescueDetailRows(document, recommended, dayEntries, urgentTask, rescueState.day));
+      detailRows.replaceChildren(...buildRescueDetailRows(document, selectedOption, dayEntries, urgentTask, rescueState.day));
     }
   }
 
@@ -1900,6 +1939,7 @@
       minimizeChanges: 'MINIMAL DISRUPTION',
     };
 
+    const selectedComparisonIndex = selectedRescueOptionIndex(options);
     for (const [index, card] of cards.entries()) {
       const option = options[index];
       if (!option) {
@@ -1909,7 +1949,7 @@
       card.hidden = false;
       card.dataset.rescueOptionId = option.id;
       card.classList.remove('border-2', 'border-secondary/40');
-      if (option.recommended) card.classList.add('border-2', 'border-secondary/40');
+      if (index === selectedComparisonIndex) card.classList.add('border-2', 'border-secondary/40');
 
       const heading = card.querySelector('h4');
       if (heading) heading.textContent = `方案 ${String.fromCharCode(65 + index)}：${option.title}`;
@@ -2023,23 +2063,23 @@
     const details = detailSection?.querySelector('[data-rescue-details-list]');
     if (details) {
       detailSection.dataset.rescueDetails = 'true';
-      const recommended = options.find((option) => option.recommended) || options[0];
+      const selected = options[selectedComparisonIndex];
       details.replaceChildren(...buildRescueDetailRows(
         comparisonDocument,
-        recommended,
+        selected,
         dayEntries,
         urgentTask,
         rescueState.day,
       ));
       if (detailHeading) {
-        detailHeading.textContent = `执行调度详情与受影响项目清单（${recommended.title}）`;
+        detailHeading.textContent = `执行调度详情与受影响项目清单（${selected.title}）`;
       }
       const detailCopy = detailHeading?.parentElement?.querySelector('p');
-      if (detailCopy) detailCopy.textContent = recommended.tradeoff || recommended.rationale || '';
+      if (detailCopy) detailCopy.textContent = selected.tradeoff || selected.rationale || '';
     }
 
-    const recommended = options.find((option) => option.recommended) || options[0];
-    const movedCount = Number(recommended?.movedEntryCount || 0);
+    const selected = options[selectedComparisonIndex];
+    const movedCount = Number(selected?.movedEntryCount || 0);
     const unchangedCount = Math.max(dayEntries.length - movedCount, 0);
     const unchangedSummary = comparisonDocument.querySelector('[data-rescue-summary-unchanged]');
     const movedSummary = comparisonDocument.querySelector('[data-rescue-summary-moved]');
@@ -2468,6 +2508,7 @@
             day,
             urgentTask,
             currentEntries,
+            strategies: ['protectDeadline', 'minimizeChanges', 'protectRecovery'],
             energy: 'medium',
             windows: [
               { start: { hour: 9, minute: 0 }, end: { hour: 12, minute: 0 } },
@@ -2485,7 +2526,10 @@
         const originRoute = actionRoute === 'urgent-task'
           ? parentRouteFor(actionRoute) || 'schedule'
           : actionRoute;
-        rescueState = { ...options, day, urgentTask, currentEntries, originRoute };
+        rescueState = { ...options, day, urgentTask, currentEntries, originRoute,
+          selectedOptionId: options?.options?.find(option => option.strategy === preferredRescueStrategy)?.id ||
+            options?.options?.find(option => option.recommended)?.id || options?.options?.[0]?.id || null };
+        preferredRescueStrategy = null;
         showNotice(document, `服务端已生成 ${options?.options?.length ?? 0} 个救援方案。`);
         const returnRoute = actionRoute === 'urgent-task' ? 'urgent-task' : actionRoute;
         navigate('rescue-comparison', { returnRoute });
@@ -2495,6 +2539,7 @@
       if (action === 'rescue-apply') {
         if (!rescueState?.options?.length) throw new Error('请先生成服务端救援方案');
         const option = rescueState.options.find((item) => item.id === button?.dataset.rescueOptionId) ||
+          rescueState.options.find((item) => item.id === rescueState.selectedOptionId) ||
           rescueState.options.find((item) => item.recommended) ||
           rescueState.options[0];
         const applied = await backendRequest('/schedule/rescue/apply', {
@@ -2938,6 +2983,7 @@
     settingsTokenHydrated = '';
     calendarState = {};
     rescueState = null;
+    preferredRescueStrategy = null;
     renderRoute(routeFromHash());
   });
   window.addEventListener('hashchange', syncRouteFromHistory);

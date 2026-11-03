@@ -28,7 +28,9 @@ class RescueStrategy:
             key=lambda index: (
                 int(options[index].get("hardIssueCount") or 0),
                 -float(options[index].get("score") or 0.0),
-                index,
+                cls.ORDER.index(options[index]["strategy"])
+                if options[index].get("strategy") in cls.ORDER
+                else index,
             ),
         )
 

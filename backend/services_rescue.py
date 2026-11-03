@@ -426,6 +426,10 @@ def build_options(request: dict[str, Any]) -> dict[str, Any]:
                 "tradeoff": RESCUE_TRADEOFFS[strategy],
                 "movedEntryCount": len(moved_ids),
                 "recoveryMinutes": recovery_minutes,
+                # UI-facing metrics: buffer is a real scheduled recovery block,
+                # disturbance is the inverse of the stability score (lower is better).
+                "protectionBufferMinutes": round(metrics.recovery * score_config.recovery_buffer_minutes),
+                "disturbanceScore": round((1.0 - metrics.stability) * 100, 1),
                 "issueCount": len(plan.get("issues") or []),
                 "hardIssueCount": RescueStrategy.hard_issue_count(
                     plan.get("issues") or []

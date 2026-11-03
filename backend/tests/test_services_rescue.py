@@ -6,6 +6,7 @@ from backend.services_rescue import (
     compute_baseline_hash,
     filter_rescue_events,
 )
+from backend.scheduling.rescue import RescueStrategy
 from backend.scheduling.rescue_scoring import metrics_for_plan
 
 
@@ -103,6 +104,8 @@ def test_build_options_exposes_weighted_scores_and_breakdowns():
     expected_metrics = {"urgency", "priority", "energyFit", "stability", "recovery"}
     for option in result["options"]:
         assert set(option["scoreBreakdown"]) == expected_metrics
+        assert "protectionBufferMinutes" in option
+        assert "disturbanceScore" in option
         assert 0.0 <= option["score"] <= 1.0
         assert option["hardIssueCount"] >= 0
 
@@ -110,6 +113,16 @@ def test_build_options_exposes_weighted_scores_and_breakdowns():
 def test_build_options_filters_strategies():
     result = build_options(_request(strategies=["minimizeChanges"]))
     assert [option["strategy"] for option in result["options"]] == ["minimizeChanges"]
+
+
+def test_recommendation_tie_break_is_independent_of_requested_display_order():
+    options = [
+        {"strategy": "minimizeChanges", "hardIssueCount": 0, "score": 0.5},
+        {"strategy": "protectRecovery", "hardIssueCount": 0, "score": 0.5},
+        {"strategy": "protectDeadline", "hardIssueCount": 0, "score": 0.5},
+    ]
+
+    assert options[RescueStrategy.recommended_index(options)]["strategy"] == "protectDeadline"
 
 
 def test_build_options_protect_deadline_places_urgent_before_due():

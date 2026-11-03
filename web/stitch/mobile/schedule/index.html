@@ -159,57 +159,57 @@
 <!-- 三种救援方案对比列表 -->
 <div class="flex flex-col gap-3">
 <!-- 方案 A：保住截止 (选定态) -->
-<label class="p-3.5 rounded-xl bg-surface-container-low shadow-sm flex flex-col gap-2 cursor-pointer transition-all">
+<label data-rescue-preview-option="A" aria-pressed="false" role="button" tabindex="0" class="p-3.5 rounded-xl bg-surface-container-low shadow-sm flex flex-col gap-2 cursor-pointer transition-all">
 <div class="flex items-center justify-between">
 <div class="flex items-center gap-2">
 <input checked="" class="w-4 h-4 text-secondary accent-secondary" disabled="" name="rescue-plan" type="radio"/>
-<span class="text-xs font-bold text-on-surface">方案 A · 优先保住截止期</span>
+<span class="text-xs font-bold text-on-surface" data-rescue-preview-title>方案 A · 优先保护截止期</span>
 </div>
-<span class="text-[10px] px-2 py-0.5 rounded-full bg-secondary-fixed text-on-secondary-fixed font-bold font-mono">待计算</span>
+<span data-rescue-preview-status class="text-[10px] px-2 py-0.5 rounded-full bg-secondary-fixed text-on-secondary-fixed font-bold font-mono">默认策略</span>
 </div>
-<p class="text-[11px] font-body text-on-surface-variant leading-relaxed pl-6">
-            根据真实日程和硬截止时间，计算优先保护截止期的策略。
+<p class="text-[11px] font-body text-on-surface-variant leading-relaxed pl-6" data-rescue-preview-note>
+            优先满足硬截止期，按任务优先级调整冲突日程，并保留可行的恢复窗口。
           </p>
 <div class="flex items-center gap-4 pl-6 text-[10px] font-mono font-medium text-on-surface-variant">
-<span>任务移位: <strong class="text-primary font-bold">待计算</strong></span>
-<span>恢复保护: <strong class="text-tertiary-container font-bold">待计算</strong></span>
-<span>加班风险: <strong class="text-tertiary-container font-bold">待计算</strong></span>
+<span>任务位移: <strong class="text-primary font-bold" data-rescue-preview-metric="moved">待计算</strong></span>
+<span>保护缓冲: <strong class="text-tertiary-container font-bold" data-rescue-preview-metric="buffer">待计算</strong></span>
+<span>扰动评分: <strong class="text-tertiary-container font-bold" data-rescue-preview-metric="score">待计算</strong></span>
 </div>
 </label>
 <!-- 方案 B：保留恢复 (认知优先) -->
-<label class="p-3.5 rounded-xl bg-surface-container-lowest shadow-sm flex flex-col gap-2 cursor-pointer transition-all">
+<label data-rescue-preview-option="B" aria-pressed="false" role="button" tabindex="0" class="p-3.5 rounded-xl bg-surface-container-lowest shadow-sm flex flex-col gap-2 cursor-pointer transition-all">
 <div class="flex items-center justify-between">
 <div class="flex items-center gap-2">
 <input class="w-4 h-4 text-secondary accent-secondary" disabled="" name="rescue-plan" type="radio"/>
-<span class="text-xs font-bold text-on-surface">方案 B · 极致防疲劳认知守护</span>
+<span class="text-xs font-bold text-on-surface" data-rescue-preview-title>方案 B · 最小化原计划变动</span>
 </div>
-<span class="text-[10px] px-2 py-0.5 rounded-full bg-surface-container-high text-on-surface-variant font-bold font-mono">待计算</span>
+<span data-rescue-preview-status class="text-[10px] px-2 py-0.5 rounded-full bg-surface-container-high text-on-surface-variant font-bold font-mono">备选方案</span>
 </div>
-<p class="text-[11px] font-body text-on-surface-variant leading-relaxed pl-6">
-            根据实际恢复需求与可用时间，计算优先保护认知恢复的策略。
+<p class="text-[11px] font-body text-on-surface-variant leading-relaxed pl-6" data-rescue-preview-note>
+            尽量锁定原有日程，只调整必要任务，并以最少的时间移动完成紧急任务安排。
           </p>
 <div class="flex items-center gap-4 pl-6 text-[10px] font-mono font-medium text-on-surface-variant">
-<span>任务移位: <strong class="text-primary font-bold">待计算</strong></span>
-<span>恢复保护: <strong class="text-tertiary-container font-bold">待计算</strong></span>
-<span>次日承接: <strong class="text-secondary font-bold">待计算</strong></span>
+<span>任务位移: <strong class="text-primary font-bold" data-rescue-preview-metric="moved">待计算</strong></span>
+<span>保护缓冲: <strong class="text-tertiary-container font-bold" data-rescue-preview-metric="buffer">待计算</strong></span>
+<span>扰动评分: <strong class="text-secondary font-bold" data-rescue-preview-metric="score">待计算</strong></span>
 </div>
 </label>
 <!-- 方案 C：最小扰动 (紧凑型) -->
-<label class="p-3.5 rounded-xl bg-surface-container-lowest shadow-sm flex flex-col gap-2 cursor-pointer transition-all">
+<label data-rescue-preview-option="C" aria-pressed="false" role="button" tabindex="0" class="p-3.5 rounded-xl bg-surface-container-lowest shadow-sm flex flex-col gap-2 cursor-pointer transition-all">
 <div class="flex items-center justify-between">
 <div class="flex items-center gap-2">
 <input class="w-4 h-4 text-secondary accent-secondary" disabled="" name="rescue-plan" type="radio"/>
-<span class="text-xs font-bold text-on-surface">方案 C · 系统微调最小扰动</span>
+<span class="text-xs font-bold text-on-surface" data-rescue-preview-title>方案 C · 优先保留恢复缓冲</span>
 </div>
-<span class="text-[10px] px-2 py-0.5 rounded-full bg-surface-container-high text-on-surface-variant font-bold font-mono">待计算</span>
+<span data-rescue-preview-status class="text-[10px] px-2 py-0.5 rounded-full bg-surface-container-high text-on-surface-variant font-bold font-mono">备选方案</span>
 </div>
-<p class="text-[11px] font-body text-on-surface-variant leading-relaxed pl-6">
-            根据当前日程的约束，计算尽量减少任务变动的策略。
+<p class="text-[11px] font-body text-on-surface-variant leading-relaxed pl-6" data-rescue-preview-note>
+            先保护日程间的恢复缓冲，再在可行时段中安排任务，降低连续高负荷风险。
           </p>
 <div class="flex items-center gap-4 pl-6 text-[10px] font-mono font-medium text-on-surface-variant">
-<span>任务移位: <strong class="text-primary font-bold">0 项</strong></span>
-<span>恢复保护: <strong class="text-error font-bold">待计算</strong></span>
-<span>团队影响: <strong class="text-tertiary-container font-bold">待计算</strong></span>
+<span>任务位移: <strong class="text-primary font-bold" data-rescue-preview-metric="moved">0 项</strong></span>
+<span>保护缓冲: <strong class="text-error font-bold" data-rescue-preview-metric="buffer">待计算</strong></span>
+<span>扰动评分: <strong class="text-tertiary-container font-bold" data-rescue-preview-metric="score">待计算</strong></span>
 </div>
 </label>
 </div>

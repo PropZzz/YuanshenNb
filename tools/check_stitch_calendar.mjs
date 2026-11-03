@@ -39,6 +39,7 @@ try {
       if (!localStorage.getItem('access_token')) localStorage.setItem('access_token', 'calendar-account-a');
     });
     let records = seed(), mode = 'normal', writes = 0;
+    let recommendedStrategy = 'protectDeadline';
     let rescueHistory = [{ title: '救援任务', at: '2026-10-29T10:00:00', reason: 'rescue_accept:protectDeadline' }];
     const errors = [], page = await context.newPage();
     page.on('pageerror', e => errors.push(e.message));
@@ -46,9 +47,13 @@ try {
       const req = route.request(), url = new URL(req.url()), method = req.method();
       if (url.pathname === '/api/schedule/rescue/history') return route.fulfill({ json: rescueHistory });
       if (url.pathname === '/api/schedule/rescue/options') return route.fulfill({ json: {
-        options: ['protectDeadline', 'protectRecovery', 'minimizeChanges'].map((strategy, index) => ({
-          id: strategy, strategy, title: `真实方案 ${index + 1}`, recommended: index === 0,
-          movedEntryCount: 2, recoveryMinutes: 15, score: 3, plannedEntries: [], rationale: '测试救援预览',
+        options: ['protectDeadline', 'minimizeChanges', 'protectRecovery'].map((strategy, index) => ({
+          id: strategy, strategy, title: `真实方案 ${index + 1}`, recommended: strategy === recommendedStrategy,
+          movedEntryCount: { protectDeadline: 2, minimizeChanges: 0, protectRecovery: 1 }[strategy],
+          recoveryMinutes: strategy === 'protectRecovery' ? 15 : 0,
+          protectionBufferMinutes: strategy === 'protectRecovery' ? 15 : 0,
+          disturbanceScore: { protectDeadline: 28.5, minimizeChanges: 6.2, protectRecovery: 42 }[strategy],
+          score: 0.72, plannedEntries: [], rationale: `测试救援预览 · ${strategy}`,
         })),
       } });
       if (url.pathname === '/api/schedule' && method === 'GET') {
@@ -64,7 +69,7 @@ try {
         if (method === 'DELETE') { records = records.filter(r => r.id !== id); writes++; return route.fulfill({ status: 204 }); }
         const item = { ...req.postDataJSON(), id }; records = records.map(r => r.id === id ? item : r); writes++; return route.fulfill({ json: item });
       }
-      if (url.pathname === '/api/schedule/conflicts') return route.fulfill({ json: { conflicts: url.searchParams.get('day') === '2026-10-29' ? [{ a: 'real-1', b: 'real-2' }] : [] } });
+      if (url.pathname === '/api/schedule/conflicts') return route.fulfill({ json: { conflicts: url.searchParams.get('day') === '2026-10-29' ? [{ entryIds: ['real-1', 'real-2'] }] : [] } });
       return route.fulfill({ json: { ok: true } });
     });
     const ready = route => page.waitForFunction(route => document.getElementById('prototype-screen')?.title === `时序智配 ${route}`, route);
@@ -73,6 +78,65 @@ try {
     const selectDate = async day => { await frame().locator('[data-cal-date]').fill(day); await settled(); };
     const selectView = async mode => { await frame().locator(`[data-cal-action="${mode}"]`).click(); await settled(); };
     await page.goto(base + '#/schedule'); await ready('schedule'); await settled();
+    if (mobile) {
+      const mobileOptions = frame().locator('[data-rescue-preview-option]');
+      assert.equal(await mobileOptions.count(), 3, 'Mobile rescue summary must expose all three selectable options');
+      for (const letter of ['A', 'B', 'C']) {
+        const card = frame().locator(`[data-rescue-preview-option="${letter}"]`);
+        assert.equal(await card.getAttribute('aria-pressed'), letter === 'A' ? 'true' : 'false', `Mobile option ${letter} must reflect the default strategy`);
+        assert.equal(await card.locator('[data-rescue-preview-metric]').count(), 3, `Mobile option ${letter} must expose all rescue metrics`);
+      }
+      await frame().locator('[data-rescue-preview-option="B"]').evaluate(card => card.click());
+      assert.equal(await frame().locator('[data-rescue-preview-option="B"]').getAttribute('aria-pressed'), 'true');
+      assert.equal(await frame().locator('[data-rescue-preview-option="A"]').getAttribute('aria-pressed'), 'false');
+      await frame().locator('[data-rescue-preview-option="C"]').focus();
+      await frame().locator('[data-rescue-preview-option="C"]').press('Enter');
+      assert.equal(await frame().locator('[data-rescue-preview-option="C"]').getAttribute('aria-pressed'), 'true', 'Mobile rescue options must be keyboard selectable');
+      await frame().locator('[data-rescue-preview-option="A"]').evaluate(card => card.click());
+      assert.equal(await frame().locator('[data-rescue-preview-option="A"]').getAttribute('aria-pressed'), 'true');
+      recommendedStrategy = 'protectRecovery';
+      await frame().getByRole('button', {name: /生成服务端救援方案/}).click(); await ready('urgent-task');
+      await frame().locator('#urgent-task-title-input').fill('移动端救援预览验证');
+      await frame().locator('#urgent-task-deadline-input').fill('2026-10-29T18:00');
+      await frame().locator('[data-action="rescue-options"]').click(); await ready('rescue-comparison');
+      if (mobile) {
+        assert.equal(await frame().locator('[data-rescue-tab="0"]').getAttribute('aria-pressed'), 'true', 'Mobile comparison must keep user-selected A even when C is recommended');
+        assert.equal(await frame().locator('[data-rescue-tab="2"] [data-rescue-tab-recommended]').isVisible(), true, 'Mobile comparison must keep the recommendation marker on C');
+        assert.equal(await frame().locator('#plan-card-a').isVisible(), true);
+        assert.equal(await frame().locator('#plan-card-c').isVisible(), false);
+        await frame().locator('[data-rescue-tab="2"]').click();
+        assert.equal(await frame().locator('[data-rescue-tab="2"]').getAttribute('aria-pressed'), 'true', 'Selecting C on mobile must update its selected state');
+        assert.equal(await frame().locator('#plan-card-c').isVisible(), true);
+        assert.match(await frame().locator('[data-rescue-details-heading]').textContent(), /方案 C/);
+        await frame().locator('[data-rescue-tab="0"]').click();
+        assert.equal(await frame().locator('[data-rescue-tab="0"]').getAttribute('aria-pressed'), 'true');
+      } else {
+        const comparisonCards = frame().locator('main .grid > div').filter({ has: frame().locator('h4') });
+        assert.equal(await comparisonCards.nth(0).evaluate(card => card.classList.contains('border-secondary/40')), true, 'Desktop comparison must keep user-selected A even when C is recommended');
+        assert.match(await comparisonCards.nth(2).locator('[data-rescue-recommended]').textContent(), /真实方案 3/, 'Recommendation badge must remain on C');
+      }
+      await page.evaluate(() => { location.hash = '#/schedule'; }); await ready('schedule'); await settled();
+      for (const letter of ['A', 'B', 'C']) {
+        const card = frame().locator(`[data-rescue-preview-option="${letter}"]`);
+        const expected = {
+          A: { moved: '2 项', buffer: '0 分钟', score: '28.5 分' },
+          B: { moved: '0 项', buffer: '0 分钟', score: '6.2 分' },
+          C: { moved: '1 项', buffer: '15 分钟', score: '42 分' },
+        }[letter];
+        assert.equal(await card.locator('[data-rescue-preview-metric="moved"]').textContent(), expected.moved);
+        assert.equal(await card.locator('[data-rescue-preview-metric="buffer"]').textContent(), expected.buffer);
+        assert.equal(await card.locator('[data-rescue-preview-metric="score"]').textContent(), expected.score);
+      }
+      assert.equal(await frame().locator('[data-rescue-preview-option="A"]').getAttribute('aria-pressed'), 'true');
+      await frame().locator('[data-rescue-preview-option="C"]').evaluate(card => card.click());
+      assert.equal(await frame().locator('[data-rescue-preview-option="C"]').getAttribute('aria-pressed'), 'true');
+      assert.equal(await frame().locator('[data-rescue-preview-option="A"]').getAttribute('aria-pressed'), 'false');
+      assert.equal(await frame().locator('[data-rescue-preview-option="C"] [data-rescue-preview-status]').textContent(), '当前选中');
+      assert.equal(await frame().locator('[data-rescue-preview-option="A"] [data-rescue-preview-status]').textContent(), '可执行方案');
+    } else {
+      await frame().locator('[data-rescue-preview-option="A"]').click();
+    }
+    recommendedStrategy = 'protectRecovery';
     if (!mobile) {
       const calendarRoot = frame().locator('#live-calendar-root');
       const smartMode = frame().locator('[data-cal-mode="smart"]');
@@ -101,6 +165,24 @@ try {
       await page.evaluate(() => { location.hash = '#/schedule'; }); await ready('schedule'); await settled();
       const movedMetric = frame().locator('[data-rescue-preview-option="A"] [data-rescue-preview-metric="moved"]');
       assert.equal(await movedMetric.textContent(), '2 项');
+      for (const letter of ['A', 'B', 'C']) {
+        const card = frame().locator(`[data-rescue-preview-option="${letter}"]`);
+        const expected = {
+          A: { moved: '2 项', buffer: '0 分钟', score: '28.5 分' },
+          B: { moved: '0 项', buffer: '0 分钟', score: '6.2 分' },
+          C: { moved: '1 项', buffer: '15 分钟', score: '42 分' },
+        }[letter];
+        assert.equal(await card.locator('[data-rescue-preview-metric="moved"]').textContent(), expected.moved);
+        assert.equal(await card.locator('[data-rescue-preview-metric="buffer"]').textContent(), expected.buffer);
+        assert.equal(await card.locator('[data-rescue-preview-metric="score"]').textContent(), expected.score);
+      }
+      await frame().locator('[data-rescue-preview-option="C"]').click();
+      assert.equal(await frame().locator('[data-rescue-preview-option="C"]').getAttribute('aria-pressed'), 'true');
+      assert.equal(await frame().locator('[data-rescue-preview-option="A"]').getAttribute('aria-pressed'), 'false');
+      assert.match(await frame().locator('[data-rescue-preview-option="C"] [data-rescue-preview-note]').textContent(), /protectRecovery/);
+      const cardBackgrounds = await frame().locator('[data-rescue-preview-option="A"], [data-rescue-preview-option="B"], [data-rescue-preview-option="C"]').evaluateAll(cards => cards.map(card => getComputedStyle(card).backgroundColor));
+      assert.equal(cardBackgrounds[0], cardBackgrounds[1], 'Unselected option A must share the light card surface used by B');
+      assert.notEqual(cardBackgrounds[0], cardBackgrounds[2], 'Selected option C must retain the dark selected surface');
       await selectDate('2026-10-30');
       assert.notEqual(await movedMetric.textContent(), '2 项', 'Another date must not display the previous date rescue metrics');
       await selectDate('2026-10-29');
@@ -309,6 +391,8 @@ try {
     const heldRead = page.waitForRequest('**/api/schedule');
     await page.evaluate(() => { document.getElementById('prototype-screen').contentDocument.stitchCalendar.refresh(); }); await heldRead;
     await page.evaluate(() => { localStorage.setItem('access_token', 'calendar-account-b'); window.dispatchEvent(new StorageEvent('storage', { key: 'access_token' })); }); await ready('schedule'); await settled();
+    assert.equal(await frame().locator('[data-rescue-preview-option="A"]').getAttribute('aria-pressed'), 'true', 'Account changes must clear the prior rescue selection');
+    assert.equal(await frame().locator('[data-rescue-preview-option="C"]').getAttribute('aria-pressed'), 'false');
     const oldResponse = page.waitForResponse(response => response.url().endsWith('/api/schedule') && response.request().headers().authorization?.includes('account-a'));
     releaseRead(); await oldResponse;
     await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
