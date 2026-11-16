@@ -1152,6 +1152,100 @@
     })[character]);
   }
 
+  // 工作台全局快捷键：
+  // - Alt/⌥ + S        调出紧急任务插入（救援入口）
+  // - Ctrl/⌘+Shift+K   快速捕捉零碎念头，直接写入微任务收件箱
+  // - Ctrl/⌘+Shift+B   打开微任务看板
+  // Alt+Space 在 Windows/macOS 被系统窗口菜单占用，无法被网页可靠捕获，
+  // 因此救援入口改用 Alt+S。
+  function handleWorkspaceShortcuts(event, shortcutDocument) {
+    if (event.defaultPrevented) return;
+    const mod = event.ctrlKey || event.metaKey;
+    const inField = /^(input|textarea|select)$/i.test(event.target?.tagName || '');
+    if (event.altKey && !mod && event.code === 'KeyS') {
+      event.preventDefault();
+      navigate('urgent-task', { returnRoute: activeRoute });
+      return;
+    }
+    if (mod && event.shiftKey && !event.altKey && event.key.toLowerCase() === 'k') {
+      if (inField) return;
+      event.preventDefault();
+      openQuickCapture(shortcutDocument);
+      return;
+    }
+    if (mod && event.shiftKey && !event.altKey && event.key.toLowerCase() === 'b') {
+      if (inField) return;
+      event.preventDefault();
+      navigate('micro');
+    }
+  }
+
+  function openQuickCapture(quickDocument) {
+    if (!authHeaders().Authorization) {
+      navigate('login');
+      return;
+    }
+    if (quickDocument.getElementById('quick-capture-dialog')) return;
+    const dialog = quickDocument.createElement('dialog');
+    dialog.id = 'quick-capture-dialog';
+    dialog.setAttribute('aria-labelledby', 'quick-capture-title');
+    dialog.innerHTML = `
+      <form method="dialog" class="quick-capture-form">
+        <h2 id="quick-capture-title">快速捕捉零碎念头</h2>
+        <label for="quick-capture-text">每行一条，存入微任务收件箱（支持 “标题 @标签 时长分钟”）</label>
+        <textarea id="quick-capture-text" rows="4" placeholder="例如：给季度复盘整理数据 @杂务 25"></textarea>
+        <p id="quick-capture-error" role="alert" hidden></p>
+        <div class="quick-capture-actions">
+          <button id="quick-capture-cancel" type="button">取消</button>
+          <button id="quick-capture-save" type="button">存入微任务</button>
+        </div>
+      </form>
+    `;
+    const style = quickDocument.createElement('style');
+    style.textContent = `
+      #quick-capture-dialog { width: min(460px, calc(100vw - 32px)); border: 1px solid #c0c8c7; border-radius: 12px; padding: 22px; color: #1a1b1f; background: #fff; box-shadow: 0 16px 40px rgba(16,27,29,.22); }
+      #quick-capture-dialog::backdrop { background: rgba(16,27,29,.42); backdrop-filter: blur(4px); }
+      .quick-capture-form { display: grid; gap: 10px; }
+      .quick-capture-form h2 { margin: 0 0 4px; font-size: 18px; }
+      .quick-capture-form label { font-size: 13px; font-weight: 600; }
+      .quick-capture-form textarea { width: 100%; border: 1px solid #c0c8c7; border-radius: 8px; padding: 10px 12px; background: #faf8fe; color: #1a1b1f; font: 13px/1.6 Inter, system-ui, sans-serif; resize: vertical; }
+      .quick-capture-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 8px; }
+      .quick-capture-actions button { min-height: 40px; padding: 0 14px; border: 1px solid #c0c8c7; border-radius: 8px; background: #f4f3f8; color: #1a1b1f; }
+      .quick-capture-actions #quick-capture-save { border-color: #005db5; background: #005db5; color: #fff; }
+    `;
+    quickDocument.head.appendChild(style);
+    quickDocument.body.appendChild(dialog);
+    dialog.addEventListener('close', () => { dialog.remove(); style.remove(); }, { once: true });
+    const submit = async () => {
+      const text = dialog.querySelector('#quick-capture-text').value.trim();
+      const error = dialog.querySelector('#quick-capture-error');
+      if (!text) {
+        error.textContent = '写点什么再保存吧';
+        error.hidden = false;
+        return;
+      }
+      const save = dialog.querySelector('#quick-capture-save');
+      save.disabled = true;
+      try {
+        const created = await backendRequest('/microtasks/import', { method: 'POST', body: { text } });
+        dialog.close();
+        showNotice(window.document, `已存入 ${Array.isArray(created) ? created.length : 0} 条微任务，可在微任务页查看。`);
+      } catch (captureError) {
+        save.disabled = false;
+        error.textContent = captureError.message || '保存失败，请稍后重试';
+        error.hidden = false;
+      }
+    };
+    dialog.querySelector('form').addEventListener('submit', (event) => {
+      event.preventDefault();
+      submit();
+    });
+    dialog.querySelector('#quick-capture-cancel').addEventListener('click', () => dialog.close());
+    dialog.querySelector('#quick-capture-save').addEventListener('click', submit);
+    dialog.showModal();
+    dialog.querySelector('#quick-capture-text').focus();
+  }
+
   function openProfileEditor(profileDocument) {
     if (profileDocument.getElementById('profile-dialog')) return;
     const currentName = readStoredUser().displayName || '';
@@ -1205,7 +1299,7 @@
     }
 
     const sidebarName = Array.from(profileDocument.querySelectorAll('aside span'))
-      .find((node) => node.textContent.trim() === '知行');
+      .find((node) => node.textContent.trim() === '访客');
     if (sidebarName) {
       if (!sidebarName.dataset.defaultDisplayName) {
         sidebarName.dataset.defaultDisplayName = sidebarName.textContent.trim();
@@ -1308,61 +1402,27 @@
       }
     }
 
-    const unavailableActions = new Map([
-      ['添加应用', '应用静默名单尚未接入保存接口，当前无法添加拦截规则。'],
-      ['立即绑定', '日历提供方授权接口尚未开放，当前无法绑定。'],
-      ['数字工牌', '数字工牌尚未接入账号凭证服务，当前不会生成虚假凭证。'],
-      ['导出加密数据副本', '后端暂未提供完整加密数据导出接口，当前不会生成不完整副本。'],
-      ['账号安全审计', '账号安全审计服务暂未接入，当前无法读取审计记录。'],
-    ]);
-    const toneValues = new Map([
-      ['深青原色', 'teal'],
-      ['沉静冷灰', 'gray'],
-      ['墨玉青绿', 'jade'],
-    ]);
+    // “我的”页所有卡片（指标、趋势图、履约率、时间结构、番茄钟、免打扰、
+    // 同步、快捷键、数据主权）统一由 StitchProfile 模块接入后端真实数据。
+    if (window.StitchProfile && !profileDocument.stitchProfile) {
+      profileDocument.stitchProfile = window.StitchProfile.mount(profileDocument, {
+        request: backendRequest,
+        apiBase,
+        notify: (message) => showNotice(profileDocument, message),
+        navigate,
+      });
+      (profileDocument.stitchDrawerCleanup ||= []).push(() => {
+        profileDocument.stitchProfile?.dispose?.();
+        profileDocument.stitchProfile = null;
+      });
+    }
+
+    // 本地即时偏好（色调 / 紧凑模式）先恢复，再由 StitchProfile 同步到服务端。
     for (const button of profileDocument.querySelectorAll('button')) {
       const label = button.textContent.trim().replace(/\s+/g, ' ');
       if (label.includes('导出周报')) button.id = 'profile-weekly-export';
-      for (const [toneLabel, toneValue] of toneValues) {
-        if (label.includes(toneLabel)) button.dataset.profileTone = toneValue;
-      }
-      for (const [actionLabel, notice] of unavailableActions) {
-        if (label.includes(actionLabel)) button.dataset.unavailableNotice = notice;
-      }
     }
-
-    const compactLabel = Array.from(profileDocument.querySelectorAll('label'))
-      .find((label) => label.textContent.includes('超紧凑高密度模式'));
-    const compactInput = compactLabel?.querySelector('input[type="checkbox"]');
-    if (compactInput) compactInput.id = 'profile-compact-mode';
-    const preferences = readProfilePreferences();
-    applyProfilePreferences(profileDocument, preferences);
-
-    const backendUnavailable = '当前后端没有此项保存接口，开关暂不可用。';
-    disableProfileControl(profileDocument, profileDocument.querySelector('input[type="range"]'), backendUnavailable);
-    disableProfileControl(
-      profileDocument,
-      Array.from(profileDocument.querySelectorAll('input[type="checkbox"]'))
-        .find((input) => input !== compactInput && input.closest('label')?.textContent.includes('自动开启下一个专注时序')),
-      backendUnavailable,
-    );
-    disableProfileControl(profileDocument, profileDocument.querySelector('select'), backendUnavailable);
-    for (const input of profileDocument.querySelectorAll('input[type="checkbox"]')) {
-      const label = input.closest('label')?.textContent || '';
-      if (label.includes('系统级免打扰联动') || label.includes('浏览器 Web Push')) {
-        disableProfileControl(profileDocument, input, '通知和系统免打扰接口尚未接入，当前不会发送或拦截通知。');
-      }
-    }
-
-    for (const row of profileDocument.querySelectorAll('main div.flex.items-center.justify-between')) {
-      if (!/Google Calendar|Outlook 365/.test(row.textContent)) continue;
-      const status = Array.from(row.children)
-        .find((node) => node.tagName === 'SPAN' && node.textContent.includes('已同步'));
-      if (!status) continue;
-      status.textContent = '暂未接入';
-      status.classList.remove('bg-tertiary-fixed', 'text-on-tertiary-fixed');
-      status.classList.add('bg-surface-container-high', 'text-on-surface-variant');
-    }
+    applyProfilePreferences(profileDocument, readProfilePreferences());
   }
 
   function setScheduleTagColors(document) {
@@ -2782,6 +2842,10 @@
       if (frame.contentDocument !== childDocument || activeRoute !== 'schedule-detail' || !event.detail?.id) return;
       navigate(`create-schedule?id=${encodeURIComponent(event.detail.id)}`, { returnRoute: 'schedule' });
     });
+    // 工作台快捷键在页面 iframe 内同样生效（焦点落在 iframe 时事件派发到子文档）。
+    childDocument.defaultView.addEventListener('keydown', (event) => {
+      if (frame.contentDocument === childDocument) handleWorkspaceShortcuts(event, childDocument);
+    });
     childDocument.defaultView.addEventListener('stitch:retry-schedule-detail', () => {
       if (frame.contentDocument === childDocument && activeRoute === 'schedule-detail') hydrateScheduleDetail(childDocument);
     });
@@ -2923,7 +2987,13 @@
         preferences.colorTone = button.dataset.profileTone;
         saveProfilePreferences(preferences);
         applyProfilePreferences(childDocument, preferences);
-        showNotice(childDocument, '色彩偏好已保存在此浏览器，不会同步到账户。');
+        // 色调除本地即时生效外，还同步到账号偏好，登录后跨设备保持。
+        backendRequest('/settings', {
+          method: 'PUT',
+          body: { preferences: { profileColorTone: preferences.colorTone } },
+        })
+          .then(() => showNotice(childDocument, '色彩偏好已保存并同步到账户。'))
+          .catch(() => showNotice(childDocument, '色彩偏好已在本页生效；账户同步失败，稍后将随其他偏好重试。'));
         return;
       }
       const apiAction = apiActionForButton(button);
@@ -2964,7 +3034,12 @@
       preferences.compactMode = compactMode.checked;
       saveProfilePreferences(preferences);
       applyProfilePreferences(childDocument, preferences);
-      showNotice(childDocument, '紧凑布局已保存在此浏览器，不会同步到账户。');
+      backendRequest('/settings', {
+        method: 'PUT',
+        body: { preferences: { profileCompact: compactMode.checked } },
+      })
+        .then(() => showNotice(childDocument, '紧凑布局已保存并同步到账户。'))
+        .catch(() => showNotice(childDocument, '紧凑布局已在本页生效；账户同步失败，稍后将随其他偏好重试。'));
     });
 
   }
@@ -3001,7 +3076,9 @@
     if (event.key === 'Escape') {
       if (settingsOverlayHost) closeSettingsOverlay();
       else returnFromSecondary();
+      return;
     }
+    handleWorkspaceShortcuts(event, window.document);
   });
 
   const initialRoute = routeFromHash();

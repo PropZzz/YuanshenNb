@@ -194,6 +194,18 @@ def run_dart_runner(
 ) -> DartRunResult:
     """Execute the Flutter shared-vector test and preserve all diagnostics."""
 
+    if runner is None and not all(
+        (REPO_ROOT / path).is_file()
+        for path in ("pubspec.yaml", "test/shared_vector_runner_test.dart")
+    ):
+        return DartRunResult(
+            stdout="",
+            stderr="",
+            returncode=-1,
+            invalid=True,
+            error="Flutter client removed; cross-runtime parity is unavailable until its runner is rebuilt",
+        )
+
     flutter = shutil.which("flutter.bat") or shutil.which("flutter") or "flutter.bat"
     # Dependency restoration is an explicit setup step. Re-running pub here
     # can change the lockfile and requires native plugin symlinks on Windows,

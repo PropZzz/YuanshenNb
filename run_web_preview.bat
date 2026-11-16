@@ -46,7 +46,7 @@ if /I "%~1"=="--check" (
   exit /b 0
 )
 
-echo [4/5] Checking canonical Web sources and native asset references...
+echo [4/5] Checking canonical Web sources and asset references...
 call node tools\check_web_sources.mjs
 if errorlevel 1 (
   echo ERROR: Web source validation failed.

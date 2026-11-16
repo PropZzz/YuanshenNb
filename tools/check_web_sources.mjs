@@ -53,14 +53,7 @@ export async function checkWebSources(root = projectRoot) {
     }
     for (const match of source.matchAll(/url\(\s*["']?([^\s)'"<>]+)["']?\s*\)/gi)) await check(file, match[1]);
   }
-  const pubspec = await readFile(join(root, 'pubspec.yaml'), 'utf8');
-  let nativeAssets = 0;
-  for (const match of pubspec.matchAll(/^\s+-\s+(?:asset:\s*)?((?:assets|stitch\/assets)\/[^\r\n]+)\s*$/gm)) {
-    const path = match[1].trim();
-    assert.ok(await stat(join(root, path)).catch(() => null), `Missing Flutter asset: ${path}`);
-    nativeAssets++;
-  }
-  return { webFiles: files.length, routePages: pages, localReferences: references, nativeAssetDeclarations: nativeAssets };
+  return { webFiles: files.length, routePages: pages, localReferences: references };
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {

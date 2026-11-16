@@ -5,12 +5,12 @@
 ## 当前源码与启动入口
 
 - 线上 Web：`web/` 中的 HTML/JS；桌面、移动页面均在此维护。`web/index.html` 加载统一路由与持久页面宿主。
-- 原生客户端：`lib/` 中的 Flutter/Dart；保留 Android、iOS、Windows、macOS、Linux 工程及其资源、测试。
-- 后端：`backend/` 中唯一的 FastAPI + SQLite 服务，入口 `backend.main:app`，由 Web 和 Flutter 共用。
+- 原生客户端：旧 Flutter/Dart 源码、五个平台工程、专用资源、测试及构建配置已于 **2026-11-16 删除**，等待重新构建；新客户端尚未创建。
+- 后端：`backend/` 中唯一的 FastAPI + SQLite 服务，入口 `backend.main:app`，当前服务 Web。
 - 本地 Web：运行 `run_web_preview.bat`；它检查当前源码，不再从旧设计导出复制页面。
 - Web 构建：`node tools/build_stitch_web.mjs`；发布：`python deploy/deploy_web_release.py`，通过交互提示输入 SSH 密码。
 - 目录边界与验证命令见 [当前架构](docs/current-architecture.md)；旧导出清理记录见 [2026-10-29 清理记录](docs/cleanup-2026-10-29.md)。
-- 2026-10-31 收口验证：Flutter analyze 无问题，Flutter **398 项**通过，后端连续两轮各 **265 项**通过，Node **34 项**通过，调度共享向量 **13/13** 一致。详见 [验证记录](docs/verification-2026-10-31.md) 和 [执行清单](docs/superpowers/plans/2026-10-31-project-closeout.md)。
+- 历史验证（删除前，2026-10-31）：Flutter analyze 无问题，Flutter **398 项**通过，后端连续两轮各 **265 项**通过，Node **34 项**通过，调度共享向量 **13/13** 一致。详见 [验证记录](docs/verification-2026-10-31.md) 和 [执行清单](docs/superpowers/plans/2026-10-31-project-closeout.md)。
 - 2026-11-01 已向现有服务器部署持久会话、CORS、每日备份和旧库救援修复，后端扩展至 **267 项**测试；部署和恢复证据见 [生产验收](docs/production-acceptance-2026-11-01.md)。用户暂无正式域名，HTTPS 尚未启用。
 
 ---
@@ -29,9 +29,11 @@
 - 远端救援采用与撤销在单个 SQLite 事务内完成：基线哈希校验通过后，日程写入、`rescue_accept:`/`rescue_undo:` 事件与撤销快照要么全部落库，要么全部回滚；快照 ID 支持撤销与复盘追溯。
 - 只有远端不可用或网络/服务端暂时故障时才使用本地兜底。认证、校验、冲突和响应格式错误会明确返回，避免把错误数据当成空结果。
 
-## 调度基准与性能证据
+## 历史调度基准与性能证据
 
-规则正确且 Dart/Python 跨语言结果一致后，先运行 parity，再采集调度性能：
+2026-11-16：旧 Dart 执行器已随 Flutter 删除，以下为历史流程与测量说明。共享 Python 工具及后端测试保留；跨语言 parity 当前不可运行，依赖它的基准默认会阻断。旧报告不能证明重建后仍然一致，也不应绕过门禁采集新的通过结论。
+
+历史上，规则正确且 Dart/Python 跨语言结果一致后，先运行 parity，再采集调度性能：
 
 ```powershell
 python scripts/scheduling_parity.py

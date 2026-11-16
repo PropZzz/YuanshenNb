@@ -10,7 +10,7 @@
 node tools/build_stitch_web.mjs
 ```
 
-唯一发布源是 `web/`。脚本输出 `build/stitch-web/<release>/`，其中 `release.json` 记录发布版本、入口脚本和每个文件的 SHA-256。旧 Flutter Web 产物与设计页面导出已清理；`stitch/` 现在只保留 Flutter 原生资源，不能作为 Web 发布源。
+唯一发布源是 `web/`。脚本输出 `build/stitch-web/<release>/`，其中 `release.json` 记录发布版本、入口脚本和每个文件的 SHA-256。旧 Flutter 客户端及根目录 `stitch/` 原生资源已于 2026-11-16 删除；现有 `web/stitch/` 继续作为 Web 源码保留。
 
 标准发布命令（需要已安装 `paramiko`，且本机 SSH known_hosts 已有核验过的服务器公钥）：
 

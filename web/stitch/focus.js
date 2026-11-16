@@ -23,8 +23,11 @@
 
   const MODE_STORAGE_KEY = 'ruanchuang-focus-mode';
 
+  // entry.height 80px = 60 分钟；未标注时长的条目回退到“我的”页保存的
+  // 番茄钟偏好（/settings preferences.pomodoroFocusMinutes），默认仍为 60。
+  let defaultFocusMinutes = 60;
   const durationMinutes = (entry) =>
-    Math.max(1, Math.min(1440, Math.round((Number(entry?.height) || 60) * 60 / 80)));
+    Math.max(1, Math.min(1440, Math.round((Number(entry?.height) || defaultFocusMinutes) * 60 / 80)));
   const startMinutes = (entry) =>
     (Number(entry?.time?.hour) || 0) * 60 + (Number(entry?.time?.minute) || 0);
   const endMinutes = (entry) => startMinutes(entry) + durationMinutes(entry);
@@ -781,6 +784,17 @@
     doc.addEventListener('stitch:visibility', visibility);
 
     refresh();
+
+    // “我的”页偏好联动：默认专注时长用于未标注时长的条目；免打扰偏好
+    // 决定专注期间是否静音提醒横幅。读取失败不影响工作台默认行为。
+    request('/settings').then((data) => {
+      const preferences = data?.preferences;
+      if (preferences && Number(preferences.pomodoroFocusMinutes) >= 15) {
+        defaultFocusMinutes = Number(preferences.pomodoroFocusMinutes);
+        if (!current && !segment) render();
+      }
+      if (preferences?.doNotDisturb === true && !segment) dnd = true;
+    }).catch(() => {});
 
     return {
       refresh,

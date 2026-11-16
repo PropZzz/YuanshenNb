@@ -106,12 +106,14 @@ class UserSettingsOut(APIModel):
     theme_mode: str = Field(default="system", alias="themeMode")
     locale: str = "zh_CN"
     favorite_device_id: str | None = Field(default=None, alias="favoriteDeviceId")
+    preferences: dict[str, object] = Field(default_factory=dict)
 
 
 class UserSettingsUpdate(APIModel):
     theme_mode: str | None = Field(default=None, alias="themeMode")
     locale: str | None = None
     favorite_device_id: str | None = Field(default=None, alias="favoriteDeviceId")
+    preferences: dict[str, object] | None = None
 
 
 class ScheduleEntryIn(APIModel):
