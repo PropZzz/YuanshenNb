@@ -10,6 +10,7 @@
 - 本地 Web：运行 `run_web_preview.bat`；它检查当前源码，不再从旧设计导出复制页面。
 - Web 构建：`node tools/build_stitch_web.mjs`；发布：`python deploy/deploy_web_release.py`，通过交互提示输入 SSH 密码。
 - 目录边界与验证命令见 [当前架构](docs/current-architecture.md)；旧导出清理记录见 [2026-10-29 清理记录](docs/cleanup-2026-10-29.md)。
+- 分工与后续排期见 [四人开发方案（Web 主线）](docs/四人开发方案-2026-11-17.md)。旧的 [五人开发分工文档](docs/五人开发分工文档.md) 已作废：其中 Flutter 客户端岗位对应的路径已随 2026-11-16 清理移除。
 - 历史验证（删除前，2026-10-31）：Flutter analyze 无问题，Flutter **398 项**通过，后端连续两轮各 **265 项**通过，Node **34 项**通过，调度共享向量 **13/13** 一致。详见 [验证记录](docs/verification-2026-10-31.md) 和 [执行清单](docs/superpowers/plans/2026-10-31-project-closeout.md)。
 - 2026-11-01 已向现有服务器部署持久会话、CORS、每日备份和旧库救援修复，后端扩展至 **267 项**测试；部署和恢复证据见 [生产验收](docs/production-acceptance-2026-11-01.md)。用户暂无正式域名，HTTPS 尚未启用。
 
