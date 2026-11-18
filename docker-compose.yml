@@ -1,0 +1,22 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: shixu-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: shixu
+      POSTGRES_PASSWORD: shixu_dev_password
+      POSTGRES_DB: shixu_v2
+      TZ: UTC
+    ports:
+      - "5432:5432"
+    volumes:
+      - shixu_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U shixu -d shixu_v2"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  shixu_pg_data:
