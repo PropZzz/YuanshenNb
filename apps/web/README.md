@@ -12,4 +12,4 @@
 - `public/favicon.png` — 浏览器图标
 - `src/styles/tokens.css` — 浅/深色品牌语义令牌与日历时间线样式
 
-设计规范与 V1→V2 页面精简映射见 [docs/design-system-v2.md](../../docs/design-system-v2.md)。
+设计规范与 V1→V2 页面精简映射见 [docs/06-design-system-v2.md](../../docs/06-design-system-v2.md)，Web 模块架构见 [docs/05-client-web-and-android.md](../../docs/05-client-web-and-android.md)。

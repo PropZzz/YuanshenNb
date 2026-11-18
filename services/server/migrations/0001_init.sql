@@ -23,6 +23,7 @@ CREATE TABLE users (
 CREATE TABLE refresh_tokens (
     id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id         UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    family_id       UUID NOT NULL,
     token_hash      TEXT NOT NULL UNIQUE,
     device_name     TEXT NOT NULL DEFAULT '',
     expires_at      TIMESTAMPTZ NOT NULL,
@@ -31,6 +32,7 @@ CREATE TABLE refresh_tokens (
 );
 
 CREATE INDEX idx_refresh_tokens_user ON refresh_tokens (user_id, expires_at DESC);
+CREATE INDEX idx_refresh_tokens_family ON refresh_tokens (family_id);
 
 -- 2. 穿戴设备生理样本与精力模型
 CREATE TABLE biometric_samples (

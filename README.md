@@ -26,22 +26,27 @@
 ```text
 Ruanchuang/
 ├── services/
-│   └── server/              # Go 服务端与 PostgreSQL 迁移脚本
+│   └── server/                             # Go 服务端与 PostgreSQL 迁移脚本
 ├── apps/
-│   ├── web/                 # React Web 前端（沿用并升级“时间地图”视觉体系）
-│   └── android/             # Kotlin Compose Android 客户端（含穿戴设备接入）
-├── contracts/               # OpenAPI 3.1 契约文件与生成说明
+│   ├── web/                                # React Web 前端（沿用并升级“时间地图”视觉体系）
+│   └── android/                            # Kotlin Compose Android 客户端（含穿戴设备接入）
+├── contracts/                              # OpenAPI 3.1 契约文件与生成说明
 ├── docs/
-│   ├── architecture-v2.md   # V2 系统架构、PostgreSQL ER 模型、核心算法与分工
-│   └── design-system-v2.md  # 从原 Web 提取的完整视觉规范与组件蓝图
-├── docker-compose.yml       # 本地 PostgreSQL 16 容器环境
-└── project_plan.docx        # 竞赛项目计划书（保留归档）
+│   ├── README.md                           # V2 架构文档总览与分章索引
+│   ├── 01-domain-and-database.md           # 领域模型与 PostgreSQL 设计
+│   ├── 02-wearable-energy-engine.md        # 穿戴设备接入与精力模型
+│   ├── 03-team-scheduling-and-rescue.md    # 团队协同排会与救援算法
+│   ├── 04-api-and-realtime-contracts.md    # REST API 与 WebSocket 契约
+│   ├── 05-client-web-and-android.md        # Web 与 Android 应用架构
+│   ├── 06-design-system-v2.md              # Web & Android 视觉设计系统
+│   └── 07-security-testing-and-delivery.md # 安全边界、测试验收与四人分工
+├── docker-compose.yml                      # 本地 PostgreSQL 16 容器环境
+└── project_plan.docx                       # 竞赛项目计划书（保留归档）
 ```
 
 ---
 
 ## 文档导航
 
-- 总体架构、数据库设计、精力与协同排会算法：[docs/architecture-v2.md](docs/architecture-v2.md)
-- Web UI 视觉设计系统与原界面承接方案：[docs/design-system-v2.md](docs/design-system-v2.md)
+- 架构文档总览与分章入口：[docs/README.md](docs/README.md)
 - 服务端数据库初始迁移：[services/server/migrations/0001_init.sql](services/server/migrations/0001_init.sql)
