@@ -1,52 +1,69 @@
-# 时序智配 V2 | Temporal Intelligence Scheduler
+# 时序智配 | Temporal Intelligence Scheduler
 
-> **聚焦核心**：穿戴设备精力感知 × 个人精力保护 × 团队协同排会最优解
+> **懂你身体节律的个人精力护盾，与不打扰深度的团队协同排会中枢**
 
-本分支（`refactor/v2-rebuild`）用于彻底重构项目架构，聚焦两个真正打通的高价值核心能力：
-1. **个人级智能精力分配与保护**：由 Android 穿戴设备（Health Connect / BLE）持续采集心率、HRV 与睡眠数据，推导个人实时精力电量与 24h 节律曲线，保护深度专注窗口，并在突发打扰或疲劳过载时给出可解释、可撤销的日程重排方案。
-2. **团队级协同排会与保护边界**：在严格保护成员生理隐私的前提下，将个人忙闲、深度专注保护期与认知负荷等级聚合为团队协同约束，为团队会议寻找对全员精力损耗最小、时间碎片最少的最优黄金窗口。
-
-> 说明：V1 历史代码与文档完整保留在 `main` 分支（如需要对照旧版 Stitch HTML 或旧逻辑，可通过 `git show main:<path>` 随时查看）。
+**时序智配（Temporal Intelligence Scheduler）** 是一款面向知识工作者与敏捷研发团队的智能时间与精力协同平台。它打破传统日历“只看空闲填格子、忽略精力代价与专注连续性”的局限，将**穿戴设备生理节律感知**直接接入**个人日程保护**与**团队协同排会**闭环之中。
 
 ---
 
-## 技术栈总览
+## 为什么需要时序智配？
 
-| 模块 | 目录 | 核心技术选型 |
-| --- | --- | --- |
-| **后端 & 引擎** | `services/server` | **Go 1.24+** · `Chi` + `Huma v2` (OpenAPI 3.1) · `pgx/v5` + `sqlc` + `goose` · **PostgreSQL 16** |
-| **Web 工作台** | `apps/web` | **React 19 + TypeScript + Vite 6** · Tailwind CSS v4 + `shadcn/ui` · TanStack Query v5 + Zustand |
-| **Android 客户端** | `apps/android` | **Kotlin 2.x + Jetpack Compose (Material 3)** · Hilt · **Android Health Connect SDK** · BLE GATT (`0x180D`) · WorkManager |
-| **唯一契约** | `contracts/` | 后端导出的 `openapi.json`，自动生成 Web TypeScript 与 Android Kotlin 客户端模型 |
+在高压多线程工作与频繁远程协作中，传统日程工具存在两个结构性盲区：
+
+1. **只管“有没有空”，不管“状态行不行”**：在睡眠不足或下午低谷强行安排高脑力负荷任务，导致虚假忙碌与产出骤降；一旦临时任务插入或连续开会过载，整天计划瞬间崩溃。
+2. **团队排会“只看日历空白”，暴力切割个人心流**：传统找空闲功能会把会议随机插进成员大块深度工作正中间，把 3 小时整块时间切碎成无法工作的碎片，却没人看见全员认知损耗。
 
 ---
 
-## 目录结构
+## 核心能力闭环
 
 ```text
-Ruanchuang/
-├── services/
-│   └── server/                             # Go 服务端与 PostgreSQL 迁移脚本
-├── apps/
-│   ├── web/                                # React Web 前端（沿用并升级“时间地图”视觉体系）
-│   └── android/                            # Kotlin Compose Android 客户端（含穿戴设备接入）
-├── contracts/                              # OpenAPI 3.1 契约文件与生成说明
-├── docs/
-│   ├── README.md                           # V2 架构文档总览与分章索引
-│   ├── 01-domain-and-database.md           # 领域模型与 PostgreSQL 设计
-│   ├── 02-wearable-energy-engine.md        # 穿戴设备接入与精力模型
-│   ├── 03-team-scheduling-and-rescue.md    # 团队协同排会与救援算法
-│   ├── 04-api-and-realtime-contracts.md    # REST API 与 WebSocket 契约
-│   ├── 05-client-web-and-android.md        # Web 与 Android 应用架构
-│   ├── 06-design-system-v2.md              # Web & Android 视觉设计系统
-│   └── 07-security-testing-and-delivery.md # 安全边界、测试验收与四人分工
-├── docker-compose.yml                      # 本地 PostgreSQL 16 容器环境
-└── project_plan.docx                       # 竞赛项目计划书（保留归档）
+  [Android 穿戴生理采集] ──(睡眠 / HRV / 心率 / 静息心率)──▶ [个人精力电量与 24h 节律]
+           ▲                                                           │
+           │                                             ┌─────────────┴─────────────┐
+           │                                             ▼                           ▼
+  [系统提醒与随身确认]                         [个人精力保护与救援]         [团队协同排会最优解]
+  • 疲劳过载即时预警                           • 高负荷任务对齐高峰窗       • 隐私脱敏后聚合团队状态
+  • 一键确认/撤销重排                          • 疲劳自动建议恢复缓冲       • 避开心流保护期找黄金窗
+                                               • 突发打断 3 方案可撤销      • 单事务落库全员同步提醒
 ```
+
+### 1. 穿戴设备驱动的个人智能精力分配
+- **真实多源接入**：通过 Android **Health Connect** 无缝汇聚主流智能手表/手环的睡眠分期、HRV（RMSSD）、静息心率与活动数据，同时支持标准 **BLE 心率/RR 间期直连**与显式标注的节律回放体验模式。
+- **可解释的精力曲线**：结合睡眠恢复分、自主神经 HRV 偏离度、个人昼夜节律与日内会议消耗，实时生成 0–100 精力电量与未来 24 小时认知状态预测。
+- **不强行改表的柔性救援**：当突发紧急任务插单或穿戴检测到连续高压疲劳时，系统生成**保截止期 / 保精力恢复 / 最少改动**三种对比方案，清楚标出移动任务数与恢复缓冲代价，由用户确认落库，并支持一键原子撤销。
+
+### 2. 保护个人隐私与深度的团队协同排会
+- **隐私防火墙**：团队协作默认仅投影“可用 / 忙碌 / 深度专注保护中 / 疲劳建议轻量协作”四类脱敏状态，**绝不暴露**任何成员的原始生理指标或私有日程标题。
+- **黄金协作窗口求解**：发起会议时可指定**会议认知强度**（高负荷评审脑暴 vs 轻量同步站会），调度器在全员工作交集中综合评估精力匹配度、心流保护盾、时间碎片化损耗与缓冲连续性，推荐 Top 3 可解释黄金窗口；若无解则给出精确的冲突成员与调参建议。
+- **多端实时协同**：桌面 Web 工作台与 Android 移动端通过 WebSocket 实时同步会议落库与团队状态变更。
 
 ---
 
-## 文档导航
+## 多端形态与技术架构
 
-- 架构文档总览与分章入口：[docs/README.md](docs/README.md)
-- 服务端数据库初始迁移：[services/server/migrations/0001_init.sql](services/server/migrations/0001_init.sql)
+| 模块 | 位置 | 技术选型 | 核心定位 |
+| --- | --- | --- | --- |
+| **服务端与调度大脑** | `services/server` | **Go 1.24+** (`Chi` + `Huma v2` + `sqlc` + `pgx/v5`) · **PostgreSQL 16** | 统一承担精力建模、区间冲突检测（`tstzrange` + GiST）、团队协同求解与实时推送 |
+| **Web 工作台** | `apps/web` | **React 19 + TypeScript + Vite 6** · Tailwind CSS v4 + `shadcn/ui` | 桌面主力视图：时间地图、精力热区叠层、团队协同排会对比与日程救援控制台 |
+| **Android 客户端** | `apps/android` | **Kotlin 2.x + Jetpack Compose (Material 3)** · Health Connect · BLE | 移动随身入口与穿戴采集器：后台增量同步生理数据、移动日程、会议回执与过载提醒 |
+| **接口契约** | `contracts/` | **OpenAPI 3.1** | 由服务端自动导出并生成双端强类型客户端代码 |
+
+---
+
+## 快速开始
+
+> 当前项目处于 V2 架构落地准备期（仓库已备齐数据库迁移脚本、视觉令牌与全套设计文档）。
+
+1. **启动本地 PostgreSQL 16 数据库**：
+   ```powershell
+   docker compose up -d
+   ```
+2. **查阅详细设计文档与接口规范**：
+   - 文档总览与导航：[docs/README.md](docs/README.md)
+   - 数据库设计迁移：[services/server/migrations/0001_init.sql](services/server/migrations/0001_init.sql)
+   - AI 代理工程约束：[AGENT.md](AGENT.md)
+3. **模块说明入口**：
+   - Go 服务端：[services/server/README.md](services/server/README.md)
+   - React Web 工作台：[apps/web/README.md](apps/web/README.md)
+   - Android 客户端：[apps/android/README.md](apps/android/README.md)
