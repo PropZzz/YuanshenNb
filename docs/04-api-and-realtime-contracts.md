@@ -69,6 +69,7 @@
      - **Health Connect 通道 (`sourceType = 'health_connect'`)**：传入系统 `Record.metadata.id`（对拆分的睡眠分期记录传入 `hc:{sleepSessionId}:stage:{stageIndex}:{startEpochSec}`）。
      - **BLE GATT 通道 (`sourceType = 'ble_gatt'`)**：Android 端在入队 Room `pending_biometrics` 前，必须按 60 秒聚合窗口构造 `ble:{deviceHash}:{metricType}:{recordedAtEpochSec}`（例：`ble:9f86d081:hrv_rmssd:1795012200`）。
    - 服务端通过 `uq_biometrics_external (user_id, source_type, metric_type, external_id)` 执行幂等写入，保障弱网重传零脏数据。
+   - 生理值、单位或时间区间无效时整批拒绝且不部分写入；`422 INVALID_BIOMETRIC_SAMPLE` 在 `errors[].location` 中返回首个无效点的字段位置（例如 `body.samples[1].numericValue`），供离线队列隔离该点后重试其余样本。结构性校验仍使用 `422 VALIDATION_FAILED`。
 2. **`GET /energy/today`（及 `latestEnergy`）完整响应结构**：
    ```json
    {
@@ -167,10 +168,14 @@
 | 26 | `GET /workspaces/{id}/members` | Bearer | Path: `id` | `workspaceId`, `members[]`: `{userId, displayName, role, timezone, privacyLevel, joinedAt}` | **工作区成员名册**：供排会选人组件独立加载；非成员返 `403 FORBIDDEN_NOT_WORKSPACE_MEMBER` |
 | 27 | `GET /workspaces/{id}/availability` | Bearer | Path: `id`; Query: `from` (RFC3339), `to` (RFC3339), `memberIds?` | `workspaceId`, `from`, `to`, `members[]`: `{userId, displayName, timezone, privacyLevel, workStartMinute, workEndMinute, slots[], energyBuckets[]?}` | **强制校验 `to - from <= 14 days`**（超限返 `422 RANGE_TOO_LARGE`）；**严格脱敏投影**：绝不含精力 `score` 或生理原值 |
 | 28 | `POST /workspaces/{id}/meetings/recommend` | Bearer | Path: `id`; Body: `title`, `description?`, `durationMinutes` (`15..480`), `cognitiveLoad`, `participantIds[]`, `optionalIds[]?`, `searchFrom`, `searchTo`, `respectFocusShields?`, `maxResults?` (`1..10`, 默认 `3`) | `recommendations[]`, `blockingDiagnostics[]` | **强制校验 `searchTo - searchFrom <= 14 days`**；求解黄金协同窗口，返回结构化 `explanationTags: Array<{code, tone, label}>` |
-| 29 | `POST /workspaces/{id}/meetings/confirm` | Bearer | Path: `id`; Header: `Idempotency-Key?`; Body: `proposalId?`, `title`, `description?`, `cognitiveLoad`, `participantIds[]`, `optionalIds[]?`, `startAt`, `endAt`, `recommendationMeta?` (`MeetingRecommendationMeta`) | `proposal`, `createdScheduleCount` | **单事务按 UUID 字典序锁全体参会人 `users` 行**，二次校验无 `hard_locked / meeting` 冲突（冲突返 `409 CONFLICT_MEMBER_BUSY`），原子落库提案与全员 `schedule_items`（时长由 `startAt`/`endAt` 推导，不再传冗余 `durationMinutes`） |
+| 29 | `POST /workspaces/{id}/meetings/confirm` | Bearer | Path: `id`; Header: `Idempotency-Key?`; Body: `proposalId?`, `title`, `description?`, `cognitiveLoad`, `participantIds[]`, `optionalIds[]?`, `startAt`, `endAt`, `recommendationMeta?` (`MeetingRecommendationMeta`) | `proposal`, `createdScheduleCount` | **单事务按 UUID 字典序锁全体参会人 `users` 行**，二次校验无 `hard_locked / meeting` 冲突（必选成员冲突返 `409 CONFLICT_MEMBER_BUSY`），原子落库提案与必选及可用可选成员的 `schedule_items`（时长由 `startAt`/`endAt` 推导，不再传冗余 `durationMinutes`） |
 | 30 | `GET /workspaces/{id}/meetings` | Bearer | Path: `id`; Query: `status?` (`'draft'\|'confirmed'\|'cancelled'`), `from?`, `to?`, `limit?` (`1..50`), `cursor?` | `meetings[]`（含 `participants[]: {userId, displayName, required, responseStatus}`）, `nextCursor?` | 查询团队会议提案列表及每位参会人的回执状态 |
 | 31 | `POST /workspaces/{id}/meetings/{proposalId}/respond` | Bearer | Path: `id`, `proposalId`; Body: `responseStatus` (`'accepted'\|'declined'`) | `proposalId`, `userId`, `responseStatus`, `scheduleStatus`, `updatedAt` | 受邀参会人回执；当为 `'declined'` 时，**同事务将该用户对应的 `schedule_items.status` 置为 `'cancelled'`**（释放 GiST 忙碌区间） |
 | 32 | `POST /workspaces/{id}/meetings/{proposalId}/cancel` | Bearer | Path: `id`, `proposalId`; Body: `reason?` | `proposalId`, `status` (`'cancelled'`), `cancelledScheduleCount`, `updatedAt` | **仅会议 `organizer` 或工作区 `owner/admin` 可调用**（否则返 `403 FORBIDDEN_INSUFFICIENT_ROLE`）；同事务将提案与关联的全员 `schedule_items.status` 置为 `'cancelled'` |
+
+会议确认保留全体邀请，并为必选成员及当前无硬冲突的可选成员创建个人日程；忙碌的可选成员可在冲突释放后再接受。`createdScheduleCount` 统计实际日程行，幂等重试保持同一口径。参会人 ID 去重，同一人同时出现在必选和可选列表时以必选为准。
+
+救援历史与会议列表的 `cursor` 均为不透明游标，包含排序时间戳与 UUID。服务端按 `(applied_at, id)` 或 `(created_at, id)` 双键倒序分页，避免同一事务时间戳的记录在翻页时被跳过；客户端应原样回传，不能自行解释或拼接。
 
 #### 团队协同与隐私隔离契约细则
 
@@ -264,6 +269,8 @@
 1. **短效票据握手（避免 URL 泄露 JWT）**：
    - 客户端先携带 Bearer Token 调用 `POST /api/v1/auth/ws-ticket`，获取 30 秒有效、单次消费即销毁的 `ticket`；
    - 随后连接 `wss://<host>/api/v1/ws?ticket=<ticket>`；若票据无效或过期，服务端拒绝升级并返回 `401 INVALID_WS_TICKET`。
+   - 票据仅以 SHA-256 摘要存入迁移 `0002_ws_tickets.sql` 创建的 `ws_tickets`；API 启动前须执行该迁移。握手通过带有效期条件的 `DELETE ... RETURNING` 原子消费，因此签发与握手落到不同 API 实例时仍保持单次有效。
+   - 升级前的票据拒绝使用 `application/problem+json` 的 RFC 9457 `ProblemDetail`；浏览器 `Origin` 必须在 `CORS_ALLOWED_ORIGINS` 中，否则返回 `403 FORBIDDEN` 且不消费票据。Android 等原生客户端可不发送 `Origin`，仍必须提供有效票据。
 2. **心跳保活与重连补偿**：
    - 服务端每 `30s` 发送 WebSocket `Ping` 控制帧（客户端 `10s` 内未回 `Pong` 则判定断开）；
    - 客户端断开后按指数退避重连（`1s -> 2s -> 5s -> 15s` + 随机抖动）；

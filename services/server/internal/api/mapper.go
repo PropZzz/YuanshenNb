@@ -18,11 +18,15 @@ func FromEngineEnergyOutput(out engine.EnergyComputeOutput) EnergyTodayResponse 
 
 	shields := make([]FocusShieldWindow, len(out.FocusShields))
 	for i, w := range out.FocusShields {
+		source := FocusShieldAutoPeak
+		if w.Source == "preferred_focus_window" || w.Source == string(FocusShieldPreferredWindow) {
+			source = FocusShieldPreferredWindow
+		}
 		shields[i] = FocusShieldWindow{
 			StartAt:  w.StartAt,
 			EndAt:    w.EndAt,
 			AvgScore: w.AvgScore,
-			Source:   FocusShieldSource(w.Source),
+			Source:   source,
 		}
 	}
 

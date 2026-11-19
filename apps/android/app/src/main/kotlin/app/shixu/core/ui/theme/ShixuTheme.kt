@@ -4,8 +4,21 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
+import androidx.compose.material3.Typography
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontFamily
+
+private val BaseTypography = Typography()
+private val ShixuTypography = BaseTypography.copy(
+    displayLarge = BaseTypography.displayLarge.copy(fontFamily = FontFamily.Serif, fontFeatureSettings = "tnum"),
+    displayMedium = BaseTypography.displayMedium.copy(fontFamily = FontFamily.Serif, fontFeatureSettings = "tnum"),
+    headlineLarge = BaseTypography.headlineLarge.copy(fontFamily = FontFamily.Serif),
+    headlineMedium = BaseTypography.headlineMedium.copy(fontFamily = FontFamily.Serif),
+    headlineSmall = BaseTypography.headlineSmall.copy(fontFamily = FontFamily.Serif),
+    labelMedium = BaseTypography.labelMedium.copy(fontFeatureSettings = "tnum"),
+    labelSmall = BaseTypography.labelSmall.copy(fontFeatureSettings = "tnum"),
+)
 
 // 与 apps/web/src/styles/tokens.css 及 docs/06-design-system-v2.md 完全对齐的语义色板
 private val ShixuLightColors = lightColorScheme(
@@ -80,6 +93,7 @@ fun ShixuTheme(
     val colorScheme = if (darkTheme) ShixuDarkColors else ShixuLightColors
     MaterialTheme(
         colorScheme = colorScheme,
+        typography = ShixuTypography,
         content = content,
     )
 }

@@ -1,5 +1,17 @@
 @import "tailwindcss";
 @import "./tokens.css";
+@import "./workbench.css";
+@import "../features/auth/auth.css";
+@import "../components/shell/shell.css";
+@import "../features/calendar/calendar.css";
+@import "../features/focus/focus.css";
+
+@import "../features/team/team.css";
+
+@import "../features/energy/energy.css";
+
+@import "../features/settings/settings.css";
+@import "./reference.css";
 
 @theme inline {
   --color-primary: var(--rc-primary);

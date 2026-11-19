@@ -1,6 +1,6 @@
 # 01 · 领域模型与 PostgreSQL 数据库设计
 
-> **对应迁移文件**：[services/server/migrations/0001_init.sql](../services/server/migrations/0001_init.sql)  
+> **对应迁移文件**：[0001_init.sql](../services/server/migrations/0001_init.sql)、[0002_ws_tickets.sql](../services/server/migrations/0002_ws_tickets.sql)
 > **物理交接契约**：[services/server/internal/engine/contracts.go](../services/server/internal/engine/contracts.go)、[services/server/internal/db/queries/core.sql](../services/server/internal/db/queries/core.sql)  
 > **目标**：定义清晰无歧义的领域限界上下文、零 UI 耦合的数据库表结构、时间区间检索机制与多租户隔离边界。
 
@@ -10,7 +10,7 @@
 
 系统划分为 5 个高内聚领域，各领域之间通过强类型 ID 与明确接口交互，禁止跨表随意修改状态：
 
-1. **Identity & Session（身份与会话）**：管理 `users` 与 `refresh_tokens`，负责账号注册、密码校验与多端令牌轮换。
+1. **Identity & Session（身份与会话）**：管理 `users`、`refresh_tokens` 与 `ws_tickets`，负责账号注册、密码校验、多端令牌轮换与一次性实时连接票据。
 2. **Biometrics & Energy（穿戴生理与精力）**：管理 `biometric_samples`、`energy_profiles` 与 `energy_snapshots`，归属个人私有，严禁向团队直接暴露原始样本。
 3. **Personal Schedule & Rescue（个人日程与救援）**：管理 `schedule_items` 与 `rescue_snapshots`，统一收纳深度工作、团队会议、恢复缓冲、常规例行与突发任务。
 4. **Team Workspace（团队空间与隐私边界）**：管理 `workspaces` 与 `workspace_members`，控制成员身份与对外投影颗粒度（`privacy_level`）。
@@ -23,6 +23,7 @@
 ```mermaid
 erDiagram
     users ||--o{ refresh_tokens : "owns"
+    users ||--o{ ws_tickets : "authenticates"
     users ||--o{ biometric_samples : "uploads"
     users ||--|| energy_profiles : "configures"
     users ||--o{ energy_snapshots : "generates"
@@ -40,7 +41,7 @@ erDiagram
 
 ## 3. 全表字段与约束详述
 
-### 3.1 身份与会话：`users` / `refresh_tokens`
+### 3.1 身份与会话：`users` / `refresh_tokens` / `ws_tickets`
 
 | 表名 | 关键字段 | 类型与约束 | 设计意图 |
 | --- | --- | --- | --- |
@@ -56,6 +57,9 @@ erDiagram
 | | `family_id` | `UUID NOT NULL` | 令牌家族 ID，用于轮换重放盗用检测（若旧令牌被复用则吊销整族） |
 | | `device_name` | `TEXT NOT NULL DEFAULT ''` | 标识来源设备（如 `Pixel 8 / Android`、`Chrome / Web`） |
 | | `expires_at`, `revoked_at` | `TIMESTAMPTZ` | 过期与主动注销时间戳 |
+| `ws_tickets` | `token_hash` | `TEXT PRIMARY KEY` | 30 秒握手票据的 SHA-256 摘要，不保存票据原文；由迁移 `0002_ws_tickets.sql` 引入 |
+| | `user_id` | `UUID NOT NULL FK -> users(id) CASCADE` | 票据仅绑定签发时的认证用户 |
+| | `expires_at` | `TIMESTAMPTZ NOT NULL` | 配合 `idx_ws_tickets_expiry` 清理过期票据；握手用 `DELETE ... WHERE token_hash = $1 AND expires_at > NOW() RETURNING user_id` 原子消费，共用数据库的多个 API 实例也不能重复消费同一票据 |
 
 ### 3.2 穿戴生理与精力：`biometric_samples` / `energy_profiles` / `energy_snapshots`
 
@@ -147,6 +151,7 @@ erDiagram
   - `uq_biometrics_external`：`(user_id, source_type, metric_type, external_id)` 非部分唯一索引，支撑 `ON CONFLICT DO NOTHING` 批量幂等写入。
   - `idx_energy_snapshots_user_day`：`(user_id, local_day, computed_at DESC)`，支撑 `GET /api/v1/energy/today?day=YYYY-MM-DD` 瞬时命中。
   - `uq_schedule_items_proposal_user`：`(meeting_proposal_id, user_id) WHERE meeting_proposal_id IS NOT NULL`，防止并发重试下同一提案为同一参会者生成多条日程。
+  - `idx_ws_tickets_expiry`：`(expires_at)`，支持签发新票据时删除已过期票据；数据库只持有短效票据摘要。
 
 ### 4.2 事务一致性规则
 
@@ -166,7 +171,7 @@ erDiagram
    - **消除交叉死锁**：全局统一按 `ORDER BY id` 升序加锁，彻底切断循环等待条件。
 3. 执行 GiST 区间重叠查询 `time_range && tstzrange($2, $3, '[)')`，校验所有必选参会者在此窗口内是否存在 `status <> 'cancelled'` 且（`flexibility = 'hard_locked'` 或 `category = 'meeting'`）的冲突项。
    - 若存在冲突，立即 `ROLLBACK` 并返回 `409 CONFLICT_MEMBER_BUSY` 及冲突成员详情。
-4. 更新或插入 `meeting_proposals (status = 'confirmed', confirmed_start_at = $2, confirmed_end_at = $3)`，批量写入全员 `schedule_items`（受 `uq_schedule_items_proposal_user` 保护），提交事务（`COMMIT`）。
+4. 更新或插入 `meeting_proposals (status = 'confirmed', confirmed_start_at = $2, confirmed_end_at = $3)`，为必选成员和当前无硬冲突的可选成员写入 `schedule_items`（受 `uq_schedule_items_proposal_user` 保护），提交事务（`COMMIT`）。忙碌的可选成员仍保留邀请，可在冲突释放后接受；同一成员同时出现在必选和可选列表时以必选为准。`createdScheduleCount` 及幂等重试响应均统计实际已落库的日程行，不能直接使用邀请人数。
 5. 事务提交后，异步触发参会人当天 `energy_snapshots` 重算与 WebSocket `workspace.meeting_confirmed` 广播。
 
 #### 4.2.2 救援乐观锁口径与撤销冲突检测规则

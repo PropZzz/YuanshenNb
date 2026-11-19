@@ -4,32 +4,75 @@
 
 - **Node.js**：`>= 20`（实测 `v24.15.0` / `npm 11.12.1`）
 - **构建与框架**：`Vite 6`（`^6.4.6`）+ `React 19`（`^19.1.0`）+ `TypeScript`（`^5.8.3`）+ `React Router v7`
-- **样式与组件**：`Tailwind CSS v4`（`@tailwindcss/vite ^4.1.0`）+ [src/styles/tokens.css](src/styles/tokens.css) + [src/styles/index.css](src/styles/index.css)（后续按需安装 `shadcn/ui` 组件）
+- **样式与组件**：`Tailwind CSS v4`（`@tailwindcss/vite ^4.1.0`）+ Radix/shadcn 风格原子组件 + [设计令牌](src/styles/tokens.css)
 - **状态与契约**：`TanStack Query v5`（`^5.74.0`）+ `Zustand v5`（`^5.0.3`）+ `openapi-typescript ^7.13.0` / `openapi-fetch ^0.17.0`
-- **测试**：`Vitest`（`^3.2.7`）+ `jsdom`
+- **测试**：`Vitest 4.1.12` + `jsdom`、`Playwright 1.55.1`；Vite 保持 6
+
+## 已实现页面与状态边界
+
+- `features/auth`：真实注册/登录、HttpOnly Cookie 恢复与会话守卫。
+- `features/focus`：真实今日日程、正向/倒计时、跨视图保留的内存计时会话、任务开始与完成。
+- `features/calendar`：日/周时间地图、时区投影、重叠事件布局、日程创建/编辑；紧急插单、疲劳恢复和会议过载三类救援入口，三策略预览、显式应用与快照撤销。
+- `features/team`：创建/加入/切换工作区、成员隐私投影、全天共享日程时间轴、最多三个黄金窗口切换、单独确认、会议回执与取消。
+- `features/energy`：服务端整点曲线、来源/基线诊断、解释因子、推荐保护窗口及明确确认的测试回放。
+- `features/settings`：账户/时区、主题、工作时段、chronotype、恢复缓冲与各工作区隐私保存。
+
+共享 UI 位于 `components/ui`，壳层位于 `components/shell`。查询按账号隔离；身份变化时重建缓存。Access Token 仅驻内存，Refresh Token 由 HttpOnly Cookie 托管。Web 只渲染服务端预测与方案，不实现精力或调度算法。
+
+没有样本标为 `baseline_only`，主动回放标为 `replay_demo`；真实 Health Connect/BLE 采集由 Android 完成。空数据、失败与离线不会伪装成保存成功。
 
 ## 起步与常用命令
 
 ```powershell
 cd apps/web
-npm install
+npm ci
 
 # 根据 ../../contracts/openapi.json 重新生成强类型 schema.d.ts
 npm run gen:api
 
-# 启动本地开发服务器（默认 5173，代理 /api -> VITE_API_BASE_URL）
-npm run dev
+# 先按 ../../services/server/README.md 启动真实 PostgreSQL 和 API
+# 默认 5173，代理 /api 和 WS 至 localhost:8080
+npm run dev -- --host 127.0.0.1
 
 # 验收门禁（PR 合并前必跑）
 npm run typecheck
 npm run build
 npm test
+npm audit
 ```
+
+通过进程变量 `VITE_API_PROXY_TARGET` 修改开发代理目标。服务端 `CORS_ALLOWED_ORIGINS` 需包含实际来源，例如 `http://127.0.0.1:5173`。应用直接进入认证/工作台，不使用 V1 iframe/router.js。
+
+2026-11-19 线上原版复原轮次：类型、构建及 10 文件 / 50 项测试通过；此前同一依赖锁文件的 `npm audit` 报告 0 项已知漏洞。五个工作视图按路由加载，生产入口脚本为 380.65 kB（gzip 120.89 kB），已消除此前约 516 kB 入口的体积提示。此前 Go 重新导出的 OpenAPI 与现有契约一致，Web 类型重新生成至临时文件后也与 `src/api/schema.d.ts` 一致，本轮没有修改这些文件。
+
+救援表单修改输入后立即作废旧预览，延迟返回的旧结果不会恢复确认按钮；同一方案临时失败后重试沿用原 `Idempotency-Key`。疲劳保护提醒可直接进入恢复方案，无需填写虚构的紧急任务。生成预览不会修改日程，应用和撤销均需单独确认。
+
+团队时间轴按用户时区投影服务端区间，裁切跨午夜部分并分行显示重叠安排；夏令时重复小时保留真实时长。仅 `full_title` 展示授权标题，没有共享记录不等于全天空闲。黄金窗口卡可通过鼠标或键盘比较服务端方案，切换本身不会创建会议。
+
+## 真实浏览器验收
+
+API、数据库及 Vite 需已经运行。验收直接调用真实后端，每轮注册独立 QA 账户/工作区，不清空既有数据，不模拟 API。
+
+```powershell
+npx playwright install chromium
+npm run test:e2e -- --workers=1
+```
+
+已有 Chromium 时，可用 `PLAYWRIGHT_CHROMIUM_EXECUTABLE` 指定绝对路径；应用来源用 `E2E_BASE_URL` 覆盖。三个场景各在 1440×1000 与 390×844 执行，本轮完整运行 6/6 通过，覆盖主流程、独立双账号实时协作和线上布局度量；最后修正手机认证页顶部对齐后，重新执行布局场景 2/2 通过。救援分别验证紧急插单与无新增任务的疲劳恢复，以及实际保存的救援原因、所选策略和撤销流程。团队页额外验证键盘切换第二推荐窗口、单独确认创建会议，以及已保存会议在共享时间轴中的真实占用。测试时区固定为 Asia/Shanghai。
+
+视口/长截图在被忽略的 `.appdata/qa/v2`，失败诊断在 `.appdata/qa/playwright-results`。长图中的固定底栏体现截图时的视口位置；以不带 `-full` 的视口图判断实际可视区域。本轮限定 Web 的本地验收已完成；Android 历史进度及全端验收边界见 [迁移执行记录](../../docs/plans/2026-11-19-v1-to-v2-migration.md)，不属于本轮开发范围。
+
+## 线上原版对照
+
+用户指定 `http://8.133.250.216/#/focus`（发布 `d011b2b0001c180c`）作为最新视觉依据。本轮恢复紧凑专注指标和空态、侧栏与手机导航、账户通行证、手机周日期选择、日历救援摘要及账户横向布局，校准团队与精力页的比例。桌面专注首项指标为 84px 高，空态控制区在 (292, 204)，宽 736px、高 256px；390px 手机登录卡片距顶 16px，宽 358px。
+
+八个原版入口与 V2 五视图/认证的对应、真实数据差异及逐页验收见 [线上复原记录](../../docs/plans/2026-11-19-online-reference-restoration.md)。原版的静态任务、成员、精力，以及没有对应服务能力的游客登录、通知开关和 SQLite 提示均不伪造迁入。参考截图位于 `.appdata/reference/online`，新布局截图与尺寸位于 `.appdata/qa/online-restored`；这些 QA 证据不会进入生产包。
 
 ## 已保留的 V1 视觉资产
 
 - `public/brand-logo.png` — 品牌 Logo
 - `public/favicon.png` — 浏览器图标
 - `src/styles/tokens.css` — 浅/深色品牌语义令牌与日历时间线样式
+- `public/fonts/` — 原参考字体及来源说明，页面独立加载，不迁入旧脚本
 
 设计规范与 V1→V2 页面精简映射见 [docs/06-design-system-v2.md](../../docs/06-design-system-v2.md)，Web 模块架构见 [docs/05-client-web-and-android.md](../../docs/05-client-web-and-android.md)。

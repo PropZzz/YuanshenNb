@@ -8,7 +8,7 @@
 ## 1. 当前项目状态与开发上下文
 
 - **仓库阶段**：处于 **V2 全面重构期**（当前主力分支：`refactor/v2-rebuild`）。V1 历史代码已移出工作树，仅作为只读历史快照保留在 `main` 分支中。
-- **当前已就绪资产**：仅包含项目目录骨架、PostgreSQL 初始迁移（[services/server/migrations/0001_init.sql](services/server/migrations/0001_init.sql)）、提炼自 V1 的 Web 视觉令牌与品牌资源（[apps/web/src/styles/tokens.css](apps/web/src/styles/tokens.css)、[apps/web/public/](apps/web/public/)）以及全套 V2 架构设计文档（[docs/](docs/README.md)）。
+- **当前进度（2026-11-19）**：已实现 Web 五视图与认证、Go 真实数据库业务服务及三个核心引擎、Android Compose 客户端与穿戴采集管线。已通过真实 PostgreSQL 并发测试、Web 单元/构建及桌面/390px 浏览器主流程；Android 已通过单元测试、Lint 与 APK 构建，尚待真机权限、Health Connect、BLE、通知和视觉验收。证据与未完成项见 [迁移执行记录](docs/plans/2026-11-19-v1-to-v2-migration.md)，不能将本地实现视为已提交、已推送或完整交付。
 - **核心产品范围（Strict Scope）**：只围绕一条闭环建设：
   1. Android 穿戴设备生理采样（Health Connect / BLE GATT / 显式测试回放）；
   2. Go 服务端个人精力推理、深度专注保护与突发扰动可撤销救援；

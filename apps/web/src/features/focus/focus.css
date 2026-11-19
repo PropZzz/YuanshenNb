@@ -1,0 +1,114 @@
+@layer components {
+  .focus-page > .metric-grid { margin: 0 0 24px; gap: 14px; }
+  .focus-page .metric-card { position: relative; min-height: 84px; padding: 14px 16px; }
+  .focus-page .metric-label { font-size: 12px; line-height: 18px; padding-right: 48px; }
+  .focus-metric-reading { display: flex; align-items: baseline; gap: 6px; padding-right: 48px; min-width: 0; flex-wrap: wrap; }
+  .focus-page .metric-value { font-family: var(--rc-font-body); font-size: 24px; margin: 0; line-height: 32px; flex: none; }
+  .focus-page .metric-note { font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; max-width: 100%; }
+  .focus-page .metric-icon { position: absolute; right: 16px; top: 22px; display: grid; place-items: center; width: 40px; height: 40px; border-radius: 8px; background: var(--rc-surface-container-low); color: var(--rc-primary); }
+  .focus-columns { display: grid; grid-template-columns: repeat(12,minmax(0,1fr)); gap: 24px; }
+  .focus-main-column, .focus-side-column { display: flex; flex-direction: column; gap: 24px; min-width: 0; }
+  .focus-main-column { grid-column: span 8; }
+  .focus-side-column { grid-column: span 4; }
+  .focus-control { padding: 24px; }
+  .focus-task-title { font-family: var(--rc-font-body); font-size: 24px; line-height: 1.5; font-weight: 700; letter-spacing: -.025em; color: var(--rc-primary); margin: 18px 0 20px; }
+  .focus-timer-panel { display: flex; flex-direction: column; align-items: center; gap: 20px; padding: 24px; background: var(--rc-surface-container-low); border-radius: 12px; min-width: 0; }
+  .focus-timer { position: relative; width: min(224px,100%); max-width: 224px; aspect-ratio: 1; height: auto; margin: 4px auto; }
+  .focus-timer svg { width: 100%; height: 100%; transform: rotate(-90deg); fill: none; stroke: var(--rc-surface-container-highest); stroke-width: 11; }
+  .focus-timer .timer-progress { stroke: var(--rc-primary); stroke-linecap: round; transition: stroke-dashoffset .5s linear; }
+  .focus-timer > div { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 8px; text-align: center; padding: 12px; }
+  .focus-timer strong { font-family: var(--rc-font-headline); font-size: clamp(28px,9vw,48px); font-weight: 700; letter-spacing: -.04em; line-height: 1; color: var(--rc-primary); font-variant-numeric: tabular-nums; }
+  .focus-timer span { font-size: 12px; color: var(--rc-on-surface-variant); max-width: 100%; line-height: 1.6; }
+  .focus-timer-actions { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; width: 100%; padding-top: 4px; }
+  .focus-timer-actions > .button:first-child { width: min(100%,340px); min-height: 44px; }
+  .focus-task-detail { display: flex; align-items: flex-start; justify-content: center; gap: 10px; padding: 24px 0 4px; color: var(--rc-primary); }
+  .focus-task-detail strong { font-size: 12px; font-weight: 500; line-height: 1.7; }
+  .focus-task-detail p { font-size: 11px; color: var(--rc-outline); margin-top: 6px; }
+  .focus-empty-control { min-height: 206px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; text-align: center; color: var(--rc-primary); }
+  .focus-empty-control h1 { font-size: 14px; font-weight: 500; color: var(--rc-on-surface-variant); }
+  .focus-empty-control > div { display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; }
+  .focus-empty-control .button { background: var(--rc-surface-container-low); font-size: 12px; }
+  .focus-task-list .card-header { border-bottom: 0; padding: 24px 24px 16px; }
+  .focus-task-list .card-title { font-size: 16px; }
+  .focus-task-rows { display: grid; gap: 8px; padding: 0 24px 24px; }
+  .focus-task-row { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; padding: 12px; border-radius: 8px; background: var(--rc-surface-container-low); border: 1px solid transparent; }
+  .focus-task-row.selected { background: var(--rc-surface-container-high); }
+  .focus-task-row > span:nth-child(2) { flex: 1; min-width: 0; }
+  .focus-task-row strong { display: block; font-size: 14px; font-weight: 600; color: var(--rc-on-surface); line-height: 1.5; }
+  .focus-task-row small { display: block; margin-top: 4px; font-size: 12px; color: var(--rc-on-surface-variant); }
+  .task-check { color: var(--rc-on-tertiary-container); flex: none; }
+  .task-check > span { display: block; width: 16px; height: 16px; border: 1.5px solid var(--rc-outline); border-radius: 50%; }
+  .selected .task-check > span { border: 4px solid var(--rc-primary); background: var(--rc-tertiary-fixed); }
+  .focus-task-row.completed strong { text-decoration: line-through; color: var(--rc-outline); }
+  .focus-energy { padding: 20px; }
+  .focus-energy .card-title { font-size: 12px; }
+  .focus-energy-score { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-top: 20px; font-size: 12px; }
+  .focus-energy-score strong { font-size: 20px; font-weight: 700; color: var(--rc-primary); }
+  .focus-energy-score small { font-size: 11px; font-weight: 400; color: var(--rc-outline); }
+  .focus-energy progress, .focus-mobile-summary progress { appearance: none; width: 100%; height: 8px; display: block; margin-top: 8px; background: var(--rc-surface-container-high); border: 0; border-radius: 8px; overflow: hidden; }
+  .focus-energy progress::-webkit-progress-bar, .focus-mobile-summary progress::-webkit-progress-bar { background: var(--rc-surface-container-high); }
+  .focus-energy progress::-webkit-progress-value, .focus-mobile-summary progress::-webkit-progress-value { background: var(--rc-on-tertiary-container); border-radius: 8px; }
+  .focus-energy progress::-moz-progress-bar, .focus-mobile-summary progress::-moz-progress-bar { background: var(--rc-on-tertiary-container); border-radius: 8px; }
+  .focus-energy-advice { background: var(--rc-surface-container-low); border-radius: 10px; padding: 12px; margin: 16px 0; color: var(--rc-primary); font-size: 12px; line-height: 1.7; }
+  .focus-energy-advice svg { display: inline; vertical-align: middle; margin-right: 7px; }
+  .focus-energy-advice p { margin-top: 6px; color: var(--rc-on-surface-variant); }
+  .focus-protection { display: flex; gap: 10px; padding: 20px; color: var(--rc-primary); }
+  .focus-protection h2 { font-size: 12px; font-weight: 600; }
+  .focus-protection p { font-size: 12px; line-height: 1.7; margin: 8px 0; color: var(--rc-on-surface-variant); }
+  .focus-protection a { display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--rc-secondary); }
+  .focus-upcoming { padding: 0 20px 20px; display: grid; gap: 8px; }
+  .focus-upcoming > button { display: flex; gap: 10px; align-items: flex-start; padding: 12px; background: var(--rc-surface-container-low); border-radius: 8px; text-align: left; }
+  .focus-upcoming button > div { flex: 1; min-width: 0; }
+  .focus-upcoming strong { font-size: 12px; font-weight: 600; display: block; line-height: 1.5; }
+  .focus-upcoming small { display: block; font-size: 11px; color: var(--rc-on-surface-variant); margin-top: 4px; }
+  .focus-upcoming time { font-size: 12px; color: var(--rc-secondary); }
+  .upcoming-line { width: 3px; align-self: stretch; min-height: 32px; background: var(--rc-secondary); border-radius: 3px; }
+  .focus-upcoming > p { font-size: 12px; line-height: 1.8; color: var(--rc-outline); padding: 5px 0; }
+  .focus-plan-link { padding: 20px; display: flex; align-items: center; gap: 12px; color: var(--rc-primary); }
+  .focus-plan-link > span { flex: 1; }
+  .focus-plan-link strong { display: block; font-size: 12px; font-weight: 600; }
+  .focus-plan-link small { font-size: 11px; display: block; margin-top: 6px; color: var(--rc-on-surface-variant); }
+  .focus-mobile-summary { display: none; }
+}
+@media (max-width: 1279px) {
+  .focus-page .metric-card { height: auto; min-height: 84px; }
+  .focus-metric-reading { flex-wrap: wrap; }
+  .focus-page .metric-note { white-space: normal; overflow: visible; text-overflow: clip; }
+}
+@media (max-width: 1100px) {
+  .focus-columns { grid-template-columns: minmax(0,1fr); gap: 18px; }
+  .focus-main-column, .focus-side-column { grid-column: auto; }
+  .focus-control { padding: 19px; }
+  .focus-energy { padding: 19px 16px; }
+  .focus-timer-panel { padding: 20px 16px; }
+  .focus-task-row > .badge { display: none; }
+  .focus-metric-reading { display: flex; flex-wrap: wrap; }
+  .focus-page .metric-note { font-size: 10px; }
+}
+@media (max-width: 779px) {
+  .focus-page > .metric-grid { display: none; }
+  .focus-columns { grid-template-columns: minmax(0,1fr); gap: 18px; }
+  .focus-task-title { font-size: 21px; }
+  .focus-control { padding: 18px 15px; }
+  .focus-empty-control { min-height: 182px; }
+  .focus-task-rows { padding: 0 16px 16px; }
+  .focus-timer-panel { padding: 20px 13px; }
+  .focus-timer { width: min(215px,100%); max-width: 215px; }
+  .focus-timer-actions .button { padding: 10px; }
+  .focus-task-list .card-header { padding: 18px 16px; flex-wrap: wrap; }
+  .focus-task-list .card-header > a { font-size: 11px; }
+  .focus-task-row { padding: 12px 10px; }
+  .focus-task-row strong { font-size: 13px; }
+  .focus-task-row small { font-size: 11px; }
+  .focus-mobile-summary { display: block; padding: 14px; margin-bottom: 16px; border-radius: 16px; background: var(--rc-surface-container-low); }
+  .focus-mobile-summary h2 { font-size: 14px; color: var(--rc-primary); font-weight: 600; margin-bottom: 10px; }
+  .focus-mobile-summary > a { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 10px 12px; border-radius: 12px; background: var(--rc-surface-container-lowest); font-size: 13px; min-width: 0; }
+  .focus-mobile-summary small { display: block; font-size: 11px; color: var(--rc-on-surface-variant); margin-top: 2px; }
+  .focus-mobile-energy-icon { padding: 5px; border-radius: 50%; color: var(--rc-tertiary); background: var(--rc-tertiary-fixed); }
+  .focus-mobile-summary progress { margin: 0 0 0 auto; width: 64px; flex: none; }
+}
+@media (max-width: 359px) {
+  .focus-control { padding: 14px 12px; }
+  .focus-timer-panel { padding: 14px 10px; }
+  .focus-protection, .focus-plan-link { flex-wrap: wrap; padding: 14px; }
+}

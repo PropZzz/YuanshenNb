@@ -22,6 +22,18 @@ function jsonResponse(status: number, body: unknown, contentType = "application/
 }
 
 describe("web starter auth store & openapi client", () => {
+  it("preserves the session during a temporary refresh service outage", async () => {
+    useAuthStore.getState().setSession("expired-but-recoverable", MOCK_USER);
+    const expired=vi.fn();
+    const client=createApiClient({baseUrl:"http://localhost:8080",onSessionExpired:expired,fetch:async input=>{
+      const request=input instanceof Request?input:new Request(input);
+      return new URL(request.url).pathname.endsWith("/refresh")?jsonResponse(503,{type:"https://shixu.app/errors/SERVICE_UNAVAILABLE",status:503,title:"Unavailable",detail:"Try again",code:"SERVICE_UNAVAILABLE"}):jsonResponse(401,{type:"https://shixu.app/errors/UNAUTHORIZED",status:401,title:"Unauthorized",detail:"Expired",code:"UNAUTHORIZED"});
+    }});
+    await client.GET("/api/v1/auth/me");
+    expect(useAuthStore.getState().status).toBe("authenticated");
+    expect(useAuthStore.getState().accessToken).toBe("expired-but-recoverable");
+    expect(expired).not.toHaveBeenCalled();
+  });
   beforeEach(() => {
     useAuthStore.setState({
       status: "unknown",

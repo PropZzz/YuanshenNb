@@ -41,6 +41,16 @@ import java.time.OffsetDateTime
 import java.util.UUID
 
 class OpenApiContractSmokeTest {
+    @Test
+    fun transientRefreshFailurePreservesPersistentSessionForOfflineRetry() {
+        val store = InMemoryTokenStore().apply { saveTokens("expired", "still-valid") }
+        val authenticator = TokenAuthenticator(store) { throw java.io.IOException("offline") }
+        val response = Response.Builder().request(Request.Builder().url("http://localhost/api/v1/auth/me").header("Authorization", "Bearer expired").build())
+            .protocol(Protocol.HTTP_1_1).code(401).message("Unauthorized")
+            .body("""{"type":"https://shixu.app/errors/UNAUTHORIZED","title":"Unauthorized","status":401,"detail":"expired","code":"UNAUTHORIZED"}""".toResponseBody("application/problem+json".toMediaType())).build()
+        assertNull(authenticator.authenticate(null, response))
+        assertEquals("still-valid", store.refreshToken())
+    }
     @Before
     fun setupJson() {
         ShixuJson.install()
