@@ -32,21 +32,16 @@ import kotlinx.serialization.Contextual
 /**
  * @param members
  * @param workspaceId
- * @param dollarSchema A URL to the JSON Schema for this object.
  */
 @Serializable
 
 data class WorkspaceMemberListResponse (
 
     @SerialName(value = "members")
-    val members: kotlin.collections.List<WorkspaceMemberDTO>?,
+    val members: kotlin.collections.List<WorkspaceMemberDTO>,
 
     @Contextual @SerialName(value = "workspaceId")
-    val workspaceId: java.util.UUID,
-
-    /* A URL to the JSON Schema for this object. */
-    @Contextual @SerialName(value = "\$schema")
-    val dollarSchema: java.net.URI? = null
+    val workspaceId: java.util.UUID
 
 ) {
 

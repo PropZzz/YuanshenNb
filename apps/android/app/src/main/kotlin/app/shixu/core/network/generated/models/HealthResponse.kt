@@ -23,6 +23,7 @@
 
 package app.shixu.core.network.generated.models
 
+import app.shixu.core.network.generated.models.HealthDBStatus
 
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerialName
@@ -37,14 +38,13 @@ import kotlinx.serialization.encoding.Encoder
  * @param ok
  * @param serverTime
  * @param version
- * @param dollarSchema A URL to the JSON Schema for this object.
  */
 @Serializable
 
 data class HealthResponse (
 
     @SerialName(value = "dbStatus")
-    val dbStatus: HealthResponse.DbStatus,
+    val dbStatus: HealthDBStatus,
 
     @SerialName(value = "ok")
     val ok: kotlin.Boolean,
@@ -53,22 +53,10 @@ data class HealthResponse (
     val serverTime: java.time.OffsetDateTime,
 
     @SerialName(value = "version")
-    val version: kotlin.String,
-
-    /* A URL to the JSON Schema for this object. */
-    @Contextual @SerialName(value = "\$schema")
-    val dollarSchema: java.net.URI? = null
+    val version: kotlin.String
 
 ) {
 
-    /**
-     * Values: up,down
-     */
-    @Serializable
-    enum class DbStatus(val value: kotlin.String) {
-        @SerialName(value = "up") up("up"),
-        @SerialName(value = "down") down("down");
-    }
 
 }
 

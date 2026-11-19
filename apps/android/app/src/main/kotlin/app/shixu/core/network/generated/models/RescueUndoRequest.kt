@@ -30,18 +30,13 @@ import kotlinx.serialization.Contextual
 
 /**
  * @param snapshotId
- * @param dollarSchema A URL to the JSON Schema for this object.
  */
 @Serializable
 
 data class RescueUndoRequest (
 
     @Contextual @SerialName(value = "snapshotId")
-    val snapshotId: java.util.UUID,
-
-    /* A URL to the JSON Schema for this object. */
-    @Contextual @SerialName(value = "\$schema")
-    val dollarSchema: java.net.URI? = null
+    val snapshotId: java.util.UUID
 
 ) {
 

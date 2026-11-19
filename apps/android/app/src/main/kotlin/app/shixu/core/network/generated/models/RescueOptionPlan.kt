@@ -24,6 +24,7 @@
 package app.shixu.core.network.generated.models
 
 import app.shixu.core.network.generated.models.RescueDiffItem
+import app.shixu.core.network.generated.models.RescueStrategy
 
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerialName
@@ -52,7 +53,7 @@ data class RescueOptionPlan (
     val deferredCount: kotlin.Long,
 
     @SerialName(value = "diffItems")
-    val diffItems: kotlin.collections.List<RescueDiffItem>?,
+    val diffItems: kotlin.collections.List<RescueDiffItem>,
 
     @SerialName(value = "feasible")
     val feasible: kotlin.Boolean,
@@ -70,22 +71,13 @@ data class RescueOptionPlan (
     val recoveryMinutes: kotlin.Long,
 
     @SerialName(value = "strategy")
-    val strategy: RescueOptionPlan.Strategy,
+    val strategy: RescueStrategy,
 
     @SerialName(value = "summary")
     val summary: kotlin.String
 
 ) {
 
-    /**
-     * Values: protect_deadline,protect_recovery,minimize_changes
-     */
-    @Serializable
-    enum class Strategy(val value: kotlin.String) {
-        @SerialName(value = "protect_deadline") protect_deadline("protect_deadline"),
-        @SerialName(value = "protect_recovery") protect_recovery("protect_recovery"),
-        @SerialName(value = "minimize_changes") minimize_changes("minimize_changes");
-    }
 
 }
 

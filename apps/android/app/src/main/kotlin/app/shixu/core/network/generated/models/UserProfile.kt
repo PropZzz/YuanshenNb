@@ -23,6 +23,7 @@
 
 package app.shixu.core.network.generated.models
 
+import app.shixu.core.network.generated.models.ThemeMode
 
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerialName
@@ -40,7 +41,6 @@ import kotlinx.serialization.encoding.Encoder
  * @param themeMode
  * @param timezone
  * @param updatedAt
- * @param dollarSchema A URL to the JSON Schema for this object.
  */
 @Serializable
 
@@ -59,29 +59,16 @@ data class UserProfile (
     val id: java.util.UUID,
 
     @SerialName(value = "themeMode")
-    val themeMode: UserProfile.ThemeMode,
+    val themeMode: ThemeMode,
 
     @SerialName(value = "timezone")
     val timezone: kotlin.String,
 
     @Contextual @SerialName(value = "updatedAt")
-    val updatedAt: java.time.OffsetDateTime,
-
-    /* A URL to the JSON Schema for this object. */
-    @Contextual @SerialName(value = "\$schema")
-    val dollarSchema: java.net.URI? = null
+    val updatedAt: java.time.OffsetDateTime
 
 ) {
 
-    /**
-     * Values: system,light,dark
-     */
-    @Serializable
-    enum class ThemeMode(val value: kotlin.String) {
-        @SerialName(value = "system") system("system"),
-        @SerialName(value = "light") light("light"),
-        @SerialName(value = "dark") dark("dark");
-    }
 
 }
 

@@ -27,13 +27,17 @@ interface ScheduleApi {
      * 
      * Responses:
      *  - 200: OK
-     *  - 0: Error
+     *  - 401: Unauthorized
+     *  - 409: Conflict
+     *  - 422: Unprocessable Entity
+     *  - 500: Internal Server Error
      *
      * @param rescueApplyRequest 
+     * @param idempotencyKey 可选请求幂等键（防弱网重复应用救援方案） (optional)
      * @return [RescueApplyResponse]
      */
     @POST("api/v1/schedule/rescue/apply")
-    suspend fun applyRescueOption(@Body rescueApplyRequest: RescueApplyRequest): Response<RescueApplyResponse>
+    suspend fun applyRescueOption(@Body rescueApplyRequest: RescueApplyRequest, @Header("Idempotency-Key") idempotencyKey: kotlin.String? = null): Response<RescueApplyResponse>
 
     /**
      * POST api/v1/schedule/items
@@ -41,7 +45,10 @@ interface ScheduleApi {
      * 
      * Responses:
      *  - 201: Created
-     *  - 0: Error
+     *  - 401: Unauthorized
+     *  - 409: Conflict
+     *  - 422: Unprocessable Entity
+     *  - 500: Internal Server Error
      *
      * @param createScheduleItemRequest 
      * @return [ScheduleMutationResponse]
@@ -55,7 +62,11 @@ interface ScheduleApi {
      * 
      * Responses:
      *  - 204: No Content
-     *  - 0: Error
+     *  - 401: Unauthorized
+     *  - 404: Not Found
+     *  - 409: Conflict
+     *  - 422: Unprocessable Entity
+     *  - 500: Internal Server Error
      *
      * @param id 
      * @return [Unit]
@@ -69,7 +80,9 @@ interface ScheduleApi {
      * 
      * Responses:
      *  - 200: OK
-     *  - 0: Error
+     *  - 401: Unauthorized
+     *  - 422: Unprocessable Entity
+     *  - 500: Internal Server Error
      *
      * @param limit  (optional, default to 20L)
      * @param cursor  (optional)
@@ -84,7 +97,9 @@ interface ScheduleApi {
      * 
      * Responses:
      *  - 200: OK
-     *  - 0: Error
+     *  - 401: Unauthorized
+     *  - 422: Unprocessable Entity
+     *  - 500: Internal Server Error
      *
      * @param from 
      * @param to 
@@ -96,11 +111,13 @@ interface ScheduleApi {
 
     /**
      * POST api/v1/schedule/rescue/options
-     * 预览突发插单或疲劳过载的三套日程救援方案（纯函数计算，不写库）
+     * 预览突发插单或疲劳过载的日程救援方案（纯函数计算，不写库）
      * 
      * Responses:
      *  - 200: OK
-     *  - 0: Error
+     *  - 401: Unauthorized
+     *  - 422: Unprocessable Entity
+     *  - 500: Internal Server Error
      *
      * @param rescueOptionsRequest 
      * @return [RescueOptionsResponse]
@@ -114,7 +131,11 @@ interface ScheduleApi {
      * 
      * Responses:
      *  - 200: OK
-     *  - 0: Error
+     *  - 401: Unauthorized
+     *  - 404: Not Found
+     *  - 409: Conflict
+     *  - 422: Unprocessable Entity
+     *  - 500: Internal Server Error
      *
      * @param rescueUndoRequest 
      * @return [RescueUndoResponse]
@@ -128,7 +149,11 @@ interface ScheduleApi {
      * 
      * Responses:
      *  - 200: OK
-     *  - 0: Error
+     *  - 401: Unauthorized
+     *  - 404: Not Found
+     *  - 409: Conflict
+     *  - 422: Unprocessable Entity
+     *  - 500: Internal Server Error
      *
      * @param id 
      * @param updateScheduleItemRequest 

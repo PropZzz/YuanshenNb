@@ -31,18 +31,13 @@ import kotlinx.serialization.Contextual
 
 /**
  * @param samples
- * @param dollarSchema A URL to the JSON Schema for this object.
  */
 @Serializable
 
 data class BiometricBatchRequest (
 
     @SerialName(value = "samples")
-    val samples: kotlin.collections.List<BiometricSampleDTO>?,
-
-    /* A URL to the JSON Schema for this object. */
-    @Contextual @SerialName(value = "\$schema")
-    val dollarSchema: java.net.URI? = null
+    val samples: kotlin.collections.List<BiometricSampleDTO>
 
 ) {
 

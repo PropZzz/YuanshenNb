@@ -29,16 +29,11 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Contextual
 
 /**
- * @param dollarSchema A URL to the JSON Schema for this object.
  * @param refreshToken Android 端必传；Web 端可省略并自动回退读取 HttpOnly Cookie
  */
 @Serializable
 
 data class LogoutRequest (
-
-    /* A URL to the JSON Schema for this object. */
-    @Contextual @SerialName(value = "\$schema")
-    val dollarSchema: java.net.URI? = null,
 
     /* Android 端必传；Web 端可省略并自动回退读取 HttpOnly Cookie */
     @SerialName(value = "refreshToken")

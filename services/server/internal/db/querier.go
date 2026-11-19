@@ -8,22 +8,21 @@ import (
 	"context"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgtype"
 )
 
 type Querier interface {
 	// 会议取消时，将全部参会人关联的 schedule_items 置为 cancelled
-	CancelAllScheduleItemsForMeeting(ctx context.Context, proposalID pgtype.UUID) (int64, error)
+	CancelAllScheduleItemsForMeeting(ctx context.Context, proposalID uuid.UUID) (int64, error)
 	// 参会人拒绝团队会议时，将个人对应 schedule_items 置为 cancelled 释放 GiST 区间
 	DeclineTeamMeetingForUser(ctx context.Context, arg DeclineTeamMeetingForUserParams) (int64, error)
 	// 检查指定用户在半开时间区间 [start_at, end_at) 内是否存在不可移动的日程冲突
 	FindHardScheduleConflicts(ctx context.Context, arg FindHardScheduleConflictsParams) ([]FindHardScheduleConflictsRow, error)
-	// 救援撤销校验：检查待还原区间是否与快照之外新出现的锁定日程或会议重叠
+	// 救援撤销校验：检查待还原区间是否与快照之外新出现的锁定日程或会议重叠（COALESCE 防空/nil 切片引发 SQL UNKNOWN）
 	FindScheduleConflictsExcludingIDs(ctx context.Context, arg FindScheduleConflictsExcludingIDsParams) ([]FindScheduleConflictsExcludingIDsRow, error)
 	GetLatestEnergySnapshotByDay(ctx context.Context, arg GetLatestEnergySnapshotByDayParams) (EnergySnapshot, error)
 	GetWorkspaceMembership(ctx context.Context, arg GetWorkspaceMembershipParams) (WorkspaceMember, error)
 	InsertEnergySnapshot(ctx context.Context, arg InsertEnergySnapshotParams) (EnergySnapshot, error)
-	// 拉取过去 14 天用于生理基线与当日精力计算的样本
+	// 拉取 [since_at, until_at] 窗口内（典型 14 天）的生理样本，避免查询历史日时误读未来样本
 	ListRecentBiometricsForEnergy(ctx context.Context, arg ListRecentBiometricsForEnergyParams) ([]ListRecentBiometricsForEnergyRow, error)
 	// 批量拉取工作区多个成员在时间窗内的有效日程（由 Go engine 层执行隐私投影脱敏）
 	ListTeamMemberSchedulesInWindow(ctx context.Context, arg ListTeamMemberSchedulesInWindowParams) ([]ListTeamMemberSchedulesInWindowRow, error)

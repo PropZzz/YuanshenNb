@@ -23,6 +23,7 @@
 
 package app.shixu.core.network.generated.models
 
+import app.shixu.core.network.generated.models.MeetingDecisionStatus
 
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerialName
@@ -34,29 +35,16 @@ import kotlinx.serialization.encoding.Encoder
 
 /**
  * @param responseStatus
- * @param dollarSchema A URL to the JSON Schema for this object.
  */
 @Serializable
 
 data class RespondMeetingRequest (
 
     @SerialName(value = "responseStatus")
-    val responseStatus: RespondMeetingRequest.ResponseStatus,
-
-    /* A URL to the JSON Schema for this object. */
-    @Contextual @SerialName(value = "\$schema")
-    val dollarSchema: java.net.URI? = null
+    val responseStatus: MeetingDecisionStatus
 
 ) {
 
-    /**
-     * Values: accepted,declined
-     */
-    @Serializable
-    enum class ResponseStatus(val value: kotlin.String) {
-        @SerialName(value = "accepted") accepted("accepted"),
-        @SerialName(value = "declined") declined("declined");
-    }
 
 }
 

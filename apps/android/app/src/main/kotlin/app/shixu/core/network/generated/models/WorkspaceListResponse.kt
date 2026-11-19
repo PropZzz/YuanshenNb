@@ -31,18 +31,13 @@ import kotlinx.serialization.Contextual
 
 /**
  * @param workspaces
- * @param dollarSchema A URL to the JSON Schema for this object.
  */
 @Serializable
 
 data class WorkspaceListResponse (
 
     @SerialName(value = "workspaces")
-    val workspaces: kotlin.collections.List<WorkspaceDTO>?,
-
-    /* A URL to the JSON Schema for this object. */
-    @Contextual @SerialName(value = "\$schema")
-    val dollarSchema: java.net.URI? = null
+    val workspaces: kotlin.collections.List<WorkspaceDTO>
 
 ) {
 

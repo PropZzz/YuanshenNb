@@ -23,7 +23,7 @@
 
 package app.shixu.core.network.generated.models
 
-import app.shixu.core.network.generated.models.EnergyComputeOutput
+import app.shixu.core.network.generated.models.EnergyTodayResponse
 
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerialName
@@ -33,7 +33,6 @@ import kotlinx.serialization.Contextual
  * @param acceptedCount
  * @param deduplicatedCount
  * @param latestEnergy
- * @param dollarSchema A URL to the JSON Schema for this object.
  */
 @Serializable
 
@@ -46,11 +45,7 @@ data class BiometricBatchResponse (
     val deduplicatedCount: kotlin.Long,
 
     @SerialName(value = "latestEnergy")
-    val latestEnergy: EnergyComputeOutput,
-
-    /* A URL to the JSON Schema for this object. */
-    @Contextual @SerialName(value = "\$schema")
-    val dollarSchema: java.net.URI? = null
+    val latestEnergy: EnergyTodayResponse
 
 ) {
 

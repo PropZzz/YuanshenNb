@@ -24,7 +24,8 @@ interface AuthApi {
      * 
      * Responses:
      *  - 200: OK
-     *  - 0: Error
+     *  - 401: Unauthorized
+     *  - 500: Internal Server Error
      *
      * @return [UserProfile]
      */
@@ -37,7 +38,8 @@ interface AuthApi {
      * 
      * Responses:
      *  - 200: OK
-     *  - 0: Error
+     *  - 401: Unauthorized
+     *  - 500: Internal Server Error
      *
      * @return [WsTicketResponse]
      */
@@ -66,7 +68,9 @@ interface AuthApi {
      * 
      * Responses:
      *  - 204: No Content
-     *  - 0: Error
+     *  - 401: Unauthorized
+     *  - 422: Unprocessable Entity
+     *  - 500: Internal Server Error
      *
      * @param logoutRequest  (optional)
      * @return [Unit]
@@ -112,7 +116,9 @@ interface AuthApi {
      * 
      * Responses:
      *  - 200: OK
-     *  - 0: Error
+     *  - 401: Unauthorized
+     *  - 422: Unprocessable Entity
+     *  - 500: Internal Server Error
      *
      * @param updateMeRequest 
      * @return [UserProfile]

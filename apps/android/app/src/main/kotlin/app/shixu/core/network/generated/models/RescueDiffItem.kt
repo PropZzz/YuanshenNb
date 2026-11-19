@@ -23,6 +23,10 @@
 
 package app.shixu.core.network.generated.models
 
+import app.shixu.core.network.generated.models.CognitiveLoad
+import app.shixu.core.network.generated.models.DiffOp
+import app.shixu.core.network.generated.models.Flexibility
+import app.shixu.core.network.generated.models.ScheduleCategory
 
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerialName
@@ -57,16 +61,16 @@ data class RescueDiffItem (
     val afterStartAt: java.time.OffsetDateTime,
 
     @SerialName(value = "category")
-    val category: RescueDiffItem.Category,
+    val category: ScheduleCategory,
 
     @SerialName(value = "cognitiveLoad")
-    val cognitiveLoad: RescueDiffItem.CognitiveLoad,
+    val cognitiveLoad: CognitiveLoad,
 
     @SerialName(value = "flexibility")
-    val flexibility: RescueDiffItem.Flexibility,
+    val flexibility: Flexibility,
 
     @SerialName(value = "op")
-    val op: RescueDiffItem.Op,
+    val op: DiffOp,
 
     @SerialName(value = "reasonCode")
     val reasonCode: kotlin.String,
@@ -88,45 +92,6 @@ data class RescueDiffItem (
 
 ) {
 
-    /**
-     * Values: deep_work,meeting,recovery,routine,urgent
-     */
-    @Serializable
-    enum class Category(val value: kotlin.String) {
-        @SerialName(value = "deep_work") deep_work("deep_work"),
-        @SerialName(value = "meeting") meeting("meeting"),
-        @SerialName(value = "recovery") recovery("recovery"),
-        @SerialName(value = "routine") routine("routine"),
-        @SerialName(value = "urgent") urgent("urgent");
-    }
-    /**
-     * Values: high,medium,low
-     */
-    @Serializable
-    enum class CognitiveLoad(val value: kotlin.String) {
-        @SerialName(value = "high") high("high"),
-        @SerialName(value = "medium") medium("medium"),
-        @SerialName(value = "low") low("low");
-    }
-    /**
-     * Values: hard_locked,flexible,focus_shield
-     */
-    @Serializable
-    enum class Flexibility(val value: kotlin.String) {
-        @SerialName(value = "hard_locked") hard_locked("hard_locked"),
-        @SerialName(value = "flexible") flexible("flexible"),
-        @SerialName(value = "focus_shield") focus_shield("focus_shield");
-    }
-    /**
-     * Values: create,move,defer,unchanged
-     */
-    @Serializable
-    enum class Op(val value: kotlin.String) {
-        @SerialName(value = "create") create("create"),
-        @SerialName(value = "move") move("move"),
-        @SerialName(value = "defer") defer("defer"),
-        @SerialName(value = "unchanged") unchanged("unchanged");
-    }
 
 }
 

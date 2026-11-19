@@ -33,7 +33,6 @@ import kotlinx.serialization.Contextual
  * @param baselineVersion
  * @param day
  * @param options
- * @param dollarSchema A URL to the JSON Schema for this object.
  */
 @Serializable
 
@@ -46,11 +45,7 @@ data class RescueOptionsResponse (
     val day: java.time.LocalDate,
 
     @SerialName(value = "options")
-    val options: kotlin.collections.List<RescueOptionPlan>?,
-
-    /* A URL to the JSON Schema for this object. */
-    @Contextual @SerialName(value = "\$schema")
-    val dollarSchema: java.net.URI? = null
+    val options: kotlin.collections.List<RescueOptionPlan>
 
 ) {
 

@@ -23,6 +23,8 @@
 
 package app.shixu.core.network.generated.models
 
+import app.shixu.core.network.generated.models.PrivacyLevel
+import app.shixu.core.network.generated.models.WorkspaceRole
 
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerialName
@@ -43,7 +45,6 @@ import kotlinx.serialization.encoding.Encoder
  * @param name
  * @param ownerId
  * @param updatedAt
- * @param dollarSchema A URL to the JSON Schema for this object.
  */
 @Serializable
 
@@ -65,10 +66,10 @@ data class WorkspaceDTO (
     val memberCount: kotlin.Long,
 
     @SerialName(value = "myPrivacyLevel")
-    val myPrivacyLevel: WorkspaceDTO.MyPrivacyLevel,
+    val myPrivacyLevel: PrivacyLevel,
 
     @SerialName(value = "myRole")
-    val myRole: WorkspaceDTO.MyRole,
+    val myRole: WorkspaceRole,
 
     @SerialName(value = "name")
     val name: kotlin.String,
@@ -77,32 +78,10 @@ data class WorkspaceDTO (
     val ownerId: java.util.UUID,
 
     @Contextual @SerialName(value = "updatedAt")
-    val updatedAt: java.time.OffsetDateTime,
-
-    /* A URL to the JSON Schema for this object. */
-    @Contextual @SerialName(value = "\$schema")
-    val dollarSchema: java.net.URI? = null
+    val updatedAt: java.time.OffsetDateTime
 
 ) {
 
-    /**
-     * Values: busy_only,energy_tier,full_title
-     */
-    @Serializable
-    enum class MyPrivacyLevel(val value: kotlin.String) {
-        @SerialName(value = "busy_only") busy_only("busy_only"),
-        @SerialName(value = "energy_tier") energy_tier("energy_tier"),
-        @SerialName(value = "full_title") full_title("full_title");
-    }
-    /**
-     * Values: owner,admin,member
-     */
-    @Serializable
-    enum class MyRole(val value: kotlin.String) {
-        @SerialName(value = "owner") owner("owner"),
-        @SerialName(value = "admin") admin("admin"),
-        @SerialName(value = "member") member("member");
-    }
 
 }
 

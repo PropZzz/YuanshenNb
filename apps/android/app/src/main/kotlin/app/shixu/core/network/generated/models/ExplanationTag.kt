@@ -23,6 +23,7 @@
 
 package app.shixu.core.network.generated.models
 
+import app.shixu.core.network.generated.models.TagTone
 
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerialName
@@ -48,19 +49,10 @@ data class ExplanationTag (
     val label: kotlin.String,
 
     @SerialName(value = "tone")
-    val tone: ExplanationTag.Tone
+    val tone: TagTone
 
 ) {
 
-    /**
-     * Values: positive,warning,neutral
-     */
-    @Serializable
-    enum class Tone(val value: kotlin.String) {
-        @SerialName(value = "positive") positive("positive"),
-        @SerialName(value = "warning") warning("warning"),
-        @SerialName(value = "neutral") neutral("neutral");
-    }
 
 }
 

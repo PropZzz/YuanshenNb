@@ -23,6 +23,7 @@
 
 package app.shixu.core.network.generated.models
 
+import app.shixu.core.network.generated.models.WsEventType
 
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerialName
@@ -37,6 +38,7 @@ import kotlinx.serialization.encoding.Encoder
  * @param occurredAt
  * @param payload
  * @param type
+ * @param version
  */
 @Serializable
 
@@ -49,26 +51,16 @@ data class WsEnvelope (
     val occurredAt: java.time.OffsetDateTime,
 
     @SerialName(value = "payload")
-    val payload: kotlin.collections.Map<kotlin.String, kotlinx.serialization.json.JsonElement?>,
+    val payload: kotlinx.serialization.json.JsonElement?,
 
     @SerialName(value = "type")
-    val type: WsEnvelope.Type
+    val type: WsEventType,
+
+    @SerialName(value = "version")
+    val version: kotlin.Long = 1L
 
 ) {
 
-    /**
-     * Values: energyPeriodUpdated,energyPeriodOverload_alert,schedulePeriodUpdated,workspacePeriodMeeting_confirmed,workspacePeriodMeeting_cancelled,workspacePeriodMeeting_responded,workspacePeriodAvailability_changed
-     */
-    @Serializable
-    enum class Type(val value: kotlin.String) {
-        @SerialName(value = "energy.updated") energyPeriodUpdated("energy.updated"),
-        @SerialName(value = "energy.overload_alert") energyPeriodOverload_alert("energy.overload_alert"),
-        @SerialName(value = "schedule.updated") schedulePeriodUpdated("schedule.updated"),
-        @SerialName(value = "workspace.meeting_confirmed") workspacePeriodMeeting_confirmed("workspace.meeting_confirmed"),
-        @SerialName(value = "workspace.meeting_cancelled") workspacePeriodMeeting_cancelled("workspace.meeting_cancelled"),
-        @SerialName(value = "workspace.meeting_responded") workspacePeriodMeeting_responded("workspace.meeting_responded"),
-        @SerialName(value = "workspace.availability_changed") workspacePeriodAvailability_changed("workspace.availability_changed");
-    }
 
 }
 

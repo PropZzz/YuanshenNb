@@ -23,6 +23,7 @@
 
 package app.shixu.core.network.generated.models
 
+import app.shixu.core.network.generated.models.CognitiveLoad
 
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerialName
@@ -39,8 +40,8 @@ import kotlinx.serialization.encoding.Encoder
  * @param searchFrom
  * @param searchTo
  * @param title
- * @param dollarSchema A URL to the JSON Schema for this object.
  * @param description
+ * @param maxResults
  * @param optionalIds
  * @param respectFocusShields
  */
@@ -49,13 +50,13 @@ import kotlinx.serialization.encoding.Encoder
 data class RecommendMeetingRequest (
 
     @SerialName(value = "cognitiveLoad")
-    val cognitiveLoad: RecommendMeetingRequest.CognitiveLoad,
+    val cognitiveLoad: CognitiveLoad,
 
     @SerialName(value = "durationMinutes")
     val durationMinutes: kotlin.Long,
 
     @SerialName(value = "participantIds")
-    val participantIds: kotlin.collections.List<kotlin.String>?,
+    val participantIds: kotlin.collections.List<kotlin.String>,
 
     @Contextual @SerialName(value = "searchFrom")
     val searchFrom: java.time.OffsetDateTime,
@@ -66,12 +67,11 @@ data class RecommendMeetingRequest (
     @SerialName(value = "title")
     val title: kotlin.String,
 
-    /* A URL to the JSON Schema for this object. */
-    @Contextual @SerialName(value = "\$schema")
-    val dollarSchema: java.net.URI? = null,
-
     @SerialName(value = "description")
     val description: kotlin.String? = null,
+
+    @SerialName(value = "maxResults")
+    val maxResults: kotlin.Long? = 3L,
 
     @SerialName(value = "optionalIds")
     val optionalIds: kotlin.collections.List<kotlin.String>? = null,
@@ -81,15 +81,6 @@ data class RecommendMeetingRequest (
 
 ) {
 
-    /**
-     * Values: high,medium,low
-     */
-    @Serializable
-    enum class CognitiveLoad(val value: kotlin.String) {
-        @SerialName(value = "high") high("high"),
-        @SerialName(value = "medium") medium("medium"),
-        @SerialName(value = "low") low("low");
-    }
 
 }
 

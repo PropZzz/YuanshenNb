@@ -31,7 +31,6 @@ import kotlinx.serialization.Contextual
 /**
  * @param email
  * @param password
- * @param dollarSchema A URL to the JSON Schema for this object.
  * @param deviceName
  */
 @Serializable
@@ -43,10 +42,6 @@ data class LoginRequest (
 
     @SerialName(value = "password")
     val password: kotlin.String,
-
-    /* A URL to the JSON Schema for this object. */
-    @Contextual @SerialName(value = "\$schema")
-    val dollarSchema: java.net.URI? = null,
 
     @SerialName(value = "deviceName")
     val deviceName: kotlin.String? = null

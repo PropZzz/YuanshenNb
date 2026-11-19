@@ -23,6 +23,7 @@
 
 package app.shixu.core.network.generated.models
 
+import app.shixu.core.network.generated.models.ReplayScenario
 
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerialName
@@ -34,7 +35,6 @@ import kotlinx.serialization.encoding.Encoder
 
 /**
  * @param scenario
- * @param dollarSchema A URL to the JSON Schema for this object.
  * @param day 本地日期 YYYY-MM-DD（默认今日）
  */
 @Serializable
@@ -42,11 +42,7 @@ import kotlinx.serialization.encoding.Encoder
 data class ReplaySeedRequest (
 
     @SerialName(value = "scenario")
-    val scenario: ReplaySeedRequest.Scenario,
-
-    /* A URL to the JSON Schema for this object. */
-    @Contextual @SerialName(value = "\$schema")
-    val dollarSchema: java.net.URI? = null,
+    val scenario: ReplayScenario,
 
     /* 本地日期 YYYY-MM-DD（默认今日） */
     @Contextual @SerialName(value = "day")
@@ -54,15 +50,6 @@ data class ReplaySeedRequest (
 
 ) {
 
-    /**
-     * Values: well_rested,sleep_deprived,high_stress
-     */
-    @Serializable
-    enum class Scenario(val value: kotlin.String) {
-        @SerialName(value = "well_rested") well_rested("well_rested"),
-        @SerialName(value = "sleep_deprived") sleep_deprived("sleep_deprived"),
-        @SerialName(value = "high_stress") high_stress("high_stress");
-    }
 
 }
 

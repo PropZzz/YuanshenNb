@@ -3,198 +3,25 @@
 package api
 
 import (
-	"fmt"
-	"net/http"
 	"time"
 
-	"github.com/danielgtaylor/huma/v2"
 	"github.com/google/uuid"
-	"github.com/shixu-app/server/internal/engine"
 )
 
-// ── RFC 9457 标准业务错误码字典 ──
+// ── 共享基础 DTO ──
 
-type ErrorCode string
-
-const (
-	ErrBadRequest                   ErrorCode = "BAD_REQUEST"
-	ErrUnauthorized                 ErrorCode = "UNAUTHORIZED"
-	ErrInvalidCredentials           ErrorCode = "INVALID_CREDENTIALS"
-	ErrInvalidRefreshToken          ErrorCode = "INVALID_REFRESH_TOKEN"
-	ErrTokenReuseDetected           ErrorCode = "TOKEN_REUSE_DETECTED"
-	ErrInvalidWSTicket              ErrorCode = "INVALID_WS_TICKET"
-	ErrForbiddenNotWorkspaceMember  ErrorCode = "FORBIDDEN_NOT_WORKSPACE_MEMBER"
-	ErrForbiddenInsufficientRole    ErrorCode = "FORBIDDEN_INSUFFICIENT_ROLE"
-	ErrForbiddenNotParticipant      ErrorCode = "FORBIDDEN_NOT_MEETING_PARTICIPANT"
-	ErrNotFound                     ErrorCode = "NOT_FOUND"
-	ErrInviteCodeNotFound           ErrorCode = "INVITE_CODE_NOT_FOUND"
-	ErrMeetingProposalNotFound      ErrorCode = "MEETING_PROPOSAL_NOT_FOUND"
-	ErrSnapshotNotFound             ErrorCode = "SNAPSHOT_NOT_FOUND"
-	ErrEmailAlreadyExists           ErrorCode = "EMAIL_ALREADY_EXISTS"
-	ErrAlreadyWorkspaceMember       ErrorCode = "ALREADY_WORKSPACE_MEMBER"
-	ErrConflictScheduleOverlap      ErrorCode = "CONFLICT_SCHEDULE_OVERLAP"
-	ErrConflictMemberBusy           ErrorCode = "CONFLICT_MEMBER_BUSY"
-	ErrMeetingManagedByProposal     ErrorCode = "MEETING_MANAGED_BY_PROPOSAL"
-	ErrMeetingAlreadyCancelled      ErrorCode = "MEETING_ALREADY_CANCELLED"
-	ErrStaleBaselineVersion         ErrorCode = "STALE_BASELINE_VERSION"
-	ErrAlreadyReverted              ErrorCode = "ALREADY_REVERTED"
-	ErrSnapshotRestoreConflict      ErrorCode = "SNAPSHOT_RESTORE_CONFLICT"
-	ErrValidationFailed             ErrorCode = "VALIDATION_FAILED"
-	ErrRangeTooLarge                ErrorCode = "RANGE_TOO_LARGE"
-	ErrInvalidTimeRange             ErrorCode = "INVALID_TIME_RANGE"
-	ErrDeadlineInPast               ErrorCode = "DEADLINE_IN_PAST"
-	ErrInvalidBiometricSample       ErrorCode = "INVALID_BIOMETRIC_SAMPLE"
-	ErrInvalidWorkHours             ErrorCode = "INVALID_WORK_HOURS"
-	ErrParticipantNotInWorkspace    ErrorCode = "PARTICIPANT_NOT_IN_WORKSPACE"
-	ErrServiceUnavailable           ErrorCode = "SERVICE_UNAVAILABLE"
-)
-
-type ErrorDetailItem struct {
-	Location string `json:"location"`
-	Message  string `json:"message"`
-	Value    any    `json:"value,omitempty"`
+type DailyMinuteWindow struct {
+	StartMinute int `json:"startMinute" minimum:"0" maximum:"1439"`
+	EndMinute   int `json:"endMinute" minimum:"1" maximum:"1440"`
 }
-
-// ProblemDetail 遵循 RFC 9457 (application/problem+json)，扩展机器可读业务 ErrorCode，并兼容 huma.StatusError。
-type ProblemDetail struct {
-	Type   string            `json:"type" format:"uri"`
-	Title  string            `json:"title"`
-	Status int               `json:"status"`
-	Detail string            `json:"detail"`
-	Code   ErrorCode         `json:"code" enum:"BAD_REQUEST,UNAUTHORIZED,INVALID_CREDENTIALS,INVALID_REFRESH_TOKEN,TOKEN_REUSE_DETECTED,INVALID_WS_TICKET,FORBIDDEN_NOT_WORKSPACE_MEMBER,FORBIDDEN_INSUFFICIENT_ROLE,FORBIDDEN_NOT_MEETING_PARTICIPANT,NOT_FOUND,INVITE_CODE_NOT_FOUND,MEETING_PROPOSAL_NOT_FOUND,SNAPSHOT_NOT_FOUND,EMAIL_ALREADY_EXISTS,ALREADY_WORKSPACE_MEMBER,CONFLICT_SCHEDULE_OVERLAP,CONFLICT_MEMBER_BUSY,MEETING_MANAGED_BY_PROPOSAL,MEETING_ALREADY_CANCELLED,STALE_BASELINE_VERSION,ALREADY_REVERTED,SNAPSHOT_RESTORE_CONFLICT,VALIDATION_FAILED,RANGE_TOO_LARGE,INVALID_TIME_RANGE,DEADLINE_IN_PAST,INVALID_BIOMETRIC_SAMPLE,INVALID_WORK_HOURS,PARTICIPANT_NOT_IN_WORKSPACE,SERVICE_UNAVAILABLE"`
-	Errors []ErrorDetailItem `json:"errors,omitempty"`
-}
-
-func (p *ProblemDetail) Error() string {
-	if p.Detail != "" {
-		return p.Detail
-	}
-	return p.Title
-}
-
-func (p *ProblemDetail) GetStatus() int {
-	if p.Status == 0 {
-		return http.StatusInternalServerError
-	}
-	return p.Status
-}
-
-func (p *ProblemDetail) ContentType(string) string {
-	return "application/problem+json"
-}
-
-func defaultErrorCodeForStatus(status int) ErrorCode {
-	switch status {
-	case http.StatusBadRequest:
-		return ErrBadRequest
-	case http.StatusUnauthorized:
-		return ErrUnauthorized
-	case http.StatusForbidden:
-		return ErrForbiddenNotWorkspaceMember
-	case http.StatusNotFound:
-		return ErrNotFound
-	case http.StatusConflict:
-		return ErrConflictScheduleOverlap
-	case http.StatusUnprocessableEntity:
-		return ErrValidationFailed
-	case http.StatusServiceUnavailable:
-		return ErrServiceUnavailable
-	default:
-		return ErrBadRequest
-	}
-}
-
-// NewProblem 构造符合 RFC 9457 的标准业务异常。
-func NewProblem(status int, code ErrorCode, detail string, errs ...ErrorDetailItem) *ProblemDetail {
-	return &ProblemDetail{
-		Type:   fmt.Sprintf("https://shixu.app/errors/%s", code),
-		Title:  http.StatusText(status),
-		Status: status,
-		Detail: detail,
-		Code:   code,
-		Errors: errs,
-	}
-}
-
-// ConfigureHumaErrors 将 Huma 全局错误工厂统一替换为 ProblemDetail（带 ErrorCode 枚举）。
-func ConfigureHumaErrors() {
-	huma.NewError = func(status int, msg string, errs ...error) huma.StatusError {
-		items := make([]ErrorDetailItem, 0, len(errs))
-		for _, err := range errs {
-			if err == nil {
-				continue
-			}
-			if d, ok := err.(huma.ErrorDetailer); ok {
-				ed := d.ErrorDetail()
-				items = append(items, ErrorDetailItem{
-					Location: ed.Location,
-					Message:  ed.Message,
-					Value:    ed.Value,
-				})
-				continue
-			}
-			items = append(items, ErrorDetailItem{Message: err.Error()})
-		}
-		return NewProblem(status, defaultErrorCodeForStatus(status), msg, items...)
-	}
-}
-
-// ── 枚举别名（与 engine/0001_init.sql 保持单一定义） ──
-
-type ThemeMode string
-
-const (
-	ThemeSystem ThemeMode = "system"
-	ThemeLight  ThemeMode = "light"
-	ThemeDark   ThemeMode = "dark"
-)
-
-type ReplayScenario string
-
-const (
-	ScenarioWellRested    ReplayScenario = "well_rested"
-	ScenarioSleepDeprived ReplayScenario = "sleep_deprived"
-	ScenarioHighStress    ReplayScenario = "high_stress"
-)
-
-type WorkspaceRole string
-
-const (
-	RoleOwner  WorkspaceRole = "owner"
-	RoleAdmin  WorkspaceRole = "admin"
-	RoleMember WorkspaceRole = "member"
-)
-
-type MeetingProposalStatus string
-
-const (
-	ProposalDraft     MeetingProposalStatus = "draft"
-	ProposalConfirmed MeetingProposalStatus = "confirmed"
-	ProposalCancelled MeetingProposalStatus = "cancelled"
-)
-
-type MeetingResponseStatus string
-
-const (
-	ResponsePending  MeetingResponseStatus = "pending"
-	ResponseAccepted MeetingResponseStatus = "accepted"
-	ResponseDeclined MeetingResponseStatus = "declined"
-)
-
-type RescueSnapshotStatus string
-
-const (
-	SnapshotApplied  RescueSnapshotStatus = "applied"
-	SnapshotReverted RescueSnapshotStatus = "reverted"
-)
 
 // ── 2.1 系统与认证 DTO ──
 
 type HealthResponse struct {
-	OK         bool      `json:"ok"`
-	Version    string    `json:"version"`
-	DBStatus   string    `json:"dbStatus" enum:"up,down"`
-	ServerTime time.Time `json:"serverTime" format:"date-time"`
+	OK         bool           `json:"ok"`
+	Version    string         `json:"version"`
+	DBStatus   HealthDBStatus `json:"dbStatus"`
+	ServerTime time.Time      `json:"serverTime" format:"date-time"`
 }
 
 type UserProfile struct {
@@ -202,7 +29,7 @@ type UserProfile struct {
 	Email       string    `json:"email" format:"email"`
 	DisplayName string    `json:"displayName" minLength:"1" maxLength:"64"`
 	Timezone    string    `json:"timezone"`
-	ThemeMode   ThemeMode `json:"themeMode" enum:"system,light,dark"`
+	ThemeMode   ThemeMode `json:"themeMode"`
 	CreatedAt   time.Time `json:"createdAt" format:"date-time"`
 	UpdatedAt   time.Time `json:"updatedAt" format:"date-time"`
 }
@@ -240,7 +67,7 @@ type LogoutRequest struct {
 type UpdateMeRequest struct {
 	DisplayName *string    `json:"displayName,omitempty" minLength:"1" maxLength:"64"`
 	Timezone    *string    `json:"timezone,omitempty"`
-	ThemeMode   *ThemeMode `json:"themeMode,omitempty" enum:"system,light,dark"`
+	ThemeMode   *ThemeMode `json:"themeMode,omitempty"`
 }
 
 type WsTicketResponse struct {
@@ -248,24 +75,79 @@ type WsTicketResponse struct {
 	ExpiresAt time.Time `json:"expiresAt" format:"date-time"`
 }
 
-// ── 2.2 穿戴生理与精力模型 DTO ──
+// ── 2.2 穿戴生理上报与精力模型 DTO ──
 
 type BiometricSampleDTO struct {
-	SourceType   engine.SourceType `json:"sourceType" enum:"health_connect,ble_gatt,replay_demo"`
-	MetricType   engine.MetricType `json:"metricType" enum:"heart_rate,hrv_rmssd,resting_hr,sleep_session,sleep_stage,active_calories"`
-	RecordedAt   time.Time         `json:"recordedAt" format:"date-time"`
-	EndAt        *time.Time        `json:"endAt,omitempty" format:"date-time"`
-	NumericValue float64           `json:"numericValue"`
-	Unit         string            `json:"unit"`
-	ExternalID   string            `json:"externalId" minLength:"1" doc:"确定性幂等唯一键"`
-	Metadata     map[string]any    `json:"metadata,omitempty"`
+	SourceType   SourceType     `json:"sourceType"`
+	MetricType   MetricType     `json:"metricType"`
+	RecordedAt   time.Time      `json:"recordedAt" format:"date-time"`
+	EndAt        *time.Time     `json:"endAt,omitempty" format:"date-time"`
+	NumericValue float64        `json:"numericValue"`
+	Unit         string         `json:"unit"`
+	SleepStage   *SleepStage    `json:"sleepStage,omitempty" doc:"metricType=sleep_stage 时的强类型睡眠分期"`
+	ExternalID   string         `json:"externalId" minLength:"1" doc:"确定性幂等唯一键"`
+	Metadata     map[string]any `json:"metadata,omitempty"`
 }
 
 type BiometricBatchRequest struct {
 	Samples []BiometricSampleDTO `json:"samples" minItems:"1" maxItems:"500"`
 }
 
-type EnergyTodayResponse = engine.EnergyComputeOutput
+type HourlyEnergyPoint struct {
+	HourStartAt time.Time  `json:"hourStartAt" format:"date-time"`
+	Score       int        `json:"score" minimum:"0" maximum:"100"`
+	Tier        EnergyTier `json:"tier"`
+}
+
+type EnergyDrivers struct {
+	SleepRecoveryScore       float64  `json:"sleepRecoveryScore"`
+	AutonomicDeltaScore      float64  `json:"autonomicDeltaScore"`
+	CircadianScore           float64  `json:"circadianScore"`
+	CognitiveLoadDrainScore  float64  `json:"cognitiveLoadDrainScore"`
+	RecoveryBufferBonusScore float64  `json:"recoveryBufferBonusScore"`
+	SleepDurationMinutes     *int     `json:"sleepDurationMinutes,omitempty"`
+	RecentHRVRMSSDMs         *float64 `json:"recentHrvRmssdMs,omitempty"`
+	RecentRestingHRBpm       *float64 `json:"recentRestingHrBpm,omitempty"`
+	Summary                  string   `json:"summary"`
+}
+
+type FocusShieldWindow struct {
+	StartAt  time.Time         `json:"startAt" format:"date-time"`
+	EndAt    time.Time         `json:"endAt" format:"date-time"`
+	AvgScore int               `json:"avgScore" minimum:"0" maximum:"100"`
+	Source   FocusShieldSource `json:"source"`
+}
+
+type OverloadAlert struct {
+	TriggerReason       RescueTriggerReason `json:"triggerReason"`
+	Severity            OverloadSeverity    `json:"severity"`
+	CurrentScore        int                 `json:"currentScore" minimum:"0" maximum:"100"`
+	Tier                EnergyTier          `json:"tier"`
+	Message             string              `json:"message"`
+	RecommendedStrategy RescueStrategy      `json:"recommendedStrategy"`
+}
+
+type EnergySourceDiagnostics struct {
+	LastSyncedAt      *time.Time  `json:"lastSyncedAt,omitempty" format:"date-time"`
+	PrimarySource     *SourceType `json:"primarySource,omitempty"`
+	BaselineReadyDays int         `json:"baselineReadyDays" minimum:"0" maximum:"14"`
+	HRVBaselineMs     *float64    `json:"hrvBaselineMs,omitempty"`
+	RHRBaselineBpm    *float64    `json:"rhrBaselineBpm,omitempty"`
+}
+
+type EnergyTodayResponse struct {
+	LocalDay      string                  `json:"localDay" format:"date"`
+	Timezone      string                  `json:"timezone"`
+	ComputedAt    time.Time               `json:"computedAt" format:"date-time"`
+	Score         int                     `json:"score" minimum:"0" maximum:"100"`
+	Tier          EnergyTier              `json:"tier"`
+	DataFreshness DataFreshness           `json:"dataFreshness"`
+	Drivers       EnergyDrivers           `json:"drivers"`
+	HourlyCurve   []HourlyEnergyPoint     `json:"hourlyCurve"`
+	FocusShields  []FocusShieldWindow     `json:"focusShields"`
+	OverloadAlert *OverloadAlert          `json:"overloadAlert,omitempty"`
+	Diagnostics   EnergySourceDiagnostics `json:"diagnostics"`
+}
 
 type BiometricBatchResponse struct {
 	AcceptedCount     int                 `json:"acceptedCount" minimum:"0"`
@@ -274,130 +156,188 @@ type BiometricBatchResponse struct {
 }
 
 type ReplaySeedRequest struct {
-	Scenario ReplayScenario `json:"scenario" enum:"well_rested,sleep_deprived,high_stress"`
+	Scenario ReplayScenario `json:"scenario"`
 	Day      string         `json:"day,omitempty" format:"date" doc:"本地日期 YYYY-MM-DD（默认今日）"`
 }
 
 type ReplaySeedResponse struct {
-	Scenario     ReplayScenario      `json:"scenario" enum:"well_rested,sleep_deprived,high_stress"`
+	Scenario     ReplayScenario      `json:"scenario"`
 	Day          string              `json:"day" format:"date"`
 	SeededCount  int                 `json:"seededCount" minimum:"0"`
 	LatestEnergy EnergyTodayResponse `json:"latestEnergy"`
 }
 
 type EnergyProfileDTO struct {
-	UserID                uuid.UUID                  `json:"userId" format:"uuid"`
-	WorkStartMinute       int                        `json:"workStartMinute" minimum:"0" maximum:"1439"`
-	WorkEndMinute         int                        `json:"workEndMinute" minimum:"1" maximum:"1440"`
-	Chronotype            engine.Chronotype          `json:"chronotype" enum:"morning_lark,balanced,night_owl"`
-	PreferredFocusWindows []engine.DailyMinuteWindow `json:"preferredFocusWindows"`
-	MinRecoveryBufferMin  int                        `json:"minRecoveryBufferMin" minimum:"5" maximum:"60"`
-	HRVBaselineMs         *float64                   `json:"hrvBaselineMs,omitempty"`
-	RHRBaselineBpm        *float64                   `json:"rhrBaselineBpm,omitempty"`
-	UpdatedAt             time.Time                  `json:"updatedAt" format:"date-time"`
+	UserID                uuid.UUID           `json:"userId" format:"uuid"`
+	WorkStartMinute       int                 `json:"workStartMinute" minimum:"0" maximum:"1439"`
+	WorkEndMinute         int                 `json:"workEndMinute" minimum:"1" maximum:"1440"`
+	Chronotype            Chronotype          `json:"chronotype"`
+	PreferredFocusWindows []DailyMinuteWindow `json:"preferredFocusWindows"`
+	MinRecoveryBufferMin  int                 `json:"minRecoveryBufferMin" minimum:"5" maximum:"60"`
+	HRVBaselineMs         *float64            `json:"hrvBaselineMs,omitempty"`
+	RHRBaselineBpm        *float64            `json:"rhrBaselineBpm,omitempty"`
+	UpdatedAt             time.Time           `json:"updatedAt" format:"date-time"`
 }
 
 type UpdateEnergyProfileRequest struct {
-	WorkStartMinute       int                        `json:"workStartMinute" minimum:"0" maximum:"1439"`
-	WorkEndMinute         int                        `json:"workEndMinute" minimum:"1" maximum:"1440"`
-	Chronotype            engine.Chronotype          `json:"chronotype" enum:"morning_lark,balanced,night_owl"`
-	PreferredFocusWindows []engine.DailyMinuteWindow `json:"preferredFocusWindows"`
-	MinRecoveryBufferMin  int                        `json:"minRecoveryBufferMin" minimum:"5" maximum:"60"`
+	WorkStartMinute       int                 `json:"workStartMinute" minimum:"0" maximum:"1439"`
+	WorkEndMinute         int                 `json:"workEndMinute" minimum:"1" maximum:"1440"`
+	Chronotype            Chronotype          `json:"chronotype"`
+	PreferredFocusWindows []DailyMinuteWindow `json:"preferredFocusWindows"`
+	MinRecoveryBufferMin  int                 `json:"minRecoveryBufferMin" minimum:"5" maximum:"60"`
 }
 
 // ── 2.3 个人日程与救援 DTO ──
 
 type ScheduleItemDTO struct {
-	ID                uuid.UUID               `json:"id" format:"uuid"`
-	UserID            uuid.UUID               `json:"userId" format:"uuid"`
-	WorkspaceID       *uuid.UUID              `json:"workspaceId,omitempty" format:"uuid"`
-	MeetingProposalID *uuid.UUID              `json:"meetingProposalId,omitempty" format:"uuid"`
-	Title             string                  `json:"title" minLength:"1" maxLength:"200"`
-	Notes             string                  `json:"notes"`
-	Category          engine.ScheduleCategory `json:"category" enum:"deep_work,meeting,recovery,routine,urgent"`
-	CognitiveLoad     engine.CognitiveLoad    `json:"cognitiveLoad" enum:"high,medium,low"`
-	Flexibility       engine.Flexibility      `json:"flexibility" enum:"hard_locked,flexible,focus_shield"`
-	Status            engine.ScheduleStatus   `json:"status" enum:"planned,in_progress,completed,cancelled"`
-	StartAt           time.Time               `json:"startAt" format:"date-time"`
-	EndAt             time.Time               `json:"endAt" format:"date-time"`
-	DurationMinutes   int                     `json:"durationMinutes" minimum:"1"`
-	DeadlineAt        *time.Time              `json:"deadlineAt,omitempty" format:"date-time"`
-	ReminderMinutes   int                     `json:"reminderMinutes" minimum:"0"`
-	CreatedAt         time.Time               `json:"createdAt" format:"date-time"`
-	UpdatedAt         time.Time               `json:"updatedAt" format:"date-time"`
+	ID                uuid.UUID        `json:"id" format:"uuid"`
+	UserID            uuid.UUID        `json:"userId" format:"uuid"`
+	WorkspaceID       *uuid.UUID       `json:"workspaceId,omitempty" format:"uuid"`
+	MeetingProposalID *uuid.UUID       `json:"meetingProposalId,omitempty" format:"uuid"`
+	Title             string           `json:"title" minLength:"1" maxLength:"200"`
+	Notes             string           `json:"notes"`
+	Category          ScheduleCategory `json:"category"`
+	CognitiveLoad     CognitiveLoad    `json:"cognitiveLoad"`
+	Flexibility       Flexibility      `json:"flexibility"`
+	Status            ScheduleStatus   `json:"status"`
+	StartAt           time.Time        `json:"startAt" format:"date-time"`
+	EndAt             time.Time        `json:"endAt" format:"date-time"`
+	DurationMinutes   int              `json:"durationMinutes" minimum:"1"`
+	DeadlineAt        *time.Time       `json:"deadlineAt,omitempty" format:"date-time"`
+	ReminderMinutes   int              `json:"reminderMinutes" minimum:"0"`
+	CreatedAt         time.Time        `json:"createdAt" format:"date-time"`
+	UpdatedAt         time.Time        `json:"updatedAt" format:"date-time"`
+}
+
+type ScheduleItemSnapshot struct {
+	ID                uuid.UUID        `json:"id" format:"uuid"`
+	UserID            uuid.UUID        `json:"userId" format:"uuid"`
+	WorkspaceID       *uuid.UUID       `json:"workspaceId,omitempty" format:"uuid"`
+	MeetingProposalID *uuid.UUID       `json:"meetingProposalId,omitempty" format:"uuid"`
+	Title             string           `json:"title"`
+	Notes             string           `json:"notes"`
+	Category          ScheduleCategory `json:"category"`
+	CognitiveLoad     CognitiveLoad    `json:"cognitiveLoad"`
+	Flexibility       Flexibility      `json:"flexibility"`
+	Status            ScheduleStatus   `json:"status"`
+	StartAt           time.Time        `json:"startAt" format:"date-time"`
+	EndAt             time.Time        `json:"endAt" format:"date-time"`
+	DurationMinutes   int              `json:"durationMinutes" minimum:"1"`
+	DeadlineAt        *time.Time       `json:"deadlineAt,omitempty" format:"date-time"`
+	ReminderMinutes   int              `json:"reminderMinutes" minimum:"0"`
+	UpdatedAt         time.Time        `json:"updatedAt" format:"date-time"`
 }
 
 type ScheduleItemListResponse struct {
-	Items           []ScheduleItemDTO `json:"items"`
-	BaselineVersion string            `json:"baselineVersion"`
+	Items            []ScheduleItemDTO `json:"items"`
+	BaselineLocalDay string            `json:"baselineLocalDay" format:"date" doc:"baselineVersion 对应的用户本地锚定日期 (YYYY-MM-DD)"`
+	BaselineVersion  string            `json:"baselineVersion"`
 }
 
 type ScheduleMutationResponse struct {
-	Item            ScheduleItemDTO `json:"item"`
-	BaselineVersion string          `json:"baselineVersion"`
+	Item             ScheduleItemDTO `json:"item"`
+	BaselineLocalDay string          `json:"baselineLocalDay" format:"date" doc:"baselineVersion 对应的用户本地锚定日期 (YYYY-MM-DD)"`
+	BaselineVersion  string          `json:"baselineVersion"`
 }
 
 type CreateScheduleItemRequest struct {
-	Title           string                  `json:"title" minLength:"1" maxLength:"200"`
-	Notes           string                  `json:"notes,omitempty"`
-	Category        engine.ScheduleCategory `json:"category" enum:"deep_work,meeting,recovery,routine,urgent"`
-	CognitiveLoad   engine.CognitiveLoad    `json:"cognitiveLoad" enum:"high,medium,low"`
-	Flexibility     engine.Flexibility      `json:"flexibility" enum:"hard_locked,flexible,focus_shield"`
-	StartAt         time.Time               `json:"startAt" format:"date-time"`
-	EndAt           time.Time               `json:"endAt" format:"date-time"`
-	DeadlineAt      *time.Time              `json:"deadlineAt,omitempty" format:"date-time"`
-	ReminderMinutes *int                    `json:"reminderMinutes,omitempty" minimum:"0" default:"10"`
-	AllowOverlap    bool                    `json:"allowOverlap,omitempty" default:"false"`
+	Title           string           `json:"title" minLength:"1" maxLength:"200"`
+	Notes           string           `json:"notes,omitempty"`
+	Category        ScheduleCategory `json:"category"`
+	CognitiveLoad   CognitiveLoad    `json:"cognitiveLoad"`
+	Flexibility     Flexibility      `json:"flexibility"`
+	StartAt         time.Time        `json:"startAt" format:"date-time"`
+	EndAt           time.Time        `json:"endAt" format:"date-time"`
+	DeadlineAt      *time.Time       `json:"deadlineAt,omitempty" format:"date-time"`
+	ReminderMinutes *int             `json:"reminderMinutes,omitempty" minimum:"0" default:"10"`
+	AllowOverlap    bool             `json:"allowOverlap,omitempty" default:"false"`
 }
 
 type UpdateScheduleItemRequest struct {
 	Title           *string                  `json:"title,omitempty" minLength:"1" maxLength:"200"`
 	Notes           *string                  `json:"notes,omitempty"`
-	Category        *engine.ScheduleCategory `json:"category,omitempty" enum:"deep_work,meeting,recovery,routine,urgent"`
-	CognitiveLoad   *engine.CognitiveLoad    `json:"cognitiveLoad,omitempty" enum:"high,medium,low"`
-	Flexibility     *engine.Flexibility      `json:"flexibility,omitempty" enum:"hard_locked,flexible,focus_shield"`
-	Status          *engine.ScheduleStatus   `json:"status,omitempty" enum:"planned,in_progress,completed,cancelled"`
+	Category        *ScheduleCategory        `json:"category,omitempty"`
+	CognitiveLoad   *CognitiveLoad           `json:"cognitiveLoad,omitempty"`
+	Flexibility     *Flexibility             `json:"flexibility,omitempty"`
+	Status          *ScheduleStatus          `json:"status,omitempty"`
 	StartAt         *time.Time               `json:"startAt,omitempty" format:"date-time"`
 	EndAt           *time.Time               `json:"endAt,omitempty" format:"date-time"`
-	DeadlineAt      *time.Time               `json:"deadlineAt,omitempty" format:"date-time"`
+	DeadlineAt      NullableField[time.Time] `json:"deadlineAt,omitzero" doc:"更新截止时间；传 null 可显式清除"`
+	ClearDeadline   *bool                    `json:"clearDeadline,omitempty" doc:"为 true 时显式清除截止时间（等价于 deadlineAt=null）"`
 	ReminderMinutes *int                     `json:"reminderMinutes,omitempty" minimum:"0"`
 	AllowOverlap    *bool                    `json:"allowOverlap,omitempty"`
 }
 
+// ShouldClearDeadline 统一判断 PATCH 请求是否要求清除 deadlineAt。
+func (r UpdateScheduleItemRequest) ShouldClearDeadline() bool {
+	if r.ClearDeadline != nil && *r.ClearDeadline {
+		return true
+	}
+	return r.DeadlineAt.Set && !r.DeadlineAt.Valid
+}
+
 type UrgentTaskDTO struct {
-	Title           string               `json:"title" minLength:"1" maxLength:"200"`
-	Notes           string               `json:"notes,omitempty"`
-	DurationMinutes int                  `json:"durationMinutes" minimum:"15" maximum:"480"`
-	CognitiveLoad   engine.CognitiveLoad `json:"cognitiveLoad" enum:"high,medium,low"`
-	DeadlineAt      time.Time            `json:"deadlineAt" format:"date-time"`
+	Title           string        `json:"title" minLength:"1" maxLength:"200"`
+	Notes           string        `json:"notes,omitempty"`
+	DurationMinutes int           `json:"durationMinutes" minimum:"15" maximum:"480"`
+	CognitiveLoad   CognitiveLoad `json:"cognitiveLoad"`
+	DeadlineAt      time.Time     `json:"deadlineAt" format:"date-time"`
 }
 
 type RescueOptionsRequest struct {
-	Day           string                     `json:"day" format:"date"`
-	TriggerReason engine.RescueTriggerReason `json:"triggerReason" enum:"urgent_task,team_meeting_overload,wearable_fatigue"`
-	UrgentTask    *UrgentTaskDTO             `json:"urgentTask,omitempty"`
+	Day           string              `json:"day" format:"date"`
+	TriggerReason RescueTriggerReason `json:"triggerReason"`
+	UrgentTask    *UrgentTaskDTO      `json:"urgentTask,omitempty"`
+}
+
+type RescueDiffItem struct {
+	Op            DiffOp           `json:"op"`
+	ItemID        *uuid.UUID       `json:"itemId,omitempty" format:"uuid"`
+	Title         string           `json:"title"`
+	Category      ScheduleCategory `json:"category"`
+	CognitiveLoad CognitiveLoad    `json:"cognitiveLoad"`
+	Flexibility   Flexibility      `json:"flexibility"`
+	BeforeStartAt *time.Time       `json:"beforeStartAt,omitempty" format:"date-time"`
+	BeforeEndAt   *time.Time       `json:"beforeEndAt,omitempty" format:"date-time"`
+	AfterStartAt  time.Time        `json:"afterStartAt" format:"date-time"`
+	AfterEndAt    time.Time        `json:"afterEndAt" format:"date-time"`
+	ReasonCode    string           `json:"reasonCode"`
+	ReasonLabel   string           `json:"reasonLabel"`
+}
+
+type RescueOptionPlan struct {
+	Strategy         RescueStrategy   `json:"strategy"`
+	OptionHash       string           `json:"optionHash"`
+	Feasible         bool             `json:"feasible"`
+	MovedCount       int              `json:"movedCount" minimum:"0"`
+	DeferredCount    int              `json:"deferredCount" minimum:"0"`
+	RecoveryMinutes  int              `json:"recoveryMinutes" minimum:"0"`
+	OverdueRiskCount int              `json:"overdueRiskCount" minimum:"0"`
+	Summary          string           `json:"summary"`
+	DiffItems        []RescueDiffItem `json:"diffItems"`
 }
 
 type RescueOptionsResponse struct {
-	Day             string                    `json:"day" format:"date"`
-	BaselineVersion string                    `json:"baselineVersion"`
-	Options         []engine.RescueOptionPlan `json:"options" minItems:"3" maxItems:"3"`
+	Day             string             `json:"day" format:"date"`
+	BaselineVersion string             `json:"baselineVersion"`
+	Options         []RescueOptionPlan `json:"options" minItems:"1"`
 }
 
 type RescueApplyRequest struct {
-	Day                string                     `json:"day" format:"date"`
-	BaselineVersion    string                     `json:"baselineVersion" minLength:"1"`
-	Strategy           engine.RescueStrategy      `json:"strategy" enum:"protect_deadline,protect_recovery,minimize_changes"`
-	TriggerReason      engine.RescueTriggerReason `json:"triggerReason" enum:"urgent_task,team_meeting_overload,wearable_fatigue"`
-	UrgentTask         *UrgentTaskDTO             `json:"urgentTask,omitempty"`
-	ExpectedOptionHash string                     `json:"expectedOptionHash,omitempty"`
+	Day                string              `json:"day" format:"date"`
+	BaselineVersion    string              `json:"baselineVersion" minLength:"1"`
+	Strategy           RescueStrategy      `json:"strategy"`
+	TriggerReason      RescueTriggerReason `json:"triggerReason"`
+	UrgentTask         *UrgentTaskDTO      `json:"urgentTask,omitempty"`
+	ExpectedOptionHash string              `json:"expectedOptionHash,omitempty"`
 }
 
 type RescueApplyResponse struct {
-	SnapshotID      uuid.UUID             `json:"snapshotId" format:"uuid"`
-	Strategy        engine.RescueStrategy `json:"strategy" enum:"protect_deadline,protect_recovery,minimize_changes"`
-	BaselineVersion string                `json:"baselineVersion"`
-	AppliedItems    []ScheduleItemDTO     `json:"appliedItems"`
+	SnapshotID       uuid.UUID         `json:"snapshotId" format:"uuid"`
+	Strategy         RescueStrategy    `json:"strategy"`
+	BaselineLocalDay string            `json:"baselineLocalDay" format:"date"`
+	BaselineVersion  string            `json:"baselineVersion"`
+	AppliedItems     []ScheduleItemDTO `json:"appliedItems"`
 }
 
 type RescueUndoRequest struct {
@@ -405,25 +345,26 @@ type RescueUndoRequest struct {
 }
 
 type RescueUndoResponse struct {
-	SnapshotID      uuid.UUID            `json:"snapshotId" format:"uuid"`
-	Status          RescueSnapshotStatus `json:"status" enum:"applied,reverted"`
-	BaselineVersion string               `json:"baselineVersion"`
-	RestoredItems   []ScheduleItemDTO    `json:"restoredItems"`
+	SnapshotID       uuid.UUID            `json:"snapshotId" format:"uuid"`
+	Status           RescueSnapshotStatus `json:"status"`
+	BaselineLocalDay string               `json:"baselineLocalDay" format:"date"`
+	BaselineVersion  string               `json:"baselineVersion"`
+	RestoredItems    []ScheduleItemDTO    `json:"restoredItems"`
 }
 
 type RescueSnapshotRecord struct {
-	ID              uuid.UUID                     `json:"id" format:"uuid"`
-	UserID          uuid.UUID                     `json:"userId" format:"uuid"`
-	LocalDay        string                        `json:"localDay" format:"date"`
-	Strategy        engine.RescueStrategy         `json:"strategy" enum:"protect_deadline,protect_recovery,minimize_changes"`
-	TriggerReason   engine.RescueTriggerReason    `json:"triggerReason" enum:"urgent_task,team_meeting_overload,wearable_fatigue"`
-	BaselineVersion string                        `json:"baselineVersion"`
-	OptionHash      string                        `json:"optionHash"`
-	Status          RescueSnapshotStatus          `json:"status" enum:"applied,reverted"`
-	BeforeItems     []engine.ScheduleItemSnapshot `json:"beforeItems"`
-	AfterItems      []engine.ScheduleItemSnapshot `json:"afterItems"`
-	AppliedAt       time.Time                     `json:"appliedAt" format:"date-time"`
-	RevertedAt      *time.Time                    `json:"revertedAt,omitempty" format:"date-time"`
+	ID              uuid.UUID              `json:"id" format:"uuid"`
+	UserID          uuid.UUID              `json:"userId" format:"uuid"`
+	LocalDay        string                 `json:"localDay" format:"date"`
+	Strategy        RescueStrategy         `json:"strategy"`
+	TriggerReason   RescueTriggerReason    `json:"triggerReason"`
+	BaselineVersion string                 `json:"baselineVersion"`
+	OptionHash      string                 `json:"optionHash"`
+	Status          RescueSnapshotStatus   `json:"status"`
+	BeforeItems     []ScheduleItemSnapshot `json:"beforeItems"`
+	AfterItems      []ScheduleItemSnapshot `json:"afterItems"`
+	AppliedAt       time.Time              `json:"appliedAt" format:"date-time"`
+	RevertedAt      *time.Time             `json:"revertedAt,omitempty" format:"date-time"`
 }
 
 type RescueHistoryResponse struct {
@@ -434,22 +375,22 @@ type RescueHistoryResponse struct {
 // ── 2.4 团队空间与协同排会 DTO ──
 
 type WorkspaceDTO struct {
-	ID             uuid.UUID           `json:"id" format:"uuid"`
-	Name           string              `json:"name" minLength:"1" maxLength:"64"`
-	Description    string              `json:"description"`
-	InviteCode     string              `json:"inviteCode"`
-	OwnerID        uuid.UUID           `json:"ownerId" format:"uuid"`
-	MyRole         WorkspaceRole       `json:"myRole" enum:"owner,admin,member"`
-	MyPrivacyLevel engine.PrivacyLevel `json:"myPrivacyLevel" enum:"busy_only,energy_tier,full_title"`
-	MemberCount    int                 `json:"memberCount" minimum:"1"`
-	CreatedAt      time.Time           `json:"createdAt" format:"date-time"`
-	UpdatedAt      time.Time           `json:"updatedAt" format:"date-time"`
+	ID             uuid.UUID     `json:"id" format:"uuid"`
+	Name           string        `json:"name" minLength:"1" maxLength:"64"`
+	Description    string        `json:"description"`
+	InviteCode     string        `json:"inviteCode"`
+	OwnerID        uuid.UUID     `json:"ownerId" format:"uuid"`
+	MyRole         WorkspaceRole `json:"myRole"`
+	MyPrivacyLevel PrivacyLevel  `json:"myPrivacyLevel"`
+	MemberCount    int           `json:"memberCount" minimum:"1"`
+	CreatedAt      time.Time     `json:"createdAt" format:"date-time"`
+	UpdatedAt      time.Time     `json:"updatedAt" format:"date-time"`
 }
 
 type CreateWorkspaceRequest struct {
-	Name         string               `json:"name" minLength:"1" maxLength:"64"`
-	Description  string               `json:"description,omitempty"`
-	PrivacyLevel *engine.PrivacyLevel `json:"privacyLevel,omitempty" enum:"busy_only,energy_tier,full_title"`
+	Name         string        `json:"name" minLength:"1" maxLength:"64"`
+	Description  string        `json:"description,omitempty"`
+	PrivacyLevel *PrivacyLevel `json:"privacyLevel,omitempty"`
 }
 
 type WorkspaceListResponse struct {
@@ -457,22 +398,22 @@ type WorkspaceListResponse struct {
 }
 
 type JoinWorkspaceRequest struct {
-	InviteCode   string               `json:"inviteCode" minLength:"4" maxLength:"32"`
-	PrivacyLevel *engine.PrivacyLevel `json:"privacyLevel,omitempty" enum:"busy_only,energy_tier,full_title"`
+	InviteCode   string        `json:"inviteCode" minLength:"4" maxLength:"32"`
+	PrivacyLevel *PrivacyLevel `json:"privacyLevel,omitempty"`
 }
 
 type UpdateWorkspaceMemberConfigRequest struct {
-	PrivacyLevel engine.PrivacyLevel `json:"privacyLevel" enum:"busy_only,energy_tier,full_title"`
+	PrivacyLevel PrivacyLevel `json:"privacyLevel"`
 }
 
 type WorkspaceMemberDTO struct {
-	WorkspaceID  uuid.UUID           `json:"workspaceId" format:"uuid"`
-	UserID       uuid.UUID           `json:"userId" format:"uuid"`
-	DisplayName  string              `json:"displayName"`
-	Role         WorkspaceRole       `json:"role" enum:"owner,admin,member"`
-	Timezone     string              `json:"timezone"`
-	PrivacyLevel engine.PrivacyLevel `json:"privacyLevel" enum:"busy_only,energy_tier,full_title"`
-	JoinedAt     time.Time           `json:"joinedAt" format:"date-time"`
+	WorkspaceID  uuid.UUID     `json:"workspaceId" format:"uuid"`
+	UserID       uuid.UUID     `json:"userId" format:"uuid"`
+	DisplayName  string        `json:"displayName"`
+	Role         WorkspaceRole `json:"role"`
+	Timezone     string        `json:"timezone"`
+	PrivacyLevel PrivacyLevel  `json:"privacyLevel"`
+	JoinedAt     time.Time     `json:"joinedAt" format:"date-time"`
 }
 
 type WorkspaceMemberListResponse struct {
@@ -480,62 +421,139 @@ type WorkspaceMemberListResponse struct {
 	Members     []WorkspaceMemberDTO `json:"members"`
 }
 
+type AvailabilitySlot struct {
+	StartAt time.Time            `json:"startAt" format:"date-time"`
+	EndAt   time.Time            `json:"endAt" format:"date-time"`
+	Kind    AvailabilitySlotKind `json:"kind"`
+	Title   *string              `json:"title,omitempty"`
+}
+
+type PrivacyEnergyBucket struct {
+	HourStartAt time.Time  `json:"hourStartAt" format:"date-time"`
+	Tier        EnergyTier `json:"tier"`
+}
+
+type MemberAvailabilityView struct {
+	UserID          uuid.UUID             `json:"userId" format:"uuid"`
+	DisplayName     string                `json:"displayName"`
+	Timezone        string                `json:"timezone"`
+	PrivacyLevel    PrivacyLevel          `json:"privacyLevel"`
+	WorkStartMinute int                   `json:"workStartMinute" minimum:"0" maximum:"1439"`
+	WorkEndMinute   int                   `json:"workEndMinute" minimum:"1" maximum:"1440"`
+	Slots           []AvailabilitySlot    `json:"slots"`
+	EnergyBuckets   []PrivacyEnergyBucket `json:"energyBuckets,omitempty"`
+}
+
 type WorkspaceAvailabilityResponse struct {
-	WorkspaceID uuid.UUID                       `json:"workspaceId" format:"uuid"`
-	From        time.Time                       `json:"from" format:"date-time"`
-	To          time.Time                       `json:"to" format:"date-time"`
-	Members     []engine.MemberAvailabilityView `json:"members"`
+	WorkspaceID uuid.UUID                `json:"workspaceId" format:"uuid"`
+	From        time.Time                `json:"from" format:"date-time"`
+	To          time.Time                `json:"to" format:"date-time"`
+	Members     []MemberAvailabilityView `json:"members"`
 }
 
 type RecommendMeetingRequest struct {
-	Title               string               `json:"title" minLength:"1" maxLength:"200"`
-	Description         string               `json:"description,omitempty"`
-	DurationMinutes     int                  `json:"durationMinutes" minimum:"15" maximum:"480"`
-	CognitiveLoad       engine.CognitiveLoad `json:"cognitiveLoad" enum:"high,medium,low"`
-	ParticipantIDs      []uuid.UUID          `json:"participantIds" minItems:"1"`
-	OptionalIDs         []uuid.UUID          `json:"optionalIds,omitempty"`
-	SearchFrom          time.Time            `json:"searchFrom" format:"date-time"`
-	SearchTo            time.Time            `json:"searchTo" format:"date-time"`
-	RespectFocusShields *bool                `json:"respectFocusShields,omitempty" default:"true"`
+	Title               string        `json:"title" minLength:"1" maxLength:"200"`
+	Description         string        `json:"description,omitempty"`
+	DurationMinutes     int           `json:"durationMinutes" minimum:"15" maximum:"480"`
+	CognitiveLoad       CognitiveLoad `json:"cognitiveLoad"`
+	ParticipantIDs      []uuid.UUID   `json:"participantIds" minItems:"1"`
+	OptionalIDs         []uuid.UUID   `json:"optionalIds,omitempty"`
+	SearchFrom          time.Time     `json:"searchFrom" format:"date-time"`
+	SearchTo            time.Time     `json:"searchTo" format:"date-time"`
+	RespectFocusShields *bool         `json:"respectFocusShields,omitempty" default:"true"`
+	MaxResults          *int          `json:"maxResults,omitempty" minimum:"1" maximum:"10" default:"3"`
 }
 
-type RecommendMeetingResponse = engine.MeetingSolverOutput
+type ScoreBreakdown struct {
+	EnergyMatchScore        int     `json:"energyMatchScore" minimum:"0" maximum:"100"`
+	FocusShieldScore        int     `json:"focusShieldScore" minimum:"0" maximum:"100"`
+	CompactnessScore        int     `json:"compactnessScore" minimum:"0" maximum:"100"`
+	OptionalAttendanceRatio float64 `json:"optionalAttendanceRatio" minimum:"0" maximum:"1"`
+	EarlinessScore          int     `json:"earlinessScore" minimum:"0" maximum:"100"`
+}
+
+type MemberWindowImpact struct {
+	UserID                   uuid.UUID   `json:"userId" format:"uuid"`
+	DisplayName              string      `json:"displayName"`
+	Required                 bool        `json:"required"`
+	EnergyTier               *EnergyTier `json:"energyTier,omitempty"`
+	BreaksFocusShield        bool        `json:"breaksFocusShield"`
+	CausesContinuousOverload bool        `json:"causesContinuousOverload"`
+}
+
+type ExplanationTag struct {
+	Code  string  `json:"code"`
+	Tone  TagTone `json:"tone"`
+	Label string  `json:"label"`
+}
+
+type GoldenWindowRecommendation struct {
+	Rank            int                  `json:"rank" minimum:"1"`
+	StartAt         time.Time            `json:"startAt" format:"date-time"`
+	EndAt           time.Time            `json:"endAt" format:"date-time"`
+	Score           int                  `json:"score" minimum:"0" maximum:"100"`
+	Breakdown       ScoreBreakdown       `json:"breakdown"`
+	AffectedMembers []MemberWindowImpact `json:"affectedMembers"`
+	ExplanationTags []ExplanationTag     `json:"explanationTags"`
+	Summary         string               `json:"summary"`
+}
+
+type BlockingDiagnostic struct {
+	Code                 string      `json:"code"`
+	Day                  *string     `json:"day,omitempty" format:"date"`
+	Message              string      `json:"message"`
+	BlockingUserIDs      []uuid.UUID `json:"blockingUserIds"`
+	BlockingDisplayNames []string    `json:"blockingDisplayNames"`
+	SuggestedAction      string      `json:"suggestedAction"`
+}
+
+type RecommendMeetingResponse struct {
+	Recommendations     []GoldenWindowRecommendation `json:"recommendations"`
+	BlockingDiagnostics []BlockingDiagnostic         `json:"blockingDiagnostics"`
+}
+
+type MeetingRecommendationMeta struct {
+	Rank            int              `json:"rank,omitempty" minimum:"1"`
+	Score           int              `json:"score,omitempty" minimum:"0" maximum:"100"`
+	Breakdown       *ScoreBreakdown  `json:"breakdown,omitempty"`
+	ExplanationTags []ExplanationTag `json:"explanationTags,omitempty"`
+	Summary         string           `json:"summary,omitempty"`
+}
 
 type MeetingParticipantView struct {
 	UserID         uuid.UUID             `json:"userId" format:"uuid"`
 	DisplayName    string                `json:"displayName"`
 	Required       bool                  `json:"required"`
-	ResponseStatus MeetingResponseStatus `json:"responseStatus" enum:"pending,accepted,declined"`
+	ResponseStatus MeetingResponseStatus `json:"responseStatus"`
 }
 
 type MeetingProposalDTO struct {
-	ID                 uuid.UUID                `json:"id" format:"uuid"`
-	WorkspaceID        uuid.UUID                `json:"workspaceId" format:"uuid"`
-	OrganizerID        uuid.UUID                `json:"organizerId" format:"uuid"`
-	Title              string                   `json:"title"`
-	Description        string                   `json:"description"`
-	DurationMinutes    int                      `json:"durationMinutes"`
-	CognitiveLoad      engine.CognitiveLoad     `json:"cognitiveLoad" enum:"high,medium,low"`
-	Status             MeetingProposalStatus    `json:"status" enum:"draft,confirmed,cancelled"`
-	ConfirmedStartAt   *time.Time               `json:"confirmedStartAt,omitempty" format:"date-time"`
-	ConfirmedEndAt     *time.Time               `json:"confirmedEndAt,omitempty" format:"date-time"`
-	Participants       []MeetingParticipantView `json:"participants"`
-	RecommendationMeta map[string]any           `json:"recommendationMeta"`
-	CreatedAt          time.Time                `json:"createdAt" format:"date-time"`
-	UpdatedAt          time.Time                `json:"updatedAt" format:"date-time"`
+	ID                 uuid.UUID                  `json:"id" format:"uuid"`
+	WorkspaceID        uuid.UUID                  `json:"workspaceId" format:"uuid"`
+	OrganizerID        uuid.UUID                  `json:"organizerId" format:"uuid"`
+	Title              string                     `json:"title"`
+	Description        string                     `json:"description"`
+	DurationMinutes    int                        `json:"durationMinutes"`
+	CognitiveLoad      CognitiveLoad              `json:"cognitiveLoad"`
+	Status             MeetingProposalStatus      `json:"status"`
+	ConfirmedStartAt   *time.Time                 `json:"confirmedStartAt,omitempty" format:"date-time"`
+	ConfirmedEndAt     *time.Time                 `json:"confirmedEndAt,omitempty" format:"date-time"`
+	Participants       []MeetingParticipantView   `json:"participants"`
+	RecommendationMeta *MeetingRecommendationMeta `json:"recommendationMeta,omitempty"`
+	CreatedAt          time.Time                  `json:"createdAt" format:"date-time"`
+	UpdatedAt          time.Time                  `json:"updatedAt" format:"date-time"`
 }
 
 type ConfirmMeetingRequest struct {
-	ProposalID         *uuid.UUID           `json:"proposalId,omitempty" format:"uuid"`
-	Title              string               `json:"title" minLength:"1" maxLength:"200"`
-	Description        string               `json:"description,omitempty"`
-	DurationMinutes    int                  `json:"durationMinutes" minimum:"15" maximum:"480"`
-	CognitiveLoad      engine.CognitiveLoad `json:"cognitiveLoad" enum:"high,medium,low"`
-	ParticipantIDs     []uuid.UUID          `json:"participantIds" minItems:"1"`
-	OptionalIDs        []uuid.UUID          `json:"optionalIds,omitempty"`
-	StartAt            time.Time            `json:"startAt" format:"date-time"`
-	EndAt              time.Time            `json:"endAt" format:"date-time"`
-	RecommendationMeta map[string]any       `json:"recommendationMeta,omitempty"`
+	ProposalID         *uuid.UUID                 `json:"proposalId,omitempty" format:"uuid"`
+	Title              string                     `json:"title" minLength:"1" maxLength:"200"`
+	Description        string                     `json:"description,omitempty"`
+	CognitiveLoad      CognitiveLoad              `json:"cognitiveLoad"`
+	ParticipantIDs     []uuid.UUID                `json:"participantIds" minItems:"1"`
+	OptionalIDs        []uuid.UUID                `json:"optionalIds,omitempty"`
+	StartAt            time.Time                  `json:"startAt" format:"date-time"`
+	EndAt              time.Time                  `json:"endAt" format:"date-time"`
+	RecommendationMeta *MeetingRecommendationMeta `json:"recommendationMeta,omitempty"`
 }
 
 type ConfirmMeetingResponse struct {
@@ -549,14 +567,14 @@ type MeetingProposalListResponse struct {
 }
 
 type RespondMeetingRequest struct {
-	ResponseStatus string `json:"responseStatus" enum:"accepted,declined"`
+	ResponseStatus MeetingDecisionStatus `json:"responseStatus"`
 }
 
 type RespondMeetingResponse struct {
 	ProposalID     uuid.UUID             `json:"proposalId" format:"uuid"`
 	UserID         uuid.UUID             `json:"userId" format:"uuid"`
-	ResponseStatus MeetingResponseStatus `json:"responseStatus" enum:"accepted,declined"`
-	ScheduleStatus engine.ScheduleStatus `json:"scheduleStatus" enum:"planned,in_progress,completed,cancelled"`
+	ResponseStatus MeetingDecisionStatus `json:"responseStatus"`
+	ScheduleStatus ScheduleStatus        `json:"scheduleStatus"`
 	UpdatedAt      time.Time             `json:"updatedAt" format:"date-time"`
 }
 
@@ -566,95 +584,7 @@ type CancelMeetingRequest struct {
 
 type CancelMeetingResponse struct {
 	ProposalID             uuid.UUID             `json:"proposalId" format:"uuid"`
-	Status                 MeetingProposalStatus `json:"status" enum:"cancelled"`
+	Status                 MeetingProposalStatus `json:"status"`
 	CancelledScheduleCount int                   `json:"cancelledScheduleCount" minimum:"0"`
 	UpdatedAt              time.Time             `json:"updatedAt" format:"date-time"`
-}
-
-// ── 4. WebSocket 实时事件信封与 7 大下行 Payload ──
-
-type WsEventType string
-
-const (
-	WsEnergyUpdated               WsEventType = "energy.updated"
-	WsEnergyOverloadAlert         WsEventType = "energy.overload_alert"
-	WsScheduleUpdated             WsEventType = "schedule.updated"
-	WsWorkspaceMeetingConfirmed   WsEventType = "workspace.meeting_confirmed"
-	WsWorkspaceMeetingCancelled   WsEventType = "workspace.meeting_cancelled"
-	WsWorkspaceMeetingResponded   WsEventType = "workspace.meeting_responded"
-	WsWorkspaceAvailabilityChange WsEventType = "workspace.availability_changed"
-)
-
-type WsEnvelope struct {
-	EventID    uuid.UUID      `json:"eventId" format:"uuid"`
-	Type       WsEventType    `json:"type" enum:"energy.updated,energy.overload_alert,schedule.updated,workspace.meeting_confirmed,workspace.meeting_cancelled,workspace.meeting_responded,workspace.availability_changed"`
-	OccurredAt time.Time      `json:"occurredAt" format:"date-time"`
-	Payload    map[string]any `json:"payload"`
-}
-
-type WsEnergyUpdatedPayload struct {
-	UserID        uuid.UUID            `json:"userId" format:"uuid"`
-	LocalDay      string               `json:"localDay" format:"date"`
-	Score         int                  `json:"score" minimum:"0" maximum:"100"`
-	Tier          engine.EnergyTier    `json:"tier" enum:"peak,steady,strained,depleted"`
-	DataFreshness engine.DataFreshness `json:"dataFreshness" enum:"live_wearable,recent_wearable,replay_demo,baseline_only"`
-	ComputedAt    time.Time            `json:"computedAt" format:"date-time"`
-}
-
-type WsEnergyOverloadAlertPayload struct {
-	UserID              uuid.UUID                  `json:"userId" format:"uuid"`
-	LocalDay            string                     `json:"localDay" format:"date"`
-	TriggerReason       engine.RescueTriggerReason `json:"triggerReason" enum:"urgent_task,team_meeting_overload,wearable_fatigue"`
-	Severity            string                     `json:"severity" enum:"warning,critical"`
-	CurrentScore        int                        `json:"currentScore" minimum:"0" maximum:"100"`
-	Tier                engine.EnergyTier          `json:"tier" enum:"peak,steady,strained,depleted"`
-	Message             string                     `json:"message"`
-	RecommendedStrategy engine.RescueStrategy      `json:"recommendedStrategy" enum:"protect_deadline,protect_recovery,minimize_changes"`
-}
-
-type WsScheduleUpdatedPayload struct {
-	UserID          uuid.UUID   `json:"userId" format:"uuid"`
-	BaselineVersion string      `json:"baselineVersion"`
-	Reason          string      `json:"reason" enum:"item_created,item_updated,item_cancelled,rescue_applied,rescue_reverted,team_meeting_synced"`
-	AffectedFrom    time.Time   `json:"affectedFrom" format:"date-time"`
-	AffectedTo      time.Time   `json:"affectedTo" format:"date-time"`
-	ItemIDs         []uuid.UUID `json:"itemIds"`
-}
-
-type WsWorkspaceMeetingConfirmedPayload struct {
-	WorkspaceID    uuid.UUID            `json:"workspaceId" format:"uuid"`
-	ProposalID     uuid.UUID            `json:"proposalId" format:"uuid"`
-	OrganizerID    uuid.UUID            `json:"organizerId" format:"uuid"`
-	Title          string               `json:"title"`
-	CognitiveLoad  engine.CognitiveLoad `json:"cognitiveLoad" enum:"high,medium,low"`
-	StartAt        time.Time            `json:"startAt" format:"date-time"`
-	EndAt          time.Time            `json:"endAt" format:"date-time"`
-	ParticipantIDs []uuid.UUID          `json:"participantIds"`
-}
-
-type WsWorkspaceMeetingCancelledPayload struct {
-	WorkspaceID       uuid.UUID `json:"workspaceId" format:"uuid"`
-	ProposalID        uuid.UUID `json:"proposalId" format:"uuid"`
-	CancelledByUserID uuid.UUID `json:"cancelledByUserId" format:"uuid"`
-	Title             string    `json:"title"`
-	StartAt           time.Time `json:"startAt" format:"date-time"`
-	EndAt             time.Time `json:"endAt" format:"date-time"`
-	Reason            *string   `json:"reason,omitempty"`
-}
-
-type WsWorkspaceMeetingRespondedPayload struct {
-	WorkspaceID    uuid.UUID             `json:"workspaceId" format:"uuid"`
-	ProposalID     uuid.UUID             `json:"proposalId" format:"uuid"`
-	UserID         uuid.UUID             `json:"userId" format:"uuid"`
-	DisplayName    string                `json:"displayName"`
-	ResponseStatus MeetingResponseStatus `json:"responseStatus" enum:"accepted,declined"`
-	RespondedAt    time.Time             `json:"respondedAt" format:"date-time"`
-}
-
-type WsAvailabilityChangedPayload struct {
-	WorkspaceID  uuid.UUID  `json:"workspaceId" format:"uuid"`
-	UserID       uuid.UUID  `json:"userId" format:"uuid"`
-	Reason       string     `json:"reason" enum:"schedule_changed,privacy_changed,energy_tier_changed"`
-	AffectedFrom *time.Time `json:"affectedFrom,omitempty" format:"date-time"`
-	AffectedTo   *time.Time `json:"affectedTo,omitempty" format:"date-time"`
 }

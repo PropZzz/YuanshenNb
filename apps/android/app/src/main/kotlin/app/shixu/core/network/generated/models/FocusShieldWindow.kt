@@ -23,6 +23,7 @@
 
 package app.shixu.core.network.generated.models
 
+import app.shixu.core.network.generated.models.FocusShieldSource
 
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerialName
@@ -49,21 +50,13 @@ data class FocusShieldWindow (
     val endAt: java.time.OffsetDateTime,
 
     @SerialName(value = "source")
-    val source: FocusShieldWindow.Source,
+    val source: FocusShieldSource,
 
     @Contextual @SerialName(value = "startAt")
     val startAt: java.time.OffsetDateTime
 
 ) {
 
-    /**
-     * Values: preferred_window,auto_peak
-     */
-    @Serializable
-    enum class Source(val value: kotlin.String) {
-        @SerialName(value = "preferred_window") preferred_window("preferred_window"),
-        @SerialName(value = "auto_peak") auto_peak("auto_peak");
-    }
 
 }
 

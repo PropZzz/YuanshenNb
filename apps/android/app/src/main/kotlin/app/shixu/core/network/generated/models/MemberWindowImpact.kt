@@ -23,6 +23,7 @@
 
 package app.shixu.core.network.generated.models
 
+import app.shixu.core.network.generated.models.EnergyTier
 
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerialName
@@ -60,20 +61,10 @@ data class MemberWindowImpact (
     val userId: java.util.UUID,
 
     @SerialName(value = "energyTier")
-    val energyTier: MemberWindowImpact.EnergyTier? = null
+    val energyTier: EnergyTier? = null
 
 ) {
 
-    /**
-     * Values: peak,steady,strained,depleted
-     */
-    @Serializable
-    enum class EnergyTier(val value: kotlin.String) {
-        @SerialName(value = "peak") peak("peak"),
-        @SerialName(value = "steady") steady("steady"),
-        @SerialName(value = "strained") strained("strained"),
-        @SerialName(value = "depleted") depleted("depleted");
-    }
 
 }
 

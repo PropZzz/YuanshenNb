@@ -18,12 +18,12 @@ const cancelAllScheduleItemsForMeeting = `-- name: CancelAllScheduleItemsForMeet
 UPDATE schedule_items
 SET status = 'cancelled',
     updated_at = NOW()
-WHERE meeting_proposal_id = $1
+WHERE meeting_proposal_id = $1::uuid
   AND status <> 'cancelled'
 `
 
 // 会议取消时，将全部参会人关联的 schedule_items 置为 cancelled
-func (q *Queries) CancelAllScheduleItemsForMeeting(ctx context.Context, proposalID pgtype.UUID) (int64, error) {
+func (q *Queries) CancelAllScheduleItemsForMeeting(ctx context.Context, proposalID uuid.UUID) (int64, error) {
 	result, err := q.db.Exec(ctx, cancelAllScheduleItemsForMeeting, proposalID)
 	if err != nil {
 		return 0, err
@@ -35,14 +35,14 @@ const declineTeamMeetingForUser = `-- name: DeclineTeamMeetingForUser :execrows
 UPDATE schedule_items
 SET status = 'cancelled',
     updated_at = NOW()
-WHERE meeting_proposal_id = $1
+WHERE meeting_proposal_id = $1::uuid
   AND user_id = $2
   AND status <> 'cancelled'
 `
 
 type DeclineTeamMeetingForUserParams struct {
-	ProposalID pgtype.UUID `json:"proposal_id"`
-	UserID     uuid.UUID   `json:"user_id"`
+	ProposalID uuid.UUID `json:"proposal_id"`
+	UserID     uuid.UUID `json:"user_id"`
 }
 
 // 参会人拒绝团队会议时，将个人对应 schedule_items 置为 cancelled 释放 GiST 区间
@@ -115,7 +115,7 @@ FROM schedule_items
 WHERE user_id = $1
   AND status <> 'cancelled'
   AND (flexibility = 'hard_locked' OR category = 'meeting')
-  AND NOT (id = ANY($2::uuid[]))
+  AND NOT (id = ANY(COALESCE($2::uuid[], '{}'::uuid[])))
   AND time_range && tstzrange($3::timestamptz, $4::timestamptz, '[)')
 ORDER BY start_at
 `
@@ -137,7 +137,7 @@ type FindScheduleConflictsExcludingIDsRow struct {
 	EndAt       time.Time `json:"end_at"`
 }
 
-// 救援撤销校验：检查待还原区间是否与快照之外新出现的锁定日程或会议重叠
+// 救援撤销校验：检查待还原区间是否与快照之外新出现的锁定日程或会议重叠（COALESCE 防空/nil 切片引发 SQL UNKNOWN）
 func (q *Queries) FindScheduleConflictsExcludingIDs(ctx context.Context, arg FindScheduleConflictsExcludingIDsParams) ([]FindScheduleConflictsExcludingIDsRow, error) {
 	rows, err := q.db.Query(ctx, findScheduleConflictsExcludingIDs,
 		arg.UserID,
@@ -253,7 +253,7 @@ type InsertEnergySnapshotParams struct {
 	HourlyCurve   json.RawMessage `json:"hourly_curve"`
 	Drivers       json.RawMessage `json:"drivers"`
 	FocusShields  json.RawMessage `json:"focus_shields"`
-	OverloadAlert []byte          `json:"overload_alert"`
+	OverloadAlert json.RawMessage `json:"overload_alert"`
 	Diagnostics   json.RawMessage `json:"diagnostics"`
 }
 
@@ -296,12 +296,14 @@ SELECT
 FROM biometric_samples
 WHERE user_id = $1
   AND recorded_at >= $2::timestamptz
+  AND recorded_at <= $3::timestamptz
 ORDER BY recorded_at DESC
 `
 
 type ListRecentBiometricsForEnergyParams struct {
 	UserID  uuid.UUID `json:"user_id"`
 	SinceAt time.Time `json:"since_at"`
+	UntilAt time.Time `json:"until_at"`
 }
 
 type ListRecentBiometricsForEnergyRow struct {
@@ -317,9 +319,9 @@ type ListRecentBiometricsForEnergyRow struct {
 	ExternalID   string             `json:"external_id"`
 }
 
-// 拉取过去 14 天用于生理基线与当日精力计算的样本
+// 拉取 [since_at, until_at] 窗口内（典型 14 天）的生理样本，避免查询历史日时误读未来样本
 func (q *Queries) ListRecentBiometricsForEnergy(ctx context.Context, arg ListRecentBiometricsForEnergyParams) ([]ListRecentBiometricsForEnergyRow, error) {
-	rows, err := q.db.Query(ctx, listRecentBiometricsForEnergy, arg.UserID, arg.SinceAt)
+	rows, err := q.db.Query(ctx, listRecentBiometricsForEnergy, arg.UserID, arg.SinceAt, arg.UntilAt)
 	if err != nil {
 		return nil, err
 	}
@@ -442,7 +444,7 @@ type ListUserSchedulesInWindowRow struct {
 	Status            string             `json:"status"`
 	StartAt           time.Time          `json:"start_at"`
 	EndAt             time.Time          `json:"end_at"`
-	DurationMinutes   pgtype.Int4        `json:"duration_minutes"`
+	DurationMinutes   int32              `json:"duration_minutes"`
 	DeadlineAt        pgtype.Timestamptz `json:"deadline_at"`
 	ReminderMinutes   int32              `json:"reminder_minutes"`
 	CreatedAt         time.Time          `json:"created_at"`
@@ -564,7 +566,7 @@ func (q *Queries) ListWorkspaceMembersWithProfiles(ctx context.Context, workspac
 }
 
 const lockRescueSnapshotForUndo = `-- name: LockRescueSnapshotForUndo :one
-SELECT id, user_id, local_day, baseline_version, option_hash, strategy, trigger_reason, before_items, after_items, status, applied_at, reverted_at
+SELECT id, user_id, local_day, baseline_version, option_hash, idempotency_key, strategy, trigger_reason, before_items, after_items, status, applied_at, reverted_at
 FROM rescue_snapshots
 WHERE id = $1
   AND user_id = $2
@@ -585,6 +587,7 @@ func (q *Queries) LockRescueSnapshotForUndo(ctx context.Context, arg LockRescueS
 		&i.LocalDay,
 		&i.BaselineVersion,
 		&i.OptionHash,
+		&i.IdempotencyKey,
 		&i.Strategy,
 		&i.TriggerReason,
 		&i.BeforeItems,

@@ -20,7 +20,9 @@ interface BiometricsApi {
      * 
      * Responses:
      *  - 200: OK
-     *  - 0: Error
+     *  - 401: Unauthorized
+     *  - 422: Unprocessable Entity
+     *  - 500: Internal Server Error
      *
      * @param biometricBatchRequest 
      * @return [BiometricBatchResponse]
@@ -34,7 +36,9 @@ interface BiometricsApi {
      * 
      * Responses:
      *  - 200: OK
-     *  - 0: Error
+     *  - 401: Unauthorized
+     *  - 422: Unprocessable Entity
+     *  - 500: Internal Server Error
      *
      * @param replaySeedRequest 
      * @return [ReplaySeedResponse]

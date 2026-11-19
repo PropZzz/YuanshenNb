@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -6,6 +8,26 @@ plugins {
     alias(libs.plugins.ksp)
     alias(libs.plugins.hilt.android)
 }
+
+val localProperties = Properties().apply {
+    val file = rootProject.file("local.properties")
+    if (file.exists()) {
+        file.inputStream().use(::load)
+    }
+}
+
+fun resolveApiBaseUrl(): String {
+    val raw = listOfNotNull(
+        localProperties.getProperty("shixu.apiBaseUrl"),
+        providers.gradleProperty("shixu.apiBaseUrl").orNull,
+        providers.environmentVariable("ANDROID_API_BASE_URL").orNull,
+    ).firstOrNull { it.isNotBlank() }?.trim() ?: "http://10.0.2.2:8080/"
+    return if (raw.endsWith("/")) raw else "$raw/"
+}
+
+val escapedApiBaseUrl = resolveApiBaseUrl()
+    .replace("\\", "\\\\")
+    .replace("\"", "\\\"")
 
 android {
     namespace = "app.shixu"
@@ -19,7 +41,7 @@ android {
         versionName = "2.0.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        buildConfigField("String", "API_BASE_URL", "\"http://10.0.2.2:8080/\"")
+        buildConfigField("String", "API_BASE_URL", "\"$escapedApiBaseUrl\"")
     }
 
     buildTypes {

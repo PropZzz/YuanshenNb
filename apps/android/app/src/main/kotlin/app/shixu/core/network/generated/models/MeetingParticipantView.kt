@@ -23,6 +23,7 @@
 
 package app.shixu.core.network.generated.models
 
+import app.shixu.core.network.generated.models.MeetingResponseStatus
 
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerialName
@@ -49,22 +50,13 @@ data class MeetingParticipantView (
     val required: kotlin.Boolean,
 
     @SerialName(value = "responseStatus")
-    val responseStatus: MeetingParticipantView.ResponseStatus,
+    val responseStatus: MeetingResponseStatus,
 
     @Contextual @SerialName(value = "userId")
     val userId: java.util.UUID
 
 ) {
 
-    /**
-     * Values: pending,accepted,declined
-     */
-    @Serializable
-    enum class ResponseStatus(val value: kotlin.String) {
-        @SerialName(value = "pending") pending("pending"),
-        @SerialName(value = "accepted") accepted("accepted"),
-        @SerialName(value = "declined") declined("declined");
-    }
 
 }
 

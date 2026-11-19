@@ -7,8 +7,8 @@ import okhttp3.RequestBody
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
-import app.shixu.core.network.generated.models.EnergyComputeOutput
 import app.shixu.core.network.generated.models.EnergyProfileDTO
+import app.shixu.core.network.generated.models.EnergyTodayResponse
 import app.shixu.core.network.generated.models.ProblemDetail
 import app.shixu.core.network.generated.models.UpdateEnergyProfileRequest
 
@@ -19,7 +19,8 @@ interface EnergyApi {
      * 
      * Responses:
      *  - 200: OK
-     *  - 0: Error
+     *  - 401: Unauthorized
+     *  - 500: Internal Server Error
      *
      * @return [EnergyProfileDTO]
      */
@@ -28,17 +29,19 @@ interface EnergyApi {
 
     /**
      * GET api/v1/energy/today
-     * 获取指定日期的实时精力电量、四因子拆解、24h 节律曲线、保护盾与穿戴源诊断
+     * 获取指定日期的实时精力电量、四因子拆解、本地自然日节律曲线、保护盾与穿戴源诊断
      * 
      * Responses:
      *  - 200: OK
-     *  - 0: Error
+     *  - 401: Unauthorized
+     *  - 422: Unprocessable Entity
+     *  - 500: Internal Server Error
      *
      * @param day 用户本地日期 YYYY-MM-DD（默认今日） (optional)
-     * @return [EnergyComputeOutput]
+     * @return [EnergyTodayResponse]
      */
     @GET("api/v1/energy/today")
-    suspend fun getTodayEnergy(@Query("day") day: java.time.LocalDate? = null): Response<EnergyComputeOutput>
+    suspend fun getTodayEnergy(@Query("day") day: java.time.LocalDate? = null): Response<EnergyTodayResponse>
 
     /**
      * PUT api/v1/energy/profile
@@ -46,7 +49,9 @@ interface EnergyApi {
      * 
      * Responses:
      *  - 200: OK
-     *  - 0: Error
+     *  - 401: Unauthorized
+     *  - 422: Unprocessable Entity
+     *  - 500: Internal Server Error
      *
      * @param updateEnergyProfileRequest 
      * @return [EnergyProfileDTO]

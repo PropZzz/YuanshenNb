@@ -23,6 +23,7 @@
 
 package app.shixu.core.network.generated.models
 
+import app.shixu.core.network.generated.models.AvailabilityChangeReason
 
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerialName
@@ -44,7 +45,7 @@ import kotlinx.serialization.encoding.Encoder
 data class WsAvailabilityChangedPayload (
 
     @SerialName(value = "reason")
-    val reason: WsAvailabilityChangedPayload.Reason,
+    val reason: AvailabilityChangeReason,
 
     @Contextual @SerialName(value = "userId")
     val userId: java.util.UUID,
@@ -60,15 +61,6 @@ data class WsAvailabilityChangedPayload (
 
 ) {
 
-    /**
-     * Values: schedule_changed,privacy_changed,energy_tier_changed
-     */
-    @Serializable
-    enum class Reason(val value: kotlin.String) {
-        @SerialName(value = "schedule_changed") schedule_changed("schedule_changed"),
-        @SerialName(value = "privacy_changed") privacy_changed("privacy_changed"),
-        @SerialName(value = "energy_tier_changed") energy_tier_changed("energy_tier_changed");
-    }
 
 }
 

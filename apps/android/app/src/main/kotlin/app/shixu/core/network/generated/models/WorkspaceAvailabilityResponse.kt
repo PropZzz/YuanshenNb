@@ -34,7 +34,6 @@ import kotlinx.serialization.Contextual
  * @param members
  * @param to
  * @param workspaceId
- * @param dollarSchema A URL to the JSON Schema for this object.
  */
 @Serializable
 
@@ -44,17 +43,13 @@ data class WorkspaceAvailabilityResponse (
     val from: java.time.OffsetDateTime,
 
     @SerialName(value = "members")
-    val members: kotlin.collections.List<MemberAvailabilityView>?,
+    val members: kotlin.collections.List<MemberAvailabilityView>,
 
     @Contextual @SerialName(value = "to")
     val to: java.time.OffsetDateTime,
 
     @Contextual @SerialName(value = "workspaceId")
-    val workspaceId: java.util.UUID,
-
-    /* A URL to the JSON Schema for this object. */
-    @Contextual @SerialName(value = "\$schema")
-    val dollarSchema: java.net.URI? = null
+    val workspaceId: java.util.UUID
 
 ) {
 

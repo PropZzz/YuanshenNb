@@ -31,7 +31,6 @@ import kotlinx.serialization.Contextual
 
 /**
  * @param snapshots
- * @param dollarSchema A URL to the JSON Schema for this object.
  * @param nextCursor
  */
 @Serializable
@@ -39,11 +38,7 @@ import kotlinx.serialization.Contextual
 data class RescueHistoryResponse (
 
     @SerialName(value = "snapshots")
-    val snapshots: kotlin.collections.List<RescueSnapshotRecord>?,
-
-    /* A URL to the JSON Schema for this object. */
-    @Contextual @SerialName(value = "\$schema")
-    val dollarSchema: java.net.URI? = null,
+    val snapshots: kotlin.collections.List<RescueSnapshotRecord>,
 
     @SerialName(value = "nextCursor")
     val nextCursor: kotlin.String? = null

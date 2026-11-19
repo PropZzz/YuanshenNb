@@ -23,6 +23,10 @@
 
 package app.shixu.core.network.generated.models
 
+import app.shixu.core.network.generated.models.CognitiveLoad
+import app.shixu.core.network.generated.models.Flexibility
+import app.shixu.core.network.generated.models.ScheduleCategory
+import app.shixu.core.network.generated.models.ScheduleStatus
 
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerialName
@@ -33,11 +37,11 @@ import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 
 /**
- * @param dollarSchema A URL to the JSON Schema for this object.
  * @param allowOverlap
  * @param category
+ * @param clearDeadline 为 true 时显式清除截止时间（等价于 deadlineAt=null）
  * @param cognitiveLoad
- * @param deadlineAt
+ * @param deadlineAt 更新截止时间；传 null 可显式清除
  * @param endAt
  * @param flexibility
  * @param notes
@@ -50,19 +54,20 @@ import kotlinx.serialization.encoding.Encoder
 
 data class UpdateScheduleItemRequest (
 
-    /* A URL to the JSON Schema for this object. */
-    @Contextual @SerialName(value = "\$schema")
-    val dollarSchema: java.net.URI? = null,
-
     @SerialName(value = "allowOverlap")
     val allowOverlap: kotlin.Boolean? = null,
 
     @SerialName(value = "category")
-    val category: UpdateScheduleItemRequest.Category? = null,
+    val category: ScheduleCategory? = null,
+
+    /* 为 true 时显式清除截止时间（等价于 deadlineAt=null） */
+    @SerialName(value = "clearDeadline")
+    val clearDeadline: kotlin.Boolean? = null,
 
     @SerialName(value = "cognitiveLoad")
-    val cognitiveLoad: UpdateScheduleItemRequest.CognitiveLoad? = null,
+    val cognitiveLoad: CognitiveLoad? = null,
 
+    /* 更新截止时间；传 null 可显式清除 */
     @Contextual @SerialName(value = "deadlineAt")
     val deadlineAt: java.time.OffsetDateTime? = null,
 
@@ -70,7 +75,7 @@ data class UpdateScheduleItemRequest (
     val endAt: java.time.OffsetDateTime? = null,
 
     @SerialName(value = "flexibility")
-    val flexibility: UpdateScheduleItemRequest.Flexibility? = null,
+    val flexibility: Flexibility? = null,
 
     @SerialName(value = "notes")
     val notes: kotlin.String? = null,
@@ -82,52 +87,13 @@ data class UpdateScheduleItemRequest (
     val startAt: java.time.OffsetDateTime? = null,
 
     @SerialName(value = "status")
-    val status: UpdateScheduleItemRequest.Status? = null,
+    val status: ScheduleStatus? = null,
 
     @SerialName(value = "title")
     val title: kotlin.String? = null
 
 ) {
 
-    /**
-     * Values: deep_work,meeting,recovery,routine,urgent
-     */
-    @Serializable
-    enum class Category(val value: kotlin.String) {
-        @SerialName(value = "deep_work") deep_work("deep_work"),
-        @SerialName(value = "meeting") meeting("meeting"),
-        @SerialName(value = "recovery") recovery("recovery"),
-        @SerialName(value = "routine") routine("routine"),
-        @SerialName(value = "urgent") urgent("urgent");
-    }
-    /**
-     * Values: high,medium,low
-     */
-    @Serializable
-    enum class CognitiveLoad(val value: kotlin.String) {
-        @SerialName(value = "high") high("high"),
-        @SerialName(value = "medium") medium("medium"),
-        @SerialName(value = "low") low("low");
-    }
-    /**
-     * Values: hard_locked,flexible,focus_shield
-     */
-    @Serializable
-    enum class Flexibility(val value: kotlin.String) {
-        @SerialName(value = "hard_locked") hard_locked("hard_locked"),
-        @SerialName(value = "flexible") flexible("flexible"),
-        @SerialName(value = "focus_shield") focus_shield("focus_shield");
-    }
-    /**
-     * Values: planned,in_progress,completed,cancelled
-     */
-    @Serializable
-    enum class Status(val value: kotlin.String) {
-        @SerialName(value = "planned") planned("planned"),
-        @SerialName(value = "in_progress") in_progress("in_progress"),
-        @SerialName(value = "completed") completed("completed"),
-        @SerialName(value = "cancelled") cancelled("cancelled");
-    }
 
 }
 

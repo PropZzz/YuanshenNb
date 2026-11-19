@@ -23,6 +23,7 @@
 
 package app.shixu.core.network.generated.models
 
+import app.shixu.core.network.generated.models.SourceType
 
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerialName
@@ -53,22 +54,13 @@ data class EnergySourceDiagnostics (
     val lastSyncedAt: java.time.OffsetDateTime? = null,
 
     @SerialName(value = "primarySource")
-    val primarySource: EnergySourceDiagnostics.PrimarySource? = null,
+    val primarySource: SourceType? = null,
 
     @SerialName(value = "rhrBaselineBpm")
     val rhrBaselineBpm: kotlin.Double? = null
 
 ) {
 
-    /**
-     * Values: health_connect,ble_gatt,replay_demo
-     */
-    @Serializable
-    enum class PrimarySource(val value: kotlin.String) {
-        @SerialName(value = "health_connect") health_connect("health_connect"),
-        @SerialName(value = "ble_gatt") ble_gatt("ble_gatt"),
-        @SerialName(value = "replay_demo") replay_demo("replay_demo");
-    }
 
 }
 

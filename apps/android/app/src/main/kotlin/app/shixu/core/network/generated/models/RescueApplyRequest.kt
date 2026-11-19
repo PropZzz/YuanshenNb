@@ -23,6 +23,8 @@
 
 package app.shixu.core.network.generated.models
 
+import app.shixu.core.network.generated.models.RescueStrategy
+import app.shixu.core.network.generated.models.RescueTriggerReason
 import app.shixu.core.network.generated.models.UrgentTaskDTO
 
 import kotlinx.serialization.Serializable
@@ -38,7 +40,6 @@ import kotlinx.serialization.encoding.Encoder
  * @param day
  * @param strategy
  * @param triggerReason
- * @param dollarSchema A URL to the JSON Schema for this object.
  * @param expectedOptionHash
  * @param urgentTask
  */
@@ -53,14 +54,10 @@ data class RescueApplyRequest (
     val day: java.time.LocalDate,
 
     @SerialName(value = "strategy")
-    val strategy: RescueApplyRequest.Strategy,
+    val strategy: RescueStrategy,
 
     @SerialName(value = "triggerReason")
-    val triggerReason: RescueApplyRequest.TriggerReason,
-
-    /* A URL to the JSON Schema for this object. */
-    @Contextual @SerialName(value = "\$schema")
-    val dollarSchema: java.net.URI? = null,
+    val triggerReason: RescueTriggerReason,
 
     @SerialName(value = "expectedOptionHash")
     val expectedOptionHash: kotlin.String? = null,
@@ -70,24 +67,6 @@ data class RescueApplyRequest (
 
 ) {
 
-    /**
-     * Values: protect_deadline,protect_recovery,minimize_changes
-     */
-    @Serializable
-    enum class Strategy(val value: kotlin.String) {
-        @SerialName(value = "protect_deadline") protect_deadline("protect_deadline"),
-        @SerialName(value = "protect_recovery") protect_recovery("protect_recovery"),
-        @SerialName(value = "minimize_changes") minimize_changes("minimize_changes");
-    }
-    /**
-     * Values: urgent_task,team_meeting_overload,wearable_fatigue
-     */
-    @Serializable
-    enum class TriggerReason(val value: kotlin.String) {
-        @SerialName(value = "urgent_task") urgent_task("urgent_task"),
-        @SerialName(value = "team_meeting_overload") team_meeting_overload("team_meeting_overload"),
-        @SerialName(value = "wearable_fatigue") wearable_fatigue("wearable_fatigue");
-    }
 
 }
 

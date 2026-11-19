@@ -23,6 +23,7 @@
 
 package app.shixu.core.network.generated.models
 
+import app.shixu.core.network.generated.models.MeetingProposalStatus
 
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerialName
@@ -37,7 +38,6 @@ import kotlinx.serialization.encoding.Encoder
  * @param proposalId
  * @param status
  * @param updatedAt
- * @param dollarSchema A URL to the JSON Schema for this object.
  */
 @Serializable
 
@@ -50,24 +50,13 @@ data class CancelMeetingResponse (
     val proposalId: java.util.UUID,
 
     @SerialName(value = "status")
-    val status: CancelMeetingResponse.Status,
+    val status: MeetingProposalStatus,
 
     @Contextual @SerialName(value = "updatedAt")
-    val updatedAt: java.time.OffsetDateTime,
-
-    /* A URL to the JSON Schema for this object. */
-    @Contextual @SerialName(value = "\$schema")
-    val dollarSchema: java.net.URI? = null
+    val updatedAt: java.time.OffsetDateTime
 
 ) {
 
-    /**
-     * Values: cancelled
-     */
-    @Serializable
-    enum class Status(val value: kotlin.String) {
-        @SerialName(value = "cancelled") cancelled("cancelled");
-    }
 
 }
 

@@ -2,12 +2,15 @@
 //
 // 硬性边界约束：
 // 1. 本包严禁引入 database/sql、pgx、net/http 或 Huma 依赖，所有算法均为确定性纯函数。
-// 2. 团队投影结构体 MemberAvailabilityView 在类型系统层面隔离 HR/HRV/睡眠等原始生理字段。
+// 2. 团队输入/输出结构体 WorkScheduleProfile 与 MemberAvailabilityView 在类型系统层面彻底隔离 HR/HRV/睡眠等原始生理字段。
+// 3. 仅使用标准库 encoding/json 标签（供 JSONB 快照持久化与测试夹具），不承载传输层 OpenAPI 校验标签。
 package engine
 
 import (
+	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"sort"
 	"strings"
@@ -35,6 +38,15 @@ const (
 	MetricSleepSession   MetricType = "sleep_session"
 	MetricSleepStage     MetricType = "sleep_stage"
 	MetricActiveCalories MetricType = "active_calories"
+)
+
+type SleepStage string
+
+const (
+	SleepStageDeep  SleepStage = "deep"
+	SleepStageREM   SleepStage = "rem"
+	SleepStageLight SleepStage = "light"
+	SleepStageAwake SleepStage = "awake"
 )
 
 type Chronotype string
@@ -150,51 +162,58 @@ const (
 // ── 共享基础值对象 ──
 
 type DailyMinuteWindow struct {
-	StartMinute int `json:"startMinute" minimum:"0" maximum:"1439"`
-	EndMinute   int `json:"endMinute" minimum:"1" maximum:"1440"`
+	StartMinute int `json:"startMinute"`
+	EndMinute   int `json:"endMinute"`
 }
 
-type EnergyProfileInput struct {
-	UserID                uuid.UUID           `json:"userId" format:"uuid"`
+// WorkScheduleProfile 仅包含工作日边界与节律偏好，类型层面不含 HRV/RHR 等个人生理基线字段，供团队排会引擎安全使用。
+type WorkScheduleProfile struct {
+	UserID                uuid.UUID           `json:"userId"`
 	Timezone              string              `json:"timezone"`
-	WorkStartMinute       int                 `json:"workStartMinute" minimum:"0" maximum:"1439"`
-	WorkEndMinute         int                 `json:"workEndMinute" minimum:"1" maximum:"1440"`
-	Chronotype            Chronotype          `json:"chronotype" enum:"morning_lark,balanced,night_owl"`
+	WorkStartMinute       int                 `json:"workStartMinute"`
+	WorkEndMinute         int                 `json:"workEndMinute"`
+	Chronotype            Chronotype          `json:"chronotype"`
 	PreferredFocusWindows []DailyMinuteWindow `json:"preferredFocusWindows"`
-	HRVBaselineMs         *float64            `json:"hrvBaselineMs,omitempty"`
-	RHRBaselineBpm        *float64            `json:"rhrBaselineBpm,omitempty"`
-	MinRecoveryBufferMin  int                 `json:"minRecoveryBufferMin" minimum:"5" maximum:"60"`
+	MinRecoveryBufferMin  int                 `json:"minRecoveryBufferMin"`
+}
+
+// EnergyProfileInput 供个人精力引擎与救援引擎使用，包含个人近 14 日生理基线缓存。
+type EnergyProfileInput struct {
+	WorkScheduleProfile
+	HRVBaselineMs  *float64 `json:"hrvBaselineMs,omitempty"`
+	RHRBaselineBpm *float64 `json:"rhrBaselineBpm,omitempty"`
 }
 
 type BiometricSampleInput struct {
-	SourceType   SourceType     `json:"sourceType" enum:"health_connect,ble_gatt,replay_demo"`
-	MetricType   MetricType     `json:"metricType" enum:"heart_rate,hrv_rmssd,resting_hr,sleep_session,sleep_stage,active_calories"`
-	RecordedAt   time.Time      `json:"recordedAt" format:"date-time"`
-	EndAt        *time.Time     `json:"endAt,omitempty" format:"date-time"`
+	SourceType   SourceType     `json:"sourceType"`
+	MetricType   MetricType     `json:"metricType"`
+	RecordedAt   time.Time      `json:"recordedAt"`
+	EndAt        *time.Time     `json:"endAt,omitempty"`
 	NumericValue float64        `json:"numericValue"`
 	Unit         string         `json:"unit"`
+	SleepStage   *SleepStage    `json:"sleepStage,omitempty"`
 	Metadata     map[string]any `json:"metadata,omitempty"`
 	ExternalID   string         `json:"externalId"`
 }
 
 // ScheduleItemSnapshot 是引擎层使用的标准日程快照（只含物理时间与领域字段，无 UI 字段）。
 type ScheduleItemSnapshot struct {
-	ID              uuid.UUID        `json:"id" format:"uuid"`
-	UserID          uuid.UUID        `json:"userId" format:"uuid"`
-	WorkspaceID     *uuid.UUID       `json:"workspaceId,omitempty" format:"uuid"`
-	ProposalID      *uuid.UUID       `json:"meetingProposalId,omitempty" format:"uuid"`
+	ID              uuid.UUID        `json:"id"`
+	UserID          uuid.UUID        `json:"userId"`
+	WorkspaceID     *uuid.UUID       `json:"workspaceId,omitempty"`
+	ProposalID      *uuid.UUID       `json:"meetingProposalId,omitempty"`
 	Title           string           `json:"title"`
 	Notes           string           `json:"notes"`
-	Category        ScheduleCategory `json:"category" enum:"deep_work,meeting,recovery,routine,urgent"`
-	CognitiveLoad   CognitiveLoad    `json:"cognitiveLoad" enum:"high,medium,low"`
-	Flexibility     Flexibility      `json:"flexibility" enum:"hard_locked,flexible,focus_shield"`
-	Status          ScheduleStatus   `json:"status" enum:"planned,in_progress,completed,cancelled"`
-	StartAt         time.Time        `json:"startAt" format:"date-time"`
-	EndAt           time.Time        `json:"endAt" format:"date-time"`
-	DurationMinutes int              `json:"durationMinutes" minimum:"1"`
-	DeadlineAt      *time.Time       `json:"deadlineAt,omitempty" format:"date-time"`
-	ReminderMinutes int              `json:"reminderMinutes" minimum:"0"`
-	UpdatedAt       time.Time        `json:"updatedAt" format:"date-time"`
+	Category        ScheduleCategory `json:"category"`
+	CognitiveLoad   CognitiveLoad    `json:"cognitiveLoad"`
+	Flexibility     Flexibility      `json:"flexibility"`
+	Status          ScheduleStatus   `json:"status"`
+	StartAt         time.Time        `json:"startAt"`
+	EndAt           time.Time        `json:"endAt"`
+	DurationMinutes int              `json:"durationMinutes"`
+	DeadlineAt      *time.Time       `json:"deadlineAt,omitempty"`
+	ReminderMinutes int              `json:"reminderMinutes"`
+	UpdatedAt       time.Time        `json:"updatedAt"`
 }
 
 // ── 1. 精力推理引擎契约（EnergyEngine） ──
@@ -204,13 +223,14 @@ type EnergyComputeInput struct {
 	LocalDay      string                 `json:"localDay"` // YYYY-MM-DD
 	Profile       EnergyProfileInput     `json:"profile"`
 	Samples14Days []BiometricSampleInput `json:"samples14Days"`
-	DaySchedules  []ScheduleItemSnapshot `json:"daySchedules"`
+	// DaySchedules 传入与 LocalDay（按 Profile.Timezone 换算的本地自然日 [dayStartUTC, nextDayStartUTC)）有交集的有效日程。
+	DaySchedules []ScheduleItemSnapshot `json:"daySchedules"`
 }
 
 type HourlyEnergyPoint struct {
-	HourStartAt time.Time  `json:"hourStartAt" format:"date-time"`
-	Score       int        `json:"score" minimum:"0" maximum:"100"`
-	Tier        EnergyTier `json:"tier" enum:"peak,steady,strained,depleted"`
+	HourStartAt time.Time  `json:"hourStartAt"`
+	Score       int        `json:"score"`
+	Tier        EnergyTier `json:"tier"`
 }
 
 type EnergyDrivers struct {
@@ -226,48 +246,50 @@ type EnergyDrivers struct {
 }
 
 type FocusShieldWindow struct {
-	StartAt  time.Time `json:"startAt" format:"date-time"`
-	EndAt    time.Time `json:"endAt" format:"date-time"`
-	AvgScore int       `json:"avgScore" minimum:"0" maximum:"100"`
-	Source   string    `json:"source" enum:"preferred_window,auto_peak"`
+	StartAt  time.Time `json:"startAt"`
+	EndAt    time.Time `json:"endAt"`
+	AvgScore int       `json:"avgScore"`
+	Source   string    `json:"source"`
 }
 
 type OverloadAlert struct {
-	TriggerReason       RescueTriggerReason `json:"triggerReason" enum:"urgent_task,team_meeting_overload,wearable_fatigue"`
-	Severity            string              `json:"severity" enum:"warning,critical"`
-	CurrentScore        int                 `json:"currentScore" minimum:"0" maximum:"100"`
-	Tier                EnergyTier          `json:"tier" enum:"peak,steady,strained,depleted"`
+	TriggerReason       RescueTriggerReason `json:"triggerReason"`
+	Severity            string              `json:"severity"`
+	CurrentScore        int                 `json:"currentScore"`
+	Tier                EnergyTier          `json:"tier"`
 	Message             string              `json:"message"`
-	RecommendedStrategy RescueStrategy      `json:"recommendedStrategy" enum:"protect_deadline,protect_recovery,minimize_changes"`
+	RecommendedStrategy RescueStrategy      `json:"recommendedStrategy"`
 }
 
 type EnergySourceDiagnostics struct {
-	LastSyncedAt      *time.Time  `json:"lastSyncedAt,omitempty" format:"date-time"`
-	PrimarySource     *SourceType `json:"primarySource,omitempty" enum:"health_connect,ble_gatt,replay_demo"`
-	BaselineReadyDays int         `json:"baselineReadyDays" minimum:"0" maximum:"14"`
+	LastSyncedAt      *time.Time  `json:"lastSyncedAt,omitempty"`
+	PrimarySource     *SourceType `json:"primarySource,omitempty"`
+	BaselineReadyDays int         `json:"baselineReadyDays"`
 	HRVBaselineMs     *float64    `json:"hrvBaselineMs,omitempty"`
 	RHRBaselineBpm    *float64    `json:"rhrBaselineBpm,omitempty"`
 }
 
 type EnergyComputeOutput struct {
-	LocalDay      string                  `json:"localDay" format:"date"`
-	Timezone      string                  `json:"timezone"`
-	ComputedAt    time.Time               `json:"computedAt" format:"date-time"`
-	Score         int                     `json:"score" minimum:"0" maximum:"100"`
-	Tier          EnergyTier              `json:"tier" enum:"peak,steady,strained,depleted"`
-	DataFreshness DataFreshness           `json:"dataFreshness" enum:"live_wearable,recent_wearable,replay_demo,baseline_only"`
-	Drivers       EnergyDrivers           `json:"drivers"`
+	LocalDay      string        `json:"localDay"`
+	Timezone      string        `json:"timezone"`
+	ComputedAt    time.Time     `json:"computedAt"`
+	Score         int           `json:"score"`
+	Tier          EnergyTier    `json:"tier"`
+	DataFreshness DataFreshness `json:"dataFreshness"`
+	Drivers       EnergyDrivers `json:"drivers"`
+	// HourlyCurve 严格覆盖 LocalDay 在 Profile.Timezone 下的本地自然日所有整点小时 [dayStartLocal, nextDayStartLocal)
+	//（常规日期 24 个点位，DST 切换日 23 或 25 个点位）。
 	HourlyCurve   []HourlyEnergyPoint     `json:"hourlyCurve"`
 	FocusShields  []FocusShieldWindow     `json:"focusShields"`
 	OverloadAlert *OverloadAlert          `json:"overloadAlert,omitempty"`
 	Diagnostics   EnergySourceDiagnostics `json:"diagnostics"`
-	// UpdatedHRVBaseline / UpdatedRHRBaseline 供 P1 持久化写回 energy_profiles，不在 HTTP 响应体重复序列化（前端读取 diagnostics）。
+	// UpdatedHRVBaseline / UpdatedRHRBaseline 供 P1 持久化写回 energy_profiles，不直接作为 HTTP 响应透出。
 	UpdatedHRVBaseline *float64 `json:"-"`
 	UpdatedRHRBaseline *float64 `json:"-"`
 }
 
 type EnergyEngine interface {
-	ComputeSnapshot(in EnergyComputeInput) (EnergyComputeOutput, error)
+	ComputeSnapshot(ctx context.Context, in EnergyComputeInput) (EnergyComputeOutput, error)
 }
 
 // ── 2. 团队隐私投影与协同排会引擎契约（TeamPlannerEngine） ──
@@ -276,7 +298,7 @@ type MemberRawSchedulingData struct {
 	UserID       uuid.UUID              `json:"userId"`
 	DisplayName  string                 `json:"displayName"`
 	PrivacyLevel PrivacyLevel           `json:"privacyLevel"`
-	Profile      EnergyProfileInput     `json:"profile"`
+	Profile      WorkScheduleProfile    `json:"profile"`
 	Schedules    []ScheduleItemSnapshot `json:"schedules"`
 	// PredictedCurve 由后端预先按成员个体数据算好传入投影器，投影后仅允许输出 Tier，绝不透出 Score 或原始生理样本。
 	PredictedCurve []HourlyEnergyPoint `json:"predictedCurve"`
@@ -289,25 +311,25 @@ type AvailabilityProjectionInput struct {
 }
 
 type AvailabilitySlot struct {
-	StartAt time.Time            `json:"startAt" format:"date-time"`
-	EndAt   time.Time            `json:"endAt" format:"date-time"`
-	Kind    AvailabilitySlotKind `json:"kind" enum:"busy,focus_shield,soft_busy"`
+	StartAt time.Time            `json:"startAt"`
+	EndAt   time.Time            `json:"endAt"`
+	Kind    AvailabilitySlotKind `json:"kind"`
 	Title   *string              `json:"title,omitempty"` // 仅 privacyLevel == full_title 时非空
 }
 
 // PrivacyEnergyBucket 物理剔除 Score 字段，保证团队视图无法反推个人精确生理状态。
 type PrivacyEnergyBucket struct {
-	HourStartAt time.Time  `json:"hourStartAt" format:"date-time"`
-	Tier        EnergyTier `json:"tier" enum:"peak,steady,strained,depleted"`
+	HourStartAt time.Time  `json:"hourStartAt"`
+	Tier        EnergyTier `json:"tier"`
 }
 
 type MemberAvailabilityView struct {
-	UserID          uuid.UUID             `json:"userId" format:"uuid"`
+	UserID          uuid.UUID             `json:"userId"`
 	DisplayName     string                `json:"displayName"`
 	Timezone        string                `json:"timezone"`
-	PrivacyLevel    PrivacyLevel          `json:"privacyLevel" enum:"busy_only,energy_tier,full_title"`
-	WorkStartMinute int                   `json:"workStartMinute" minimum:"0" maximum:"1439"`
-	WorkEndMinute   int                   `json:"workEndMinute" minimum:"1" maximum:"1440"`
+	PrivacyLevel    PrivacyLevel          `json:"privacyLevel"`
+	WorkStartMinute int                   `json:"workStartMinute"`
+	WorkEndMinute   int                   `json:"workEndMinute"`
 	Slots           []AvailabilitySlot    `json:"slots"`
 	EnergyBuckets   []PrivacyEnergyBucket `json:"energyBuckets,omitempty"`
 }
@@ -321,37 +343,38 @@ type MeetingSolverInput struct {
 	SearchFrom          time.Time                 `json:"searchFrom"`
 	SearchTo            time.Time                 `json:"searchTo"`
 	RespectFocusShields bool                      `json:"respectFocusShields"`
+	MaxResults          int                       `json:"maxResults,omitempty"` // <= 0 时默认返回最多 3 个推荐窗口
 	Members             []MemberRawSchedulingData `json:"members"`
 }
 
 type ScoreBreakdown struct {
-	EnergyMatchScore        int     `json:"energyMatchScore" minimum:"0" maximum:"100"`
-	FocusShieldScore        int     `json:"focusShieldScore" minimum:"0" maximum:"100"`
-	CompactnessScore        int     `json:"compactnessScore" minimum:"0" maximum:"100"`
-	OptionalAttendanceRatio float64 `json:"optionalAttendanceRatio" minimum:"0" maximum:"1"`
-	EarlinessScore          int     `json:"earlinessScore" minimum:"0" maximum:"100"`
+	EnergyMatchScore        int     `json:"energyMatchScore"`
+	FocusShieldScore        int     `json:"focusShieldScore"`
+	CompactnessScore        int     `json:"compactnessScore"`
+	OptionalAttendanceRatio float64 `json:"optionalAttendanceRatio"`
+	EarlinessScore          int     `json:"earlinessScore"`
 }
 
 type MemberWindowImpact struct {
-	UserID                   uuid.UUID   `json:"userId" format:"uuid"`
+	UserID                   uuid.UUID   `json:"userId"`
 	DisplayName              string      `json:"displayName"`
 	Required                 bool        `json:"required"`
-	EnergyTier               *EnergyTier `json:"energyTier,omitempty" enum:"peak,steady,strained,depleted"`
+	EnergyTier               *EnergyTier `json:"energyTier,omitempty"`
 	BreaksFocusShield        bool        `json:"breaksFocusShield"`
 	CausesContinuousOverload bool        `json:"causesContinuousOverload"`
 }
 
 type ExplanationTag struct {
 	Code  string  `json:"code"`
-	Tone  TagTone `json:"tone" enum:"positive,warning,neutral"`
+	Tone  TagTone `json:"tone"`
 	Label string  `json:"label"`
 }
 
 type GoldenWindowRecommendation struct {
-	Rank            int                  `json:"rank" minimum:"1" maximum:"3"`
-	StartAt         time.Time            `json:"startAt" format:"date-time"`
-	EndAt           time.Time            `json:"endAt" format:"date-time"`
-	Score           int                  `json:"score" minimum:"0" maximum:"100"`
+	Rank            int                  `json:"rank"`
+	StartAt         time.Time            `json:"startAt"`
+	EndAt           time.Time            `json:"endAt"`
+	Score           int                  `json:"score"`
 	Breakdown       ScoreBreakdown       `json:"breakdown"`
 	AffectedMembers []MemberWindowImpact `json:"affectedMembers"`
 	ExplanationTags []ExplanationTag     `json:"explanationTags"`
@@ -360,7 +383,7 @@ type GoldenWindowRecommendation struct {
 
 type BlockingDiagnostic struct {
 	Code                 string      `json:"code"`
-	Day                  *string     `json:"day,omitempty" format:"date"`
+	Day                  *string     `json:"day,omitempty"`
 	Message              string      `json:"message"`
 	BlockingUserIDs      []uuid.UUID `json:"blockingUserIds"`
 	BlockingDisplayNames []string    `json:"blockingDisplayNames"`
@@ -373,8 +396,8 @@ type MeetingSolverOutput struct {
 }
 
 type TeamPlannerEngine interface {
-	ProjectAvailability(in AvailabilityProjectionInput) ([]MemberAvailabilityView, error)
-	RecommendWindows(in MeetingSolverInput) (MeetingSolverOutput, error)
+	ProjectAvailability(ctx context.Context, in AvailabilityProjectionInput) ([]MemberAvailabilityView, error)
+	RecommendWindows(ctx context.Context, in MeetingSolverInput) (MeetingSolverOutput, error)
 }
 
 // ── 3. 个人日程救援引擎契约（RescueEngine） ──
@@ -393,34 +416,35 @@ type RescueSolverInput struct {
 	BaselineVersion string                 `json:"baselineVersion"`
 	TriggerReason   RescueTriggerReason    `json:"triggerReason"`
 	UrgentTask      *UrgentTaskInput       `json:"urgentTask,omitempty"`
+	Strategies      []RescueStrategy       `json:"strategies,omitempty"` // 为空时默认求解全部 3 套标准策略
 	Profile         EnergyProfileInput     `json:"profile"`
 	PredictedCurve  []HourlyEnergyPoint    `json:"predictedCurve"`
 	WindowSchedules []ScheduleItemSnapshot `json:"windowSchedules"` // 覆盖 [dayStartUTC, dayStartUTC + 48h)
 }
 
 type RescueDiffItem struct {
-	Op            DiffOp           `json:"op" enum:"create,move,defer,unchanged"`
-	ItemID        *uuid.UUID       `json:"itemId,omitempty" format:"uuid"`
+	Op            DiffOp           `json:"op"`
+	ItemID        *uuid.UUID       `json:"itemId,omitempty"`
 	Title         string           `json:"title"`
-	Category      ScheduleCategory `json:"category" enum:"deep_work,meeting,recovery,routine,urgent"`
-	CognitiveLoad CognitiveLoad    `json:"cognitiveLoad" enum:"high,medium,low"`
-	Flexibility   Flexibility      `json:"flexibility" enum:"hard_locked,flexible,focus_shield"`
-	BeforeStartAt *time.Time       `json:"beforeStartAt,omitempty" format:"date-time"`
-	BeforeEndAt   *time.Time       `json:"beforeEndAt,omitempty" format:"date-time"`
-	AfterStartAt  time.Time        `json:"afterStartAt" format:"date-time"`
-	AfterEndAt    time.Time        `json:"afterEndAt" format:"date-time"`
+	Category      ScheduleCategory `json:"category"`
+	CognitiveLoad CognitiveLoad    `json:"cognitiveLoad"`
+	Flexibility   Flexibility      `json:"flexibility"`
+	BeforeStartAt *time.Time       `json:"beforeStartAt,omitempty"`
+	BeforeEndAt   *time.Time       `json:"beforeEndAt,omitempty"`
+	AfterStartAt  time.Time        `json:"afterStartAt"`
+	AfterEndAt    time.Time        `json:"afterEndAt"`
 	ReasonCode    string           `json:"reasonCode"`
 	ReasonLabel   string           `json:"reasonLabel"`
 }
 
 type RescueOptionPlan struct {
-	Strategy         RescueStrategy   `json:"strategy" enum:"protect_deadline,protect_recovery,minimize_changes"`
+	Strategy         RescueStrategy   `json:"strategy"`
 	OptionHash       string           `json:"optionHash"`
 	Feasible         bool             `json:"feasible"`
-	MovedCount       int              `json:"movedCount" minimum:"0"`
-	DeferredCount    int              `json:"deferredCount" minimum:"0"`
-	RecoveryMinutes  int              `json:"recoveryMinutes" minimum:"0"`
-	OverdueRiskCount int              `json:"overdueRiskCount" minimum:"0"`
+	MovedCount       int              `json:"movedCount"`
+	DeferredCount    int              `json:"deferredCount"`
+	RecoveryMinutes  int              `json:"recoveryMinutes"`
+	OverdueRiskCount int              `json:"overdueRiskCount"`
 	Summary          string           `json:"summary"`
 	DiffItems        []RescueDiffItem `json:"diffItems"`
 }
@@ -428,14 +452,44 @@ type RescueOptionPlan struct {
 type RescueSolverOutput struct {
 	LocalDay        string             `json:"localDay"`
 	BaselineVersion string             `json:"baselineVersion"`
-	Options         []RescueOptionPlan `json:"options"` // 严格按 protect_deadline, protect_recovery, minimize_changes 产出 3 套方案
+	Options         []RescueOptionPlan `json:"options"`
 }
 
 type RescueEngine interface {
-	BuildOptions(in RescueSolverInput) (RescueSolverOutput, error)
+	BuildOptions(ctx context.Context, in RescueSolverInput) (RescueSolverOutput, error)
 }
 
-// ── 确定性乐观锁基线版本号计算（P1 与 P2 共享单一规范实现） ──
+// ── 本地日期时间窗与确定性乐观锁基线版本号计算（P1 与 P2 共享单一规范实现） ──
+
+// LocalDayWindowUTC 将本地日历日 YYYY-MM-DD 与 IANA 时区换算为 UTC 半开区间 [dayStartUTC, nextDayStartUTC)。
+func LocalDayWindowUTC(localDay, timezone string) (dayStartUTC, nextDayStartUTC time.Time, err error) {
+	if len(localDay) != len("2006-01-02") {
+		return time.Time{}, time.Time{}, fmt.Errorf("invalid localDay %q: expected YYYY-MM-DD", localDay)
+	}
+	parsed, err := time.Parse("2006-01-02", localDay)
+	if err != nil {
+		return time.Time{}, time.Time{}, fmt.Errorf("invalid localDay %q: %w", localDay, err)
+	}
+	if strings.TrimSpace(timezone) == "" {
+		return time.Time{}, time.Time{}, errors.New("timezone must not be empty")
+	}
+	loc, err := time.LoadLocation(timezone)
+	if err != nil {
+		return time.Time{}, time.Time{}, fmt.Errorf("invalid timezone %q: %w", timezone, err)
+	}
+	dayStartLocal := time.Date(parsed.Year(), parsed.Month(), parsed.Day(), 0, 0, 0, 0, loc)
+	nextDayLocal := dayStartLocal.AddDate(0, 0, 1)
+	return dayStartLocal.UTC(), nextDayLocal.UTC(), nil
+}
+
+// RescueWindowUTC 计算 48 小时救援乐观锁与搜索影响窗口 [dayStartUTC, dayStartUTC + 48h)。
+func RescueWindowUTC(localDay, timezone string) (startUTC, endUTC time.Time, err error) {
+	dayStartUTC, _, err := LocalDayWindowUTC(localDay, timezone)
+	if err != nil {
+		return time.Time{}, time.Time{}, err
+	}
+	return dayStartUTC, dayStartUTC.Add(48 * time.Hour), nil
+}
 
 // ComputeBaselineVersion 按 docs/01 4.2.2 规范计算 48h 影响窗口的确定性乐观锁摘要。
 // 调用方须确保传入的 items 为 [dayStartUTC, dayStartUTC + 48h) 窗口内 status <> 'cancelled' 的日程快照。

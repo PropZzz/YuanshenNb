@@ -33,21 +33,16 @@ import kotlinx.serialization.Contextual
 /**
  * @param blockingDiagnostics
  * @param recommendations
- * @param dollarSchema A URL to the JSON Schema for this object.
  */
 @Serializable
 
-data class MeetingSolverOutput (
+data class RecommendMeetingResponse (
 
     @SerialName(value = "blockingDiagnostics")
-    val blockingDiagnostics: kotlin.collections.List<BlockingDiagnostic>?,
+    val blockingDiagnostics: kotlin.collections.List<BlockingDiagnostic>,
 
     @SerialName(value = "recommendations")
-    val recommendations: kotlin.collections.List<GoldenWindowRecommendation>?,
-
-    /* A URL to the JSON Schema for this object. */
-    @Contextual @SerialName(value = "\$schema")
-    val dollarSchema: java.net.URI? = null
+    val recommendations: kotlin.collections.List<GoldenWindowRecommendation>
 
 ) {
 

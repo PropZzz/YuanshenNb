@@ -4,6 +4,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -28,29 +29,33 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavGraph.Companion.findStartDestination
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.navigation.compose.rememberNavController
 import app.shixu.BuildConfig
+import app.shixu.core.network.generated.models.ThemeMode
 import app.shixu.core.ui.theme.ShixuTheme
 import dagger.hilt.android.AndroidEntryPoint
 
 private data class ShixuDestination(
     val route: String,
+    val displayPath: String,
     val label: String,
     val icon: ImageVector,
     val summary: String,
 )
 
 private val DESTINATIONS = listOf(
-    ShixuDestination("/focus", "专注", Icons.Outlined.Timer, "今日专注与实时精力保护状态入口"),
-    ShixuDestination("/calendar", "日历", Icons.Outlined.CalendarMonth, "今日日程时间轴与突发救援确认入口"),
-    ShixuDestination("/team", "团队", Icons.Outlined.Groups, "团队会议邀请回执与轻量排会入口"),
-    ShixuDestination("/energy", "精力", Icons.Outlined.FavoriteBorder, "Health Connect / BLE 0x180D 采集与回放控制"),
-    ShixuDestination("/settings", "设置", Icons.Outlined.Settings, "账号认证、隐私等级与同步诊断"),
+    ShixuDestination("focus", "/focus", "专注", Icons.Outlined.Timer, "今日专注与实时精力保护状态入口"),
+    ShixuDestination("calendar", "/calendar", "日历", Icons.Outlined.CalendarMonth, "今日日程时间轴与突发救援确认入口"),
+    ShixuDestination("team", "/team", "团队", Icons.Outlined.Groups, "团队会议邀请回执与轻量排会入口"),
+    ShixuDestination("energy", "/energy", "精力", Icons.Outlined.FavoriteBorder, "Health Connect / BLE 0x180D 采集与回放控制"),
+    ShixuDestination("settings", "/settings", "设置", Icons.Outlined.Settings, "账号认证、隐私等级与同步诊断"),
 )
 
 @AndroidEntryPoint
@@ -59,18 +64,29 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            ShixuTheme {
-                ShixuRootScaffold()
-            }
+            ShixuRootApp()
         }
+    }
+}
+
+@Composable
+fun ShixuRootApp(themeMode: ThemeMode = ThemeMode.system) {
+    val darkTheme = when (themeMode) {
+        ThemeMode.dark -> true
+        ThemeMode.light -> false
+        ThemeMode.system -> isSystemInDarkTheme()
+    }
+    ShixuTheme(darkTheme = darkTheme) {
+        ShixuRootScaffold()
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ShixuRootScaffold() {
-    var selectedTab by rememberSaveable { mutableIntStateOf(0) }
-    val current = DESTINATIONS[selectedTab]
+    val navController = rememberNavController()
+    val backStackEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = backStackEntry?.destination?.route ?: DESTINATIONS.first().route
 
     Scaffold(
         topBar = {
@@ -87,10 +103,18 @@ private fun ShixuRootScaffold() {
         },
         bottomBar = {
             NavigationBar {
-                DESTINATIONS.forEachIndexed { index, item ->
+                DESTINATIONS.forEach { item ->
                     NavigationBarItem(
-                        selected = selectedTab == index,
-                        onClick = { selectedTab = index },
+                        selected = currentRoute == item.route,
+                        onClick = {
+                            navController.navigate(item.route) {
+                                popUpTo(navController.graph.findStartDestination().id) {
+                                    saveState = true
+                                }
+                                launchSingleTop = true
+                                restoreState = true
+                            }
+                        },
                         icon = { Icon(item.icon, contentDescription = item.label) },
                         label = { Text(item.label) },
                     )
@@ -98,39 +122,54 @@ private fun ShixuRootScaffold() {
             }
         },
     ) { innerPadding ->
-        Column(
+        NavHost(
+            navController = navController,
+            startDestination = DESTINATIONS.first().route,
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
                 .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
-                ),
-            ) {
-                Column(
-                    modifier = Modifier.padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    Text(
-                        text = "${current.route} · ${current.label}",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.primary,
-                    )
-                    Text(
-                        text = current.summary,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    Text(
-                        text = "API Base: ${BuildConfig.API_BASE_URL}",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.outline,
-                    )
+            DESTINATIONS.forEach { dest ->
+                composable(dest.route) {
+                    DestinationStarterCard(dest)
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun DestinationStarterCard(destination: ShixuDestination) {
+    Column(
+        modifier = Modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
+            ),
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Text(
+                    text = "${destination.displayPath} · ${destination.label}",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+                Text(
+                    text = destination.summary,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Text(
+                    text = "API Base: ${BuildConfig.API_BASE_URL}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.outline,
+                )
             }
         }
     }

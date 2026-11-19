@@ -23,6 +23,7 @@
 
 package app.shixu.core.network.generated.models
 
+import app.shixu.core.network.generated.models.ErrorCode
 import app.shixu.core.network.generated.models.ErrorDetailItem
 
 import kotlinx.serialization.Serializable
@@ -39,7 +40,6 @@ import kotlinx.serialization.encoding.Encoder
  * @param status
  * @param title
  * @param type
- * @param dollarSchema A URL to the JSON Schema for this object.
  * @param errors
  */
 @Serializable
@@ -47,7 +47,7 @@ import kotlinx.serialization.encoding.Encoder
 data class ProblemDetail (
 
     @SerialName(value = "code")
-    val code: ProblemDetail.Code,
+    val code: ErrorCode,
 
     @SerialName(value = "detail")
     val detail: kotlin.String,
@@ -61,51 +61,11 @@ data class ProblemDetail (
     @Contextual @SerialName(value = "type")
     val type: java.net.URI,
 
-    /* A URL to the JSON Schema for this object. */
-    @Contextual @SerialName(value = "\$schema")
-    val dollarSchema: java.net.URI? = null,
-
     @SerialName(value = "errors")
     val errors: kotlin.collections.List<ErrorDetailItem>? = null
 
 ) {
 
-    /**
-     * Values: BAD_REQUEST,UNAUTHORIZED,INVALID_CREDENTIALS,INVALID_REFRESH_TOKEN,TOKEN_REUSE_DETECTED,INVALID_WS_TICKET,FORBIDDEN_NOT_WORKSPACE_MEMBER,FORBIDDEN_INSUFFICIENT_ROLE,FORBIDDEN_NOT_MEETING_PARTICIPANT,NOT_FOUND,INVITE_CODE_NOT_FOUND,MEETING_PROPOSAL_NOT_FOUND,SNAPSHOT_NOT_FOUND,EMAIL_ALREADY_EXISTS,ALREADY_WORKSPACE_MEMBER,CONFLICT_SCHEDULE_OVERLAP,CONFLICT_MEMBER_BUSY,MEETING_MANAGED_BY_PROPOSAL,MEETING_ALREADY_CANCELLED,STALE_BASELINE_VERSION,ALREADY_REVERTED,SNAPSHOT_RESTORE_CONFLICT,VALIDATION_FAILED,RANGE_TOO_LARGE,INVALID_TIME_RANGE,DEADLINE_IN_PAST,INVALID_BIOMETRIC_SAMPLE,INVALID_WORK_HOURS,PARTICIPANT_NOT_IN_WORKSPACE,SERVICE_UNAVAILABLE
-     */
-    @Serializable
-    enum class Code(val value: kotlin.String) {
-        @SerialName(value = "BAD_REQUEST") BAD_REQUEST("BAD_REQUEST"),
-        @SerialName(value = "UNAUTHORIZED") UNAUTHORIZED("UNAUTHORIZED"),
-        @SerialName(value = "INVALID_CREDENTIALS") INVALID_CREDENTIALS("INVALID_CREDENTIALS"),
-        @SerialName(value = "INVALID_REFRESH_TOKEN") INVALID_REFRESH_TOKEN("INVALID_REFRESH_TOKEN"),
-        @SerialName(value = "TOKEN_REUSE_DETECTED") TOKEN_REUSE_DETECTED("TOKEN_REUSE_DETECTED"),
-        @SerialName(value = "INVALID_WS_TICKET") INVALID_WS_TICKET("INVALID_WS_TICKET"),
-        @SerialName(value = "FORBIDDEN_NOT_WORKSPACE_MEMBER") FORBIDDEN_NOT_WORKSPACE_MEMBER("FORBIDDEN_NOT_WORKSPACE_MEMBER"),
-        @SerialName(value = "FORBIDDEN_INSUFFICIENT_ROLE") FORBIDDEN_INSUFFICIENT_ROLE("FORBIDDEN_INSUFFICIENT_ROLE"),
-        @SerialName(value = "FORBIDDEN_NOT_MEETING_PARTICIPANT") FORBIDDEN_NOT_MEETING_PARTICIPANT("FORBIDDEN_NOT_MEETING_PARTICIPANT"),
-        @SerialName(value = "NOT_FOUND") NOT_FOUND("NOT_FOUND"),
-        @SerialName(value = "INVITE_CODE_NOT_FOUND") INVITE_CODE_NOT_FOUND("INVITE_CODE_NOT_FOUND"),
-        @SerialName(value = "MEETING_PROPOSAL_NOT_FOUND") MEETING_PROPOSAL_NOT_FOUND("MEETING_PROPOSAL_NOT_FOUND"),
-        @SerialName(value = "SNAPSHOT_NOT_FOUND") SNAPSHOT_NOT_FOUND("SNAPSHOT_NOT_FOUND"),
-        @SerialName(value = "EMAIL_ALREADY_EXISTS") EMAIL_ALREADY_EXISTS("EMAIL_ALREADY_EXISTS"),
-        @SerialName(value = "ALREADY_WORKSPACE_MEMBER") ALREADY_WORKSPACE_MEMBER("ALREADY_WORKSPACE_MEMBER"),
-        @SerialName(value = "CONFLICT_SCHEDULE_OVERLAP") CONFLICT_SCHEDULE_OVERLAP("CONFLICT_SCHEDULE_OVERLAP"),
-        @SerialName(value = "CONFLICT_MEMBER_BUSY") CONFLICT_MEMBER_BUSY("CONFLICT_MEMBER_BUSY"),
-        @SerialName(value = "MEETING_MANAGED_BY_PROPOSAL") MEETING_MANAGED_BY_PROPOSAL("MEETING_MANAGED_BY_PROPOSAL"),
-        @SerialName(value = "MEETING_ALREADY_CANCELLED") MEETING_ALREADY_CANCELLED("MEETING_ALREADY_CANCELLED"),
-        @SerialName(value = "STALE_BASELINE_VERSION") STALE_BASELINE_VERSION("STALE_BASELINE_VERSION"),
-        @SerialName(value = "ALREADY_REVERTED") ALREADY_REVERTED("ALREADY_REVERTED"),
-        @SerialName(value = "SNAPSHOT_RESTORE_CONFLICT") SNAPSHOT_RESTORE_CONFLICT("SNAPSHOT_RESTORE_CONFLICT"),
-        @SerialName(value = "VALIDATION_FAILED") VALIDATION_FAILED("VALIDATION_FAILED"),
-        @SerialName(value = "RANGE_TOO_LARGE") RANGE_TOO_LARGE("RANGE_TOO_LARGE"),
-        @SerialName(value = "INVALID_TIME_RANGE") INVALID_TIME_RANGE("INVALID_TIME_RANGE"),
-        @SerialName(value = "DEADLINE_IN_PAST") DEADLINE_IN_PAST("DEADLINE_IN_PAST"),
-        @SerialName(value = "INVALID_BIOMETRIC_SAMPLE") INVALID_BIOMETRIC_SAMPLE("INVALID_BIOMETRIC_SAMPLE"),
-        @SerialName(value = "INVALID_WORK_HOURS") INVALID_WORK_HOURS("INVALID_WORK_HOURS"),
-        @SerialName(value = "PARTICIPANT_NOT_IN_WORKSPACE") PARTICIPANT_NOT_IN_WORKSPACE("PARTICIPANT_NOT_IN_WORKSPACE"),
-        @SerialName(value = "SERVICE_UNAVAILABLE") SERVICE_UNAVAILABLE("SERVICE_UNAVAILABLE");
-    }
 
 }
 

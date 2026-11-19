@@ -23,7 +23,8 @@
 
 package app.shixu.core.network.generated.models
 
-import app.shixu.core.network.generated.models.EnergyComputeOutput
+import app.shixu.core.network.generated.models.EnergyTodayResponse
+import app.shixu.core.network.generated.models.ReplayScenario
 
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerialName
@@ -38,7 +39,6 @@ import kotlinx.serialization.encoding.Encoder
  * @param latestEnergy
  * @param scenario
  * @param seededCount
- * @param dollarSchema A URL to the JSON Schema for this object.
  */
 @Serializable
 
@@ -48,29 +48,16 @@ data class ReplaySeedResponse (
     val day: java.time.LocalDate,
 
     @SerialName(value = "latestEnergy")
-    val latestEnergy: EnergyComputeOutput,
+    val latestEnergy: EnergyTodayResponse,
 
     @SerialName(value = "scenario")
-    val scenario: ReplaySeedResponse.Scenario,
+    val scenario: ReplayScenario,
 
     @SerialName(value = "seededCount")
-    val seededCount: kotlin.Long,
-
-    /* A URL to the JSON Schema for this object. */
-    @Contextual @SerialName(value = "\$schema")
-    val dollarSchema: java.net.URI? = null
+    val seededCount: kotlin.Long
 
 ) {
 
-    /**
-     * Values: well_rested,sleep_deprived,high_stress
-     */
-    @Serializable
-    enum class Scenario(val value: kotlin.String) {
-        @SerialName(value = "well_rested") well_rested("well_rested"),
-        @SerialName(value = "sleep_deprived") sleep_deprived("sleep_deprived"),
-        @SerialName(value = "high_stress") high_stress("high_stress");
-    }
 
 }
 

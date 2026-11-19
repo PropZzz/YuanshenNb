@@ -23,6 +23,10 @@
 
 package app.shixu.core.network.generated.models
 
+import app.shixu.core.network.generated.models.CognitiveLoad
+import app.shixu.core.network.generated.models.Flexibility
+import app.shixu.core.network.generated.models.ScheduleCategory
+import app.shixu.core.network.generated.models.ScheduleStatus
 
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerialName
@@ -56,10 +60,10 @@ import kotlinx.serialization.encoding.Encoder
 data class ScheduleItemDTO (
 
     @SerialName(value = "category")
-    val category: ScheduleItemDTO.Category,
+    val category: ScheduleCategory,
 
     @SerialName(value = "cognitiveLoad")
-    val cognitiveLoad: ScheduleItemDTO.CognitiveLoad,
+    val cognitiveLoad: CognitiveLoad,
 
     @Contextual @SerialName(value = "createdAt")
     val createdAt: java.time.OffsetDateTime,
@@ -71,7 +75,7 @@ data class ScheduleItemDTO (
     val endAt: java.time.OffsetDateTime,
 
     @SerialName(value = "flexibility")
-    val flexibility: ScheduleItemDTO.Flexibility,
+    val flexibility: Flexibility,
 
     @Contextual @SerialName(value = "id")
     val id: java.util.UUID,
@@ -86,7 +90,7 @@ data class ScheduleItemDTO (
     val startAt: java.time.OffsetDateTime,
 
     @SerialName(value = "status")
-    val status: ScheduleItemDTO.Status,
+    val status: ScheduleStatus,
 
     @SerialName(value = "title")
     val title: kotlin.String,
@@ -108,45 +112,6 @@ data class ScheduleItemDTO (
 
 ) {
 
-    /**
-     * Values: deep_work,meeting,recovery,routine,urgent
-     */
-    @Serializable
-    enum class Category(val value: kotlin.String) {
-        @SerialName(value = "deep_work") deep_work("deep_work"),
-        @SerialName(value = "meeting") meeting("meeting"),
-        @SerialName(value = "recovery") recovery("recovery"),
-        @SerialName(value = "routine") routine("routine"),
-        @SerialName(value = "urgent") urgent("urgent");
-    }
-    /**
-     * Values: high,medium,low
-     */
-    @Serializable
-    enum class CognitiveLoad(val value: kotlin.String) {
-        @SerialName(value = "high") high("high"),
-        @SerialName(value = "medium") medium("medium"),
-        @SerialName(value = "low") low("low");
-    }
-    /**
-     * Values: hard_locked,flexible,focus_shield
-     */
-    @Serializable
-    enum class Flexibility(val value: kotlin.String) {
-        @SerialName(value = "hard_locked") hard_locked("hard_locked"),
-        @SerialName(value = "flexible") flexible("flexible"),
-        @SerialName(value = "focus_shield") focus_shield("focus_shield");
-    }
-    /**
-     * Values: planned,in_progress,completed,cancelled
-     */
-    @Serializable
-    enum class Status(val value: kotlin.String) {
-        @SerialName(value = "planned") planned("planned"),
-        @SerialName(value = "in_progress") in_progress("in_progress"),
-        @SerialName(value = "completed") completed("completed"),
-        @SerialName(value = "cancelled") cancelled("cancelled");
-    }
 
 }
 

@@ -23,6 +23,8 @@
 
 package app.shixu.core.network.generated.models
 
+import app.shixu.core.network.generated.models.DataFreshness
+import app.shixu.core.network.generated.models.EnergyTier
 
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerialName
@@ -48,7 +50,7 @@ data class WsEnergyUpdatedPayload (
     val computedAt: java.time.OffsetDateTime,
 
     @SerialName(value = "dataFreshness")
-    val dataFreshness: WsEnergyUpdatedPayload.DataFreshness,
+    val dataFreshness: DataFreshness,
 
     @Contextual @SerialName(value = "localDay")
     val localDay: java.time.LocalDate,
@@ -57,33 +59,13 @@ data class WsEnergyUpdatedPayload (
     val score: kotlin.Long,
 
     @SerialName(value = "tier")
-    val tier: WsEnergyUpdatedPayload.Tier,
+    val tier: EnergyTier,
 
     @Contextual @SerialName(value = "userId")
     val userId: java.util.UUID
 
 ) {
 
-    /**
-     * Values: live_wearable,recent_wearable,replay_demo,baseline_only
-     */
-    @Serializable
-    enum class DataFreshness(val value: kotlin.String) {
-        @SerialName(value = "live_wearable") live_wearable("live_wearable"),
-        @SerialName(value = "recent_wearable") recent_wearable("recent_wearable"),
-        @SerialName(value = "replay_demo") replay_demo("replay_demo"),
-        @SerialName(value = "baseline_only") baseline_only("baseline_only");
-    }
-    /**
-     * Values: peak,steady,strained,depleted
-     */
-    @Serializable
-    enum class Tier(val value: kotlin.String) {
-        @SerialName(value = "peak") peak("peak"),
-        @SerialName(value = "steady") steady("steady"),
-        @SerialName(value = "strained") strained("strained"),
-        @SerialName(value = "depleted") depleted("depleted");
-    }
 
 }
 

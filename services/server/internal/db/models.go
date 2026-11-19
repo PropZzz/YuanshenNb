@@ -49,7 +49,7 @@ type EnergySnapshot struct {
 	HourlyCurve   json.RawMessage `json:"hourly_curve"`
 	Drivers       json.RawMessage `json:"drivers"`
 	FocusShields  json.RawMessage `json:"focus_shields"`
-	OverloadAlert []byte          `json:"overload_alert"`
+	OverloadAlert json.RawMessage `json:"overload_alert"`
 	Diagnostics   json.RawMessage `json:"diagnostics"`
 }
 
@@ -94,6 +94,7 @@ type RescueSnapshot struct {
 	LocalDay        time.Time          `json:"local_day"`
 	BaselineVersion string             `json:"baseline_version"`
 	OptionHash      string             `json:"option_hash"`
+	IdempotencyKey  pgtype.Text        `json:"idempotency_key"`
 	Strategy        string             `json:"strategy"`
 	TriggerReason   string             `json:"trigger_reason"`
 	BeforeItems     json.RawMessage    `json:"before_items"`
@@ -116,7 +117,7 @@ type ScheduleItem struct {
 	Status            string                           `json:"status"`
 	StartAt           time.Time                        `json:"start_at"`
 	EndAt             time.Time                        `json:"end_at"`
-	DurationMinutes   pgtype.Int4                      `json:"duration_minutes"`
+	DurationMinutes   int32                            `json:"duration_minutes"`
 	TimeRange         pgtype.Range[pgtype.Timestamptz] `json:"time_range"`
 	DeadlineAt        pgtype.Timestamptz               `json:"deadline_at"`
 	ReminderMinutes   int32                            `json:"reminder_minutes"`

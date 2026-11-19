@@ -118,8 +118,9 @@ $$E(t) = \operatorname{clamp}\Big(0,\; 100,\; S_{\text{sleep}} + S_{\text{autono
    - 影响：改变昼夜节律曲线 $C_{\text{circadian}}(t)$、工作日边界（`work_start_minute` / `work_end_minute`）、自定义心流窗与最小恢复缓冲时长。
 
 ### 2.3 `hourly_curve` 与 `diagnostics` 结构规范
-- **`hourly_curve`（24 个整点带 UTC 时间戳点位）**：
-  避免客户端因跨时区或夏令时产生小时下标错位，`hourly_curve` 数组中每个元素均包含显式 RFC 3339 UTC 整点起始时间戳：
+- **`hourly_curve`（用户本地自然日整点带 UTC 时间戳点位）**：
+  - `hourlyCurve` 严格覆盖目标 `localDay` 在 `profile.timezone` 下的**本地自然日所有整点小时** `[dayStartLocal, nextDayStartLocal)`（通过 `engine.LocalDayWindowUTC` 计算；常规日期 24 个点位，DST 切换日 23 或 25 个点位），每个元素均包含显式 RFC 3339 UTC 整点起始时间戳：
+  - `BiometricSampleInput` / `BiometricSampleDTO` 对 `metricType = 'sleep_stage'` 提供强类型可选字段 `sleepStage?: 'deep' | 'rem' | 'light' | 'awake'`。
   ```json
   [
     {

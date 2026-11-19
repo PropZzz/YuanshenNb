@@ -23,6 +23,8 @@
 
 package app.shixu.core.network.generated.models
 
+import app.shixu.core.network.generated.models.MeetingDecisionStatus
+import app.shixu.core.network.generated.models.ScheduleStatus
 
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerialName
@@ -38,7 +40,6 @@ import kotlinx.serialization.encoding.Encoder
  * @param scheduleStatus
  * @param updatedAt
  * @param userId
- * @param dollarSchema A URL to the JSON Schema for this object.
  */
 @Serializable
 
@@ -48,41 +49,19 @@ data class RespondMeetingResponse (
     val proposalId: java.util.UUID,
 
     @SerialName(value = "responseStatus")
-    val responseStatus: RespondMeetingResponse.ResponseStatus,
+    val responseStatus: MeetingDecisionStatus,
 
     @SerialName(value = "scheduleStatus")
-    val scheduleStatus: RespondMeetingResponse.ScheduleStatus,
+    val scheduleStatus: ScheduleStatus,
 
     @Contextual @SerialName(value = "updatedAt")
     val updatedAt: java.time.OffsetDateTime,
 
     @Contextual @SerialName(value = "userId")
-    val userId: java.util.UUID,
-
-    /* A URL to the JSON Schema for this object. */
-    @Contextual @SerialName(value = "\$schema")
-    val dollarSchema: java.net.URI? = null
+    val userId: java.util.UUID
 
 ) {
 
-    /**
-     * Values: accepted,declined
-     */
-    @Serializable
-    enum class ResponseStatus(val value: kotlin.String) {
-        @SerialName(value = "accepted") accepted("accepted"),
-        @SerialName(value = "declined") declined("declined");
-    }
-    /**
-     * Values: planned,in_progress,completed,cancelled
-     */
-    @Serializable
-    enum class ScheduleStatus(val value: kotlin.String) {
-        @SerialName(value = "planned") planned("planned"),
-        @SerialName(value = "in_progress") in_progress("in_progress"),
-        @SerialName(value = "completed") completed("completed"),
-        @SerialName(value = "cancelled") cancelled("cancelled");
-    }
 
 }
 

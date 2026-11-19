@@ -4,15 +4,6 @@
       "AuthTokensResponse": {
         "additionalProperties": false,
         "properties": {
-          "$schema": {
-            "description": "A URL to the JSON Schema for this object.",
-            "examples": [
-              "http://localhost:8080/schemas/AuthTokensResponse.json"
-            ],
-            "format": "uri",
-            "readOnly": true,
-            "type": "string"
-          },
           "accessToken": {
             "type": "string"
           },
@@ -36,6 +27,14 @@
         ],
         "type": "object"
       },
+      "AvailabilityChangeReason": {
+        "enum": [
+          "schedule_changed",
+          "privacy_changed",
+          "energy_tier_changed"
+        ],
+        "type": "string"
+      },
       "AvailabilitySlot": {
         "additionalProperties": false,
         "properties": {
@@ -44,12 +43,7 @@
             "type": "string"
           },
           "kind": {
-            "enum": [
-              "busy",
-              "focus_shield",
-              "soft_busy"
-            ],
-            "type": "string"
+            "$ref": "#/components/schemas/AvailabilitySlotKind"
           },
           "startAt": {
             "format": "date-time",
@@ -66,28 +60,24 @@
         ],
         "type": "object"
       },
+      "AvailabilitySlotKind": {
+        "enum": [
+          "busy",
+          "focus_shield",
+          "soft_busy"
+        ],
+        "type": "string"
+      },
       "BiometricBatchRequest": {
         "additionalProperties": false,
         "properties": {
-          "$schema": {
-            "description": "A URL to the JSON Schema for this object.",
-            "examples": [
-              "http://localhost:8080/schemas/BiometricBatchRequest.json"
-            ],
-            "format": "uri",
-            "readOnly": true,
-            "type": "string"
-          },
           "samples": {
             "items": {
               "$ref": "#/components/schemas/BiometricSampleDTO"
             },
             "maxItems": 500,
             "minItems": 1,
-            "type": [
-              "array",
-              "null"
-            ]
+            "type": "array"
           }
         },
         "required": [
@@ -98,15 +88,6 @@
       "BiometricBatchResponse": {
         "additionalProperties": false,
         "properties": {
-          "$schema": {
-            "description": "A URL to the JSON Schema for this object.",
-            "examples": [
-              "http://localhost:8080/schemas/BiometricBatchResponse.json"
-            ],
-            "format": "uri",
-            "readOnly": true,
-            "type": "string"
-          },
           "acceptedCount": {
             "format": "int64",
             "minimum": 0,
@@ -118,7 +99,7 @@
             "type": "integer"
           },
           "latestEnergy": {
-            "$ref": "#/components/schemas/EnergyComputeOutput"
+            "$ref": "#/components/schemas/EnergyTodayResponse"
           }
         },
         "required": [
@@ -145,15 +126,7 @@
             "type": "object"
           },
           "metricType": {
-            "enum": [
-              "heart_rate",
-              "hrv_rmssd",
-              "resting_hr",
-              "sleep_session",
-              "sleep_stage",
-              "active_calories"
-            ],
-            "type": "string"
+            "$ref": "#/components/schemas/MetricType"
           },
           "numericValue": {
             "format": "double",
@@ -163,13 +136,12 @@
             "format": "date-time",
             "type": "string"
           },
+          "sleepStage": {
+            "$ref": "#/components/schemas/SleepStage",
+            "description": "metricType=sleep_stage 时的强类型睡眠分期"
+          },
           "sourceType": {
-            "enum": [
-              "health_connect",
-              "ble_gatt",
-              "replay_demo"
-            ],
-            "type": "string"
+            "$ref": "#/components/schemas/SourceType"
           },
           "unit": {
             "type": "string"
@@ -192,19 +164,13 @@
             "items": {
               "type": "string"
             },
-            "type": [
-              "array",
-              "null"
-            ]
+            "type": "array"
           },
           "blockingUserIds": {
             "items": {
               "type": "string"
             },
-            "type": [
-              "array",
-              "null"
-            ]
+            "type": "array"
           },
           "code": {
             "type": "string"
@@ -232,15 +198,6 @@
       "CancelMeetingRequest": {
         "additionalProperties": false,
         "properties": {
-          "$schema": {
-            "description": "A URL to the JSON Schema for this object.",
-            "examples": [
-              "http://localhost:8080/schemas/CancelMeetingRequest.json"
-            ],
-            "format": "uri",
-            "readOnly": true,
-            "type": "string"
-          },
           "reason": {
             "maxLength": 280,
             "type": "string"
@@ -251,15 +208,6 @@
       "CancelMeetingResponse": {
         "additionalProperties": false,
         "properties": {
-          "$schema": {
-            "description": "A URL to the JSON Schema for this object.",
-            "examples": [
-              "http://localhost:8080/schemas/CancelMeetingResponse.json"
-            ],
-            "format": "uri",
-            "readOnly": true,
-            "type": "string"
-          },
           "cancelledScheduleCount": {
             "format": "int64",
             "minimum": 0,
@@ -270,10 +218,7 @@
             "type": "string"
           },
           "status": {
-            "enum": [
-              "cancelled"
-            ],
-            "type": "string"
+            "$ref": "#/components/schemas/MeetingProposalStatus"
           },
           "updatedAt": {
             "format": "date-time",
@@ -288,34 +233,30 @@
         ],
         "type": "object"
       },
+      "Chronotype": {
+        "enum": [
+          "morning_lark",
+          "balanced",
+          "night_owl"
+        ],
+        "type": "string"
+      },
+      "CognitiveLoad": {
+        "enum": [
+          "high",
+          "medium",
+          "low"
+        ],
+        "type": "string"
+      },
       "ConfirmMeetingRequest": {
         "additionalProperties": false,
         "properties": {
-          "$schema": {
-            "description": "A URL to the JSON Schema for this object.",
-            "examples": [
-              "http://localhost:8080/schemas/ConfirmMeetingRequest.json"
-            ],
-            "format": "uri",
-            "readOnly": true,
-            "type": "string"
-          },
           "cognitiveLoad": {
-            "enum": [
-              "high",
-              "medium",
-              "low"
-            ],
-            "type": "string"
+            "$ref": "#/components/schemas/CognitiveLoad"
           },
           "description": {
             "type": "string"
-          },
-          "durationMinutes": {
-            "format": "int64",
-            "maximum": 480,
-            "minimum": 15,
-            "type": "integer"
           },
           "endAt": {
             "format": "date-time",
@@ -325,28 +266,21 @@
             "items": {
               "type": "string"
             },
-            "type": [
-              "array",
-              "null"
-            ]
+            "type": "array"
           },
           "participantIds": {
             "items": {
               "type": "string"
             },
             "minItems": 1,
-            "type": [
-              "array",
-              "null"
-            ]
+            "type": "array"
           },
           "proposalId": {
             "format": "uuid",
             "type": "string"
           },
           "recommendationMeta": {
-            "additionalProperties": {},
-            "type": "object"
+            "$ref": "#/components/schemas/MeetingRecommendationMeta"
           },
           "startAt": {
             "format": "date-time",
@@ -360,7 +294,6 @@
         },
         "required": [
           "title",
-          "durationMinutes",
           "cognitiveLoad",
           "participantIds",
           "startAt",
@@ -371,15 +304,6 @@
       "ConfirmMeetingResponse": {
         "additionalProperties": false,
         "properties": {
-          "$schema": {
-            "description": "A URL to the JSON Schema for this object.",
-            "examples": [
-              "http://localhost:8080/schemas/ConfirmMeetingResponse.json"
-            ],
-            "format": "uri",
-            "readOnly": true,
-            "type": "string"
-          },
           "createdScheduleCount": {
             "format": "int64",
             "minimum": 1,
@@ -398,36 +322,15 @@
       "CreateScheduleItemRequest": {
         "additionalProperties": false,
         "properties": {
-          "$schema": {
-            "description": "A URL to the JSON Schema for this object.",
-            "examples": [
-              "http://localhost:8080/schemas/CreateScheduleItemRequest.json"
-            ],
-            "format": "uri",
-            "readOnly": true,
-            "type": "string"
-          },
           "allowOverlap": {
             "default": false,
             "type": "boolean"
           },
           "category": {
-            "enum": [
-              "deep_work",
-              "meeting",
-              "recovery",
-              "routine",
-              "urgent"
-            ],
-            "type": "string"
+            "$ref": "#/components/schemas/ScheduleCategory"
           },
           "cognitiveLoad": {
-            "enum": [
-              "high",
-              "medium",
-              "low"
-            ],
-            "type": "string"
+            "$ref": "#/components/schemas/CognitiveLoad"
           },
           "deadlineAt": {
             "format": "date-time",
@@ -438,12 +341,7 @@
             "type": "string"
           },
           "flexibility": {
-            "enum": [
-              "hard_locked",
-              "flexible",
-              "focus_shield"
-            ],
-            "type": "string"
+            "$ref": "#/components/schemas/Flexibility"
           },
           "notes": {
             "type": "string"
@@ -477,15 +375,6 @@
       "CreateWorkspaceRequest": {
         "additionalProperties": false,
         "properties": {
-          "$schema": {
-            "description": "A URL to the JSON Schema for this object.",
-            "examples": [
-              "http://localhost:8080/schemas/CreateWorkspaceRequest.json"
-            ],
-            "format": "uri",
-            "readOnly": true,
-            "type": "string"
-          },
           "description": {
             "type": "string"
           },
@@ -495,12 +384,7 @@
             "type": "string"
           },
           "privacyLevel": {
-            "enum": [
-              "busy_only",
-              "energy_tier",
-              "full_title"
-            ],
-            "type": "string"
+            "$ref": "#/components/schemas/PrivacyLevel"
           }
         },
         "required": [
@@ -530,94 +414,23 @@
         ],
         "type": "object"
       },
-      "EnergyComputeOutput": {
-        "additionalProperties": false,
-        "properties": {
-          "$schema": {
-            "description": "A URL to the JSON Schema for this object.",
-            "examples": [
-              "http://localhost:8080/schemas/EnergyComputeOutput.json"
-            ],
-            "format": "uri",
-            "readOnly": true,
-            "type": "string"
-          },
-          "computedAt": {
-            "format": "date-time",
-            "type": "string"
-          },
-          "dataFreshness": {
-            "enum": [
-              "live_wearable",
-              "recent_wearable",
-              "replay_demo",
-              "baseline_only"
-            ],
-            "type": "string"
-          },
-          "diagnostics": {
-            "$ref": "#/components/schemas/EnergySourceDiagnostics"
-          },
-          "drivers": {
-            "$ref": "#/components/schemas/EnergyDrivers"
-          },
-          "focusShields": {
-            "items": {
-              "$ref": "#/components/schemas/FocusShieldWindow"
-            },
-            "type": [
-              "array",
-              "null"
-            ]
-          },
-          "hourlyCurve": {
-            "items": {
-              "$ref": "#/components/schemas/HourlyEnergyPoint"
-            },
-            "type": [
-              "array",
-              "null"
-            ]
-          },
-          "localDay": {
-            "format": "date",
-            "type": "string"
-          },
-          "overloadAlert": {
-            "$ref": "#/components/schemas/OverloadAlert"
-          },
-          "score": {
-            "format": "int64",
-            "maximum": 100,
-            "minimum": 0,
-            "type": "integer"
-          },
-          "tier": {
-            "enum": [
-              "peak",
-              "steady",
-              "strained",
-              "depleted"
-            ],
-            "type": "string"
-          },
-          "timezone": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "localDay",
-          "timezone",
-          "computedAt",
-          "score",
-          "tier",
-          "dataFreshness",
-          "drivers",
-          "hourlyCurve",
-          "focusShields",
-          "diagnostics"
+      "DataFreshness": {
+        "enum": [
+          "live_wearable",
+          "recent_wearable",
+          "replay_demo",
+          "baseline_only"
         ],
-        "type": "object"
+        "type": "string"
+      },
+      "DiffOp": {
+        "enum": [
+          "create",
+          "move",
+          "defer",
+          "unchanged"
+        ],
+        "type": "string"
       },
       "EnergyDrivers": {
         "additionalProperties": false,
@@ -671,22 +484,8 @@
       "EnergyProfileDTO": {
         "additionalProperties": false,
         "properties": {
-          "$schema": {
-            "description": "A URL to the JSON Schema for this object.",
-            "examples": [
-              "http://localhost:8080/schemas/EnergyProfileDTO.json"
-            ],
-            "format": "uri",
-            "readOnly": true,
-            "type": "string"
-          },
           "chronotype": {
-            "enum": [
-              "morning_lark",
-              "balanced",
-              "night_owl"
-            ],
-            "type": "string"
+            "$ref": "#/components/schemas/Chronotype"
           },
           "hrvBaselineMs": {
             "format": "double",
@@ -702,10 +501,7 @@
             "items": {
               "$ref": "#/components/schemas/DailyMinuteWindow"
             },
-            "type": [
-              "array",
-              "null"
-            ]
+            "type": "array"
           },
           "rhrBaselineBpm": {
             "format": "double",
@@ -761,12 +557,7 @@
             "type": "string"
           },
           "primarySource": {
-            "enum": [
-              "health_connect",
-              "ble_gatt",
-              "replay_demo"
-            ],
-            "type": "string"
+            "$ref": "#/components/schemas/SourceType"
           },
           "rhrBaselineBpm": {
             "format": "double",
@@ -777,6 +568,117 @@
           "baselineReadyDays"
         ],
         "type": "object"
+      },
+      "EnergyTier": {
+        "enum": [
+          "peak",
+          "steady",
+          "strained",
+          "depleted"
+        ],
+        "type": "string"
+      },
+      "EnergyTodayResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "computedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "dataFreshness": {
+            "$ref": "#/components/schemas/DataFreshness"
+          },
+          "diagnostics": {
+            "$ref": "#/components/schemas/EnergySourceDiagnostics"
+          },
+          "drivers": {
+            "$ref": "#/components/schemas/EnergyDrivers"
+          },
+          "focusShields": {
+            "items": {
+              "$ref": "#/components/schemas/FocusShieldWindow"
+            },
+            "type": "array"
+          },
+          "hourlyCurve": {
+            "items": {
+              "$ref": "#/components/schemas/HourlyEnergyPoint"
+            },
+            "type": "array"
+          },
+          "localDay": {
+            "format": "date",
+            "type": "string"
+          },
+          "overloadAlert": {
+            "$ref": "#/components/schemas/OverloadAlert"
+          },
+          "score": {
+            "format": "int64",
+            "maximum": 100,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "tier": {
+            "$ref": "#/components/schemas/EnergyTier"
+          },
+          "timezone": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "localDay",
+          "timezone",
+          "computedAt",
+          "score",
+          "tier",
+          "dataFreshness",
+          "drivers",
+          "hourlyCurve",
+          "focusShields",
+          "diagnostics"
+        ],
+        "type": "object"
+      },
+      "ErrorCode": {
+        "enum": [
+          "BAD_REQUEST",
+          "UNAUTHORIZED",
+          "INVALID_CREDENTIALS",
+          "INVALID_REFRESH_TOKEN",
+          "TOKEN_REUSE_DETECTED",
+          "INVALID_WS_TICKET",
+          "FORBIDDEN",
+          "FORBIDDEN_NOT_WORKSPACE_MEMBER",
+          "FORBIDDEN_INSUFFICIENT_ROLE",
+          "FORBIDDEN_NOT_MEETING_PARTICIPANT",
+          "NOT_FOUND",
+          "INVITE_CODE_NOT_FOUND",
+          "MEETING_PROPOSAL_NOT_FOUND",
+          "SNAPSHOT_NOT_FOUND",
+          "METHOD_NOT_ALLOWED",
+          "CONFLICT",
+          "EMAIL_ALREADY_EXISTS",
+          "ALREADY_WORKSPACE_MEMBER",
+          "CONFLICT_SCHEDULE_OVERLAP",
+          "CONFLICT_MEMBER_BUSY",
+          "MEETING_MANAGED_BY_PROPOSAL",
+          "MEETING_ALREADY_CANCELLED",
+          "STALE_BASELINE_VERSION",
+          "ALREADY_REVERTED",
+          "SNAPSHOT_RESTORE_CONFLICT",
+          "VALIDATION_FAILED",
+          "RANGE_TOO_LARGE",
+          "INVALID_TIME_RANGE",
+          "DEADLINE_IN_PAST",
+          "INVALID_BIOMETRIC_SAMPLE",
+          "INVALID_WORK_HOURS",
+          "PARTICIPANT_NOT_IN_WORKSPACE",
+          "TOO_MANY_REQUESTS",
+          "INTERNAL_SERVER_ERROR",
+          "SERVICE_UNAVAILABLE"
+        ],
+        "type": "string"
       },
       "ErrorDetailItem": {
         "additionalProperties": false,
@@ -790,7 +692,6 @@
           "value": {}
         },
         "required": [
-          "location",
           "message"
         ],
         "type": "object"
@@ -805,12 +706,7 @@
             "type": "string"
           },
           "tone": {
-            "enum": [
-              "positive",
-              "warning",
-              "neutral"
-            ],
-            "type": "string"
+            "$ref": "#/components/schemas/TagTone"
           }
         },
         "required": [
@@ -819,6 +715,21 @@
           "label"
         ],
         "type": "object"
+      },
+      "Flexibility": {
+        "enum": [
+          "hard_locked",
+          "flexible",
+          "focus_shield"
+        ],
+        "type": "string"
+      },
+      "FocusShieldSource": {
+        "enum": [
+          "preferred_window",
+          "auto_peak"
+        ],
+        "type": "string"
       },
       "FocusShieldWindow": {
         "additionalProperties": false,
@@ -834,11 +745,7 @@
             "type": "string"
           },
           "source": {
-            "enum": [
-              "preferred_window",
-              "auto_peak"
-            ],
-            "type": "string"
+            "$ref": "#/components/schemas/FocusShieldSource"
           },
           "startAt": {
             "format": "date-time",
@@ -860,10 +767,7 @@
             "items": {
               "$ref": "#/components/schemas/MemberWindowImpact"
             },
-            "type": [
-              "array",
-              "null"
-            ]
+            "type": "array"
           },
           "breakdown": {
             "$ref": "#/components/schemas/ScoreBreakdown"
@@ -876,14 +780,10 @@
             "items": {
               "$ref": "#/components/schemas/ExplanationTag"
             },
-            "type": [
-              "array",
-              "null"
-            ]
+            "type": "array"
           },
           "rank": {
             "format": "int64",
-            "maximum": 3,
             "minimum": 1,
             "type": "integer"
           },
@@ -913,24 +813,18 @@
         ],
         "type": "object"
       },
+      "HealthDBStatus": {
+        "enum": [
+          "up",
+          "down"
+        ],
+        "type": "string"
+      },
       "HealthResponse": {
         "additionalProperties": false,
         "properties": {
-          "$schema": {
-            "description": "A URL to the JSON Schema for this object.",
-            "examples": [
-              "http://localhost:8080/schemas/HealthResponse.json"
-            ],
-            "format": "uri",
-            "readOnly": true,
-            "type": "string"
-          },
           "dbStatus": {
-            "enum": [
-              "up",
-              "down"
-            ],
-            "type": "string"
+            "$ref": "#/components/schemas/HealthDBStatus"
           },
           "ok": {
             "type": "boolean"
@@ -965,13 +859,7 @@
             "type": "integer"
           },
           "tier": {
-            "enum": [
-              "peak",
-              "steady",
-              "strained",
-              "depleted"
-            ],
-            "type": "string"
+            "$ref": "#/components/schemas/EnergyTier"
           }
         },
         "required": [
@@ -984,27 +872,13 @@
       "JoinWorkspaceRequest": {
         "additionalProperties": false,
         "properties": {
-          "$schema": {
-            "description": "A URL to the JSON Schema for this object.",
-            "examples": [
-              "http://localhost:8080/schemas/JoinWorkspaceRequest.json"
-            ],
-            "format": "uri",
-            "readOnly": true,
-            "type": "string"
-          },
           "inviteCode": {
             "maxLength": 32,
             "minLength": 4,
             "type": "string"
           },
           "privacyLevel": {
-            "enum": [
-              "busy_only",
-              "energy_tier",
-              "full_title"
-            ],
-            "type": "string"
+            "$ref": "#/components/schemas/PrivacyLevel"
           }
         },
         "required": [
@@ -1015,15 +889,6 @@
       "LoginRequest": {
         "additionalProperties": false,
         "properties": {
-          "$schema": {
-            "description": "A URL to the JSON Schema for this object.",
-            "examples": [
-              "http://localhost:8080/schemas/LoginRequest.json"
-            ],
-            "format": "uri",
-            "readOnly": true,
-            "type": "string"
-          },
           "deviceName": {
             "maxLength": 120,
             "type": "string"
@@ -1047,21 +912,19 @@
       "LogoutRequest": {
         "additionalProperties": false,
         "properties": {
-          "$schema": {
-            "description": "A URL to the JSON Schema for this object.",
-            "examples": [
-              "http://localhost:8080/schemas/LogoutRequest.json"
-            ],
-            "format": "uri",
-            "readOnly": true,
-            "type": "string"
-          },
           "refreshToken": {
             "description": "Android 端必传；Web 端可省略并自动回退读取 HttpOnly Cookie",
             "type": "string"
           }
         },
         "type": "object"
+      },
+      "MeetingDecisionStatus": {
+        "enum": [
+          "accepted",
+          "declined"
+        ],
+        "type": "string"
       },
       "MeetingParticipantView": {
         "additionalProperties": false,
@@ -1073,12 +936,7 @@
             "type": "boolean"
           },
           "responseStatus": {
-            "enum": [
-              "pending",
-              "accepted",
-              "declined"
-            ],
-            "type": "string"
+            "$ref": "#/components/schemas/MeetingResponseStatus"
           },
           "userId": {
             "format": "uuid",
@@ -1097,12 +955,7 @@
         "additionalProperties": false,
         "properties": {
           "cognitiveLoad": {
-            "enum": [
-              "high",
-              "medium",
-              "low"
-            ],
-            "type": "string"
+            "$ref": "#/components/schemas/CognitiveLoad"
           },
           "confirmedEndAt": {
             "format": "date-time",
@@ -1135,22 +988,13 @@
             "items": {
               "$ref": "#/components/schemas/MeetingParticipantView"
             },
-            "type": [
-              "array",
-              "null"
-            ]
+            "type": "array"
           },
           "recommendationMeta": {
-            "additionalProperties": {},
-            "type": "object"
+            "$ref": "#/components/schemas/MeetingRecommendationMeta"
           },
           "status": {
-            "enum": [
-              "draft",
-              "confirmed",
-              "cancelled"
-            ],
-            "type": "string"
+            "$ref": "#/components/schemas/MeetingProposalStatus"
           },
           "title": {
             "type": "string"
@@ -1174,7 +1018,6 @@
           "cognitiveLoad",
           "status",
           "participants",
-          "recommendationMeta",
           "createdAt",
           "updatedAt"
         ],
@@ -1183,23 +1026,11 @@
       "MeetingProposalListResponse": {
         "additionalProperties": false,
         "properties": {
-          "$schema": {
-            "description": "A URL to the JSON Schema for this object.",
-            "examples": [
-              "http://localhost:8080/schemas/MeetingProposalListResponse.json"
-            ],
-            "format": "uri",
-            "readOnly": true,
-            "type": "string"
-          },
           "meetings": {
             "items": {
               "$ref": "#/components/schemas/MeetingProposalDTO"
             },
-            "type": [
-              "array",
-              "null"
-            ]
+            "type": "array"
           },
           "nextCursor": {
             "type": "string"
@@ -1210,42 +1041,50 @@
         ],
         "type": "object"
       },
-      "MeetingSolverOutput": {
+      "MeetingProposalStatus": {
+        "enum": [
+          "draft",
+          "confirmed",
+          "cancelled"
+        ],
+        "type": "string"
+      },
+      "MeetingRecommendationMeta": {
         "additionalProperties": false,
         "properties": {
-          "$schema": {
-            "description": "A URL to the JSON Schema for this object.",
-            "examples": [
-              "http://localhost:8080/schemas/MeetingSolverOutput.json"
-            ],
-            "format": "uri",
-            "readOnly": true,
+          "breakdown": {
+            "$ref": "#/components/schemas/ScoreBreakdown"
+          },
+          "explanationTags": {
+            "items": {
+              "$ref": "#/components/schemas/ExplanationTag"
+            },
+            "type": "array"
+          },
+          "rank": {
+            "format": "int64",
+            "minimum": 1,
+            "type": "integer"
+          },
+          "score": {
+            "format": "int64",
+            "maximum": 100,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "summary": {
             "type": "string"
-          },
-          "blockingDiagnostics": {
-            "items": {
-              "$ref": "#/components/schemas/BlockingDiagnostic"
-            },
-            "type": [
-              "array",
-              "null"
-            ]
-          },
-          "recommendations": {
-            "items": {
-              "$ref": "#/components/schemas/GoldenWindowRecommendation"
-            },
-            "type": [
-              "array",
-              "null"
-            ]
           }
         },
-        "required": [
-          "recommendations",
-          "blockingDiagnostics"
-        ],
         "type": "object"
+      },
+      "MeetingResponseStatus": {
+        "enum": [
+          "pending",
+          "accepted",
+          "declined"
+        ],
+        "type": "string"
       },
       "MemberAvailabilityView": {
         "additionalProperties": false,
@@ -1257,27 +1096,16 @@
             "items": {
               "$ref": "#/components/schemas/PrivacyEnergyBucket"
             },
-            "type": [
-              "array",
-              "null"
-            ]
+            "type": "array"
           },
           "privacyLevel": {
-            "enum": [
-              "busy_only",
-              "energy_tier",
-              "full_title"
-            ],
-            "type": "string"
+            "$ref": "#/components/schemas/PrivacyLevel"
           },
           "slots": {
             "items": {
               "$ref": "#/components/schemas/AvailabilitySlot"
             },
-            "type": [
-              "array",
-              "null"
-            ]
+            "type": "array"
           },
           "timezone": {
             "type": "string"
@@ -1323,13 +1151,7 @@
             "type": "string"
           },
           "energyTier": {
-            "enum": [
-              "peak",
-              "steady",
-              "strained",
-              "depleted"
-            ],
-            "type": "string"
+            "$ref": "#/components/schemas/EnergyTier"
           },
           "required": {
             "type": "boolean"
@@ -1348,6 +1170,17 @@
         ],
         "type": "object"
       },
+      "MetricType": {
+        "enum": [
+          "heart_rate",
+          "hrv_rmssd",
+          "resting_hr",
+          "sleep_session",
+          "sleep_stage",
+          "active_calories"
+        ],
+        "type": "string"
+      },
       "OverloadAlert": {
         "additionalProperties": false,
         "properties": {
@@ -1361,36 +1194,16 @@
             "type": "string"
           },
           "recommendedStrategy": {
-            "enum": [
-              "protect_deadline",
-              "protect_recovery",
-              "minimize_changes"
-            ],
-            "type": "string"
+            "$ref": "#/components/schemas/RescueStrategy"
           },
           "severity": {
-            "enum": [
-              "warning",
-              "critical"
-            ],
-            "type": "string"
+            "$ref": "#/components/schemas/OverloadSeverity"
           },
           "tier": {
-            "enum": [
-              "peak",
-              "steady",
-              "strained",
-              "depleted"
-            ],
-            "type": "string"
+            "$ref": "#/components/schemas/EnergyTier"
           },
           "triggerReason": {
-            "enum": [
-              "urgent_task",
-              "team_meeting_overload",
-              "wearable_fatigue"
-            ],
-            "type": "string"
+            "$ref": "#/components/schemas/RescueTriggerReason"
           }
         },
         "required": [
@@ -1403,6 +1216,13 @@
         ],
         "type": "object"
       },
+      "OverloadSeverity": {
+        "enum": [
+          "warning",
+          "critical"
+        ],
+        "type": "string"
+      },
       "PrivacyEnergyBucket": {
         "additionalProperties": false,
         "properties": {
@@ -1411,13 +1231,7 @@
             "type": "string"
           },
           "tier": {
-            "enum": [
-              "peak",
-              "steady",
-              "strained",
-              "depleted"
-            ],
-            "type": "string"
+            "$ref": "#/components/schemas/EnergyTier"
           }
         },
         "required": [
@@ -1426,52 +1240,19 @@
         ],
         "type": "object"
       },
+      "PrivacyLevel": {
+        "enum": [
+          "busy_only",
+          "energy_tier",
+          "full_title"
+        ],
+        "type": "string"
+      },
       "ProblemDetail": {
         "additionalProperties": false,
         "properties": {
-          "$schema": {
-            "description": "A URL to the JSON Schema for this object.",
-            "examples": [
-              "http://localhost:8080/schemas/ProblemDetail.json"
-            ],
-            "format": "uri",
-            "readOnly": true,
-            "type": "string"
-          },
           "code": {
-            "enum": [
-              "BAD_REQUEST",
-              "UNAUTHORIZED",
-              "INVALID_CREDENTIALS",
-              "INVALID_REFRESH_TOKEN",
-              "TOKEN_REUSE_DETECTED",
-              "INVALID_WS_TICKET",
-              "FORBIDDEN_NOT_WORKSPACE_MEMBER",
-              "FORBIDDEN_INSUFFICIENT_ROLE",
-              "FORBIDDEN_NOT_MEETING_PARTICIPANT",
-              "NOT_FOUND",
-              "INVITE_CODE_NOT_FOUND",
-              "MEETING_PROPOSAL_NOT_FOUND",
-              "SNAPSHOT_NOT_FOUND",
-              "EMAIL_ALREADY_EXISTS",
-              "ALREADY_WORKSPACE_MEMBER",
-              "CONFLICT_SCHEDULE_OVERLAP",
-              "CONFLICT_MEMBER_BUSY",
-              "MEETING_MANAGED_BY_PROPOSAL",
-              "MEETING_ALREADY_CANCELLED",
-              "STALE_BASELINE_VERSION",
-              "ALREADY_REVERTED",
-              "SNAPSHOT_RESTORE_CONFLICT",
-              "VALIDATION_FAILED",
-              "RANGE_TOO_LARGE",
-              "INVALID_TIME_RANGE",
-              "DEADLINE_IN_PAST",
-              "INVALID_BIOMETRIC_SAMPLE",
-              "INVALID_WORK_HOURS",
-              "PARTICIPANT_NOT_IN_WORKSPACE",
-              "SERVICE_UNAVAILABLE"
-            ],
-            "type": "string"
+            "$ref": "#/components/schemas/ErrorCode"
           },
           "detail": {
             "type": "string"
@@ -1480,10 +1261,7 @@
             "items": {
               "$ref": "#/components/schemas/ErrorDetailItem"
             },
-            "type": [
-              "array",
-              "null"
-            ]
+            "type": "array"
           },
           "status": {
             "format": "int64",
@@ -1509,22 +1287,8 @@
       "RecommendMeetingRequest": {
         "additionalProperties": false,
         "properties": {
-          "$schema": {
-            "description": "A URL to the JSON Schema for this object.",
-            "examples": [
-              "http://localhost:8080/schemas/RecommendMeetingRequest.json"
-            ],
-            "format": "uri",
-            "readOnly": true,
-            "type": "string"
-          },
           "cognitiveLoad": {
-            "enum": [
-              "high",
-              "medium",
-              "low"
-            ],
-            "type": "string"
+            "$ref": "#/components/schemas/CognitiveLoad"
           },
           "description": {
             "type": "string"
@@ -1535,24 +1299,25 @@
             "minimum": 15,
             "type": "integer"
           },
+          "maxResults": {
+            "default": 3,
+            "format": "int64",
+            "maximum": 10,
+            "minimum": 1,
+            "type": "integer"
+          },
           "optionalIds": {
             "items": {
               "type": "string"
             },
-            "type": [
-              "array",
-              "null"
-            ]
+            "type": "array"
           },
           "participantIds": {
             "items": {
               "type": "string"
             },
             "minItems": 1,
-            "type": [
-              "array",
-              "null"
-            ]
+            "type": "array"
           },
           "respectFocusShields": {
             "default": true,
@@ -1582,18 +1347,31 @@
         ],
         "type": "object"
       },
+      "RecommendMeetingResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "blockingDiagnostics": {
+            "items": {
+              "$ref": "#/components/schemas/BlockingDiagnostic"
+            },
+            "type": "array"
+          },
+          "recommendations": {
+            "items": {
+              "$ref": "#/components/schemas/GoldenWindowRecommendation"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "recommendations",
+          "blockingDiagnostics"
+        ],
+        "type": "object"
+      },
       "RefreshTokenRequest": {
         "additionalProperties": false,
         "properties": {
-          "$schema": {
-            "description": "A URL to the JSON Schema for this object.",
-            "examples": [
-              "http://localhost:8080/schemas/RefreshTokenRequest.json"
-            ],
-            "format": "uri",
-            "readOnly": true,
-            "type": "string"
-          },
           "deviceName": {
             "maxLength": 120,
             "type": "string"
@@ -1608,15 +1386,6 @@
       "RegisterRequest": {
         "additionalProperties": false,
         "properties": {
-          "$schema": {
-            "description": "A URL to the JSON Schema for this object.",
-            "examples": [
-              "http://localhost:8080/schemas/RegisterRequest.json"
-            ],
-            "format": "uri",
-            "readOnly": true,
-            "type": "string"
-          },
           "deviceName": {
             "maxLength": 120,
             "type": "string"
@@ -1647,30 +1416,24 @@
         ],
         "type": "object"
       },
+      "ReplayScenario": {
+        "enum": [
+          "well_rested",
+          "sleep_deprived",
+          "high_stress"
+        ],
+        "type": "string"
+      },
       "ReplaySeedRequest": {
         "additionalProperties": false,
         "properties": {
-          "$schema": {
-            "description": "A URL to the JSON Schema for this object.",
-            "examples": [
-              "http://localhost:8080/schemas/ReplaySeedRequest.json"
-            ],
-            "format": "uri",
-            "readOnly": true,
-            "type": "string"
-          },
           "day": {
             "description": "本地日期 YYYY-MM-DD（默认今日）",
             "format": "date",
             "type": "string"
           },
           "scenario": {
-            "enum": [
-              "well_rested",
-              "sleep_deprived",
-              "high_stress"
-            ],
-            "type": "string"
+            "$ref": "#/components/schemas/ReplayScenario"
           }
         },
         "required": [
@@ -1681,29 +1444,15 @@
       "ReplaySeedResponse": {
         "additionalProperties": false,
         "properties": {
-          "$schema": {
-            "description": "A URL to the JSON Schema for this object.",
-            "examples": [
-              "http://localhost:8080/schemas/ReplaySeedResponse.json"
-            ],
-            "format": "uri",
-            "readOnly": true,
-            "type": "string"
-          },
           "day": {
             "format": "date",
             "type": "string"
           },
           "latestEnergy": {
-            "$ref": "#/components/schemas/EnergyComputeOutput"
+            "$ref": "#/components/schemas/EnergyTodayResponse"
           },
           "scenario": {
-            "enum": [
-              "well_rested",
-              "sleep_deprived",
-              "high_stress"
-            ],
-            "type": "string"
+            "$ref": "#/components/schemas/ReplayScenario"
           },
           "seededCount": {
             "format": "int64",
@@ -1722,15 +1471,6 @@
       "RescueApplyRequest": {
         "additionalProperties": false,
         "properties": {
-          "$schema": {
-            "description": "A URL to the JSON Schema for this object.",
-            "examples": [
-              "http://localhost:8080/schemas/RescueApplyRequest.json"
-            ],
-            "format": "uri",
-            "readOnly": true,
-            "type": "string"
-          },
           "baselineVersion": {
             "minLength": 1,
             "type": "string"
@@ -1743,20 +1483,10 @@
             "type": "string"
           },
           "strategy": {
-            "enum": [
-              "protect_deadline",
-              "protect_recovery",
-              "minimize_changes"
-            ],
-            "type": "string"
+            "$ref": "#/components/schemas/RescueStrategy"
           },
           "triggerReason": {
-            "enum": [
-              "urgent_task",
-              "team_meeting_overload",
-              "wearable_fatigue"
-            ],
-            "type": "string"
+            "$ref": "#/components/schemas/RescueTriggerReason"
           },
           "urgentTask": {
             "$ref": "#/components/schemas/UrgentTaskDTO"
@@ -1773,23 +1503,15 @@
       "RescueApplyResponse": {
         "additionalProperties": false,
         "properties": {
-          "$schema": {
-            "description": "A URL to the JSON Schema for this object.",
-            "examples": [
-              "http://localhost:8080/schemas/RescueApplyResponse.json"
-            ],
-            "format": "uri",
-            "readOnly": true,
-            "type": "string"
-          },
           "appliedItems": {
             "items": {
               "$ref": "#/components/schemas/ScheduleItemDTO"
             },
-            "type": [
-              "array",
-              "null"
-            ]
+            "type": "array"
+          },
+          "baselineLocalDay": {
+            "format": "date",
+            "type": "string"
           },
           "baselineVersion": {
             "type": "string"
@@ -1799,17 +1521,13 @@
             "type": "string"
           },
           "strategy": {
-            "enum": [
-              "protect_deadline",
-              "protect_recovery",
-              "minimize_changes"
-            ],
-            "type": "string"
+            "$ref": "#/components/schemas/RescueStrategy"
           }
         },
         "required": [
           "snapshotId",
           "strategy",
+          "baselineLocalDay",
           "baselineVersion",
           "appliedItems"
         ],
@@ -1835,43 +1553,20 @@
             "type": "string"
           },
           "category": {
-            "enum": [
-              "deep_work",
-              "meeting",
-              "recovery",
-              "routine",
-              "urgent"
-            ],
-            "type": "string"
+            "$ref": "#/components/schemas/ScheduleCategory"
           },
           "cognitiveLoad": {
-            "enum": [
-              "high",
-              "medium",
-              "low"
-            ],
-            "type": "string"
+            "$ref": "#/components/schemas/CognitiveLoad"
           },
           "flexibility": {
-            "enum": [
-              "hard_locked",
-              "flexible",
-              "focus_shield"
-            ],
-            "type": "string"
+            "$ref": "#/components/schemas/Flexibility"
           },
           "itemId": {
             "format": "uuid",
             "type": "string"
           },
           "op": {
-            "enum": [
-              "create",
-              "move",
-              "defer",
-              "unchanged"
-            ],
-            "type": "string"
+            "$ref": "#/components/schemas/DiffOp"
           },
           "reasonCode": {
             "type": "string"
@@ -1899,15 +1594,6 @@
       "RescueHistoryResponse": {
         "additionalProperties": false,
         "properties": {
-          "$schema": {
-            "description": "A URL to the JSON Schema for this object.",
-            "examples": [
-              "http://localhost:8080/schemas/RescueHistoryResponse.json"
-            ],
-            "format": "uri",
-            "readOnly": true,
-            "type": "string"
-          },
           "nextCursor": {
             "type": "string"
           },
@@ -1915,10 +1601,7 @@
             "items": {
               "$ref": "#/components/schemas/RescueSnapshotRecord"
             },
-            "type": [
-              "array",
-              "null"
-            ]
+            "type": "array"
           }
         },
         "required": [
@@ -1938,10 +1621,7 @@
             "items": {
               "$ref": "#/components/schemas/RescueDiffItem"
             },
-            "type": [
-              "array",
-              "null"
-            ]
+            "type": "array"
           },
           "feasible": {
             "type": "boolean"
@@ -1965,12 +1645,7 @@
             "type": "integer"
           },
           "strategy": {
-            "enum": [
-              "protect_deadline",
-              "protect_recovery",
-              "minimize_changes"
-            ],
-            "type": "string"
+            "$ref": "#/components/schemas/RescueStrategy"
           },
           "summary": {
             "type": "string"
@@ -1992,26 +1667,12 @@
       "RescueOptionsRequest": {
         "additionalProperties": false,
         "properties": {
-          "$schema": {
-            "description": "A URL to the JSON Schema for this object.",
-            "examples": [
-              "http://localhost:8080/schemas/RescueOptionsRequest.json"
-            ],
-            "format": "uri",
-            "readOnly": true,
-            "type": "string"
-          },
           "day": {
             "format": "date",
             "type": "string"
           },
           "triggerReason": {
-            "enum": [
-              "urgent_task",
-              "team_meeting_overload",
-              "wearable_fatigue"
-            ],
-            "type": "string"
+            "$ref": "#/components/schemas/RescueTriggerReason"
           },
           "urgentTask": {
             "$ref": "#/components/schemas/UrgentTaskDTO"
@@ -2026,15 +1687,6 @@
       "RescueOptionsResponse": {
         "additionalProperties": false,
         "properties": {
-          "$schema": {
-            "description": "A URL to the JSON Schema for this object.",
-            "examples": [
-              "http://localhost:8080/schemas/RescueOptionsResponse.json"
-            ],
-            "format": "uri",
-            "readOnly": true,
-            "type": "string"
-          },
           "baselineVersion": {
             "type": "string"
           },
@@ -2046,12 +1698,8 @@
             "items": {
               "$ref": "#/components/schemas/RescueOptionPlan"
             },
-            "maxItems": 3,
-            "minItems": 3,
-            "type": [
-              "array",
-              "null"
-            ]
+            "minItems": 1,
+            "type": "array"
           }
         },
         "required": [
@@ -2068,10 +1716,7 @@
             "items": {
               "$ref": "#/components/schemas/ScheduleItemSnapshot"
             },
-            "type": [
-              "array",
-              "null"
-            ]
+            "type": "array"
           },
           "appliedAt": {
             "format": "date-time",
@@ -2084,10 +1729,7 @@
             "items": {
               "$ref": "#/components/schemas/ScheduleItemSnapshot"
             },
-            "type": [
-              "array",
-              "null"
-            ]
+            "type": "array"
           },
           "id": {
             "format": "uuid",
@@ -2105,27 +1747,13 @@
             "type": "string"
           },
           "status": {
-            "enum": [
-              "applied",
-              "reverted"
-            ],
-            "type": "string"
+            "$ref": "#/components/schemas/RescueSnapshotStatus"
           },
           "strategy": {
-            "enum": [
-              "protect_deadline",
-              "protect_recovery",
-              "minimize_changes"
-            ],
-            "type": "string"
+            "$ref": "#/components/schemas/RescueStrategy"
           },
           "triggerReason": {
-            "enum": [
-              "urgent_task",
-              "team_meeting_overload",
-              "wearable_fatigue"
-            ],
-            "type": "string"
+            "$ref": "#/components/schemas/RescueTriggerReason"
           },
           "userId": {
             "format": "uuid",
@@ -2147,18 +1775,32 @@
         ],
         "type": "object"
       },
+      "RescueSnapshotStatus": {
+        "enum": [
+          "applied",
+          "reverted"
+        ],
+        "type": "string"
+      },
+      "RescueStrategy": {
+        "enum": [
+          "protect_deadline",
+          "protect_recovery",
+          "minimize_changes"
+        ],
+        "type": "string"
+      },
+      "RescueTriggerReason": {
+        "enum": [
+          "urgent_task",
+          "team_meeting_overload",
+          "wearable_fatigue"
+        ],
+        "type": "string"
+      },
       "RescueUndoRequest": {
         "additionalProperties": false,
         "properties": {
-          "$schema": {
-            "description": "A URL to the JSON Schema for this object.",
-            "examples": [
-              "http://localhost:8080/schemas/RescueUndoRequest.json"
-            ],
-            "format": "uri",
-            "readOnly": true,
-            "type": "string"
-          },
           "snapshotId": {
             "format": "uuid",
             "type": "string"
@@ -2172,13 +1814,8 @@
       "RescueUndoResponse": {
         "additionalProperties": false,
         "properties": {
-          "$schema": {
-            "description": "A URL to the JSON Schema for this object.",
-            "examples": [
-              "http://localhost:8080/schemas/RescueUndoResponse.json"
-            ],
-            "format": "uri",
-            "readOnly": true,
+          "baselineLocalDay": {
+            "format": "date",
             "type": "string"
           },
           "baselineVersion": {
@@ -2188,26 +1825,20 @@
             "items": {
               "$ref": "#/components/schemas/ScheduleItemDTO"
             },
-            "type": [
-              "array",
-              "null"
-            ]
+            "type": "array"
           },
           "snapshotId": {
             "format": "uuid",
             "type": "string"
           },
           "status": {
-            "enum": [
-              "applied",
-              "reverted"
-            ],
-            "type": "string"
+            "$ref": "#/components/schemas/RescueSnapshotStatus"
           }
         },
         "required": [
           "snapshotId",
           "status",
+          "baselineLocalDay",
           "baselineVersion",
           "restoredItems"
         ],
@@ -2216,21 +1847,8 @@
       "RespondMeetingRequest": {
         "additionalProperties": false,
         "properties": {
-          "$schema": {
-            "description": "A URL to the JSON Schema for this object.",
-            "examples": [
-              "http://localhost:8080/schemas/RespondMeetingRequest.json"
-            ],
-            "format": "uri",
-            "readOnly": true,
-            "type": "string"
-          },
           "responseStatus": {
-            "enum": [
-              "accepted",
-              "declined"
-            ],
-            "type": "string"
+            "$ref": "#/components/schemas/MeetingDecisionStatus"
           }
         },
         "required": [
@@ -2241,34 +1859,15 @@
       "RespondMeetingResponse": {
         "additionalProperties": false,
         "properties": {
-          "$schema": {
-            "description": "A URL to the JSON Schema for this object.",
-            "examples": [
-              "http://localhost:8080/schemas/RespondMeetingResponse.json"
-            ],
-            "format": "uri",
-            "readOnly": true,
-            "type": "string"
-          },
           "proposalId": {
             "format": "uuid",
             "type": "string"
           },
           "responseStatus": {
-            "enum": [
-              "accepted",
-              "declined"
-            ],
-            "type": "string"
+            "$ref": "#/components/schemas/MeetingDecisionStatus"
           },
           "scheduleStatus": {
-            "enum": [
-              "planned",
-              "in_progress",
-              "completed",
-              "cancelled"
-            ],
-            "type": "string"
+            "$ref": "#/components/schemas/ScheduleStatus"
           },
           "updatedAt": {
             "format": "date-time",
@@ -2288,26 +1887,24 @@
         ],
         "type": "object"
       },
+      "ScheduleCategory": {
+        "enum": [
+          "deep_work",
+          "meeting",
+          "recovery",
+          "routine",
+          "urgent"
+        ],
+        "type": "string"
+      },
       "ScheduleItemDTO": {
         "additionalProperties": false,
         "properties": {
           "category": {
-            "enum": [
-              "deep_work",
-              "meeting",
-              "recovery",
-              "routine",
-              "urgent"
-            ],
-            "type": "string"
+            "$ref": "#/components/schemas/ScheduleCategory"
           },
           "cognitiveLoad": {
-            "enum": [
-              "high",
-              "medium",
-              "low"
-            ],
-            "type": "string"
+            "$ref": "#/components/schemas/CognitiveLoad"
           },
           "createdAt": {
             "format": "date-time",
@@ -2327,12 +1924,7 @@
             "type": "string"
           },
           "flexibility": {
-            "enum": [
-              "hard_locked",
-              "flexible",
-              "focus_shield"
-            ],
-            "type": "string"
+            "$ref": "#/components/schemas/Flexibility"
           },
           "id": {
             "format": "uuid",
@@ -2355,13 +1947,7 @@
             "type": "string"
           },
           "status": {
-            "enum": [
-              "planned",
-              "in_progress",
-              "completed",
-              "cancelled"
-            ],
-            "type": "string"
+            "$ref": "#/components/schemas/ScheduleStatus"
           },
           "title": {
             "maxLength": 200,
@@ -2402,13 +1988,9 @@
       "ScheduleItemListResponse": {
         "additionalProperties": false,
         "properties": {
-          "$schema": {
-            "description": "A URL to the JSON Schema for this object.",
-            "examples": [
-              "http://localhost:8080/schemas/ScheduleItemListResponse.json"
-            ],
-            "format": "uri",
-            "readOnly": true,
+          "baselineLocalDay": {
+            "description": "baselineVersion 对应的用户本地锚定日期 (YYYY-MM-DD)",
+            "format": "date",
             "type": "string"
           },
           "baselineVersion": {
@@ -2418,14 +2000,12 @@
             "items": {
               "$ref": "#/components/schemas/ScheduleItemDTO"
             },
-            "type": [
-              "array",
-              "null"
-            ]
+            "type": "array"
           }
         },
         "required": [
           "items",
+          "baselineLocalDay",
           "baselineVersion"
         ],
         "type": "object"
@@ -2434,22 +2014,10 @@
         "additionalProperties": false,
         "properties": {
           "category": {
-            "enum": [
-              "deep_work",
-              "meeting",
-              "recovery",
-              "routine",
-              "urgent"
-            ],
-            "type": "string"
+            "$ref": "#/components/schemas/ScheduleCategory"
           },
           "cognitiveLoad": {
-            "enum": [
-              "high",
-              "medium",
-              "low"
-            ],
-            "type": "string"
+            "$ref": "#/components/schemas/CognitiveLoad"
           },
           "deadlineAt": {
             "format": "date-time",
@@ -2465,12 +2033,7 @@
             "type": "string"
           },
           "flexibility": {
-            "enum": [
-              "hard_locked",
-              "flexible",
-              "focus_shield"
-            ],
-            "type": "string"
+            "$ref": "#/components/schemas/Flexibility"
           },
           "id": {
             "format": "uuid",
@@ -2493,13 +2056,7 @@
             "type": "string"
           },
           "status": {
-            "enum": [
-              "planned",
-              "in_progress",
-              "completed",
-              "cancelled"
-            ],
-            "type": "string"
+            "$ref": "#/components/schemas/ScheduleStatus"
           },
           "title": {
             "type": "string"
@@ -2537,13 +2094,9 @@
       "ScheduleMutationResponse": {
         "additionalProperties": false,
         "properties": {
-          "$schema": {
-            "description": "A URL to the JSON Schema for this object.",
-            "examples": [
-              "http://localhost:8080/schemas/ScheduleMutationResponse.json"
-            ],
-            "format": "uri",
-            "readOnly": true,
+          "baselineLocalDay": {
+            "description": "baselineVersion 对应的用户本地锚定日期 (YYYY-MM-DD)",
+            "format": "date",
             "type": "string"
           },
           "baselineVersion": {
@@ -2555,9 +2108,30 @@
         },
         "required": [
           "item",
+          "baselineLocalDay",
           "baselineVersion"
         ],
         "type": "object"
+      },
+      "ScheduleStatus": {
+        "enum": [
+          "planned",
+          "in_progress",
+          "completed",
+          "cancelled"
+        ],
+        "type": "string"
+      },
+      "ScheduleUpdateReason": {
+        "enum": [
+          "item_created",
+          "item_updated",
+          "item_cancelled",
+          "rescue_applied",
+          "rescue_reverted",
+          "team_meeting_synced"
+        ],
+        "type": "string"
       },
       "ScoreBreakdown": {
         "additionalProperties": false,
@@ -2602,25 +2176,44 @@
         ],
         "type": "object"
       },
+      "SleepStage": {
+        "enum": [
+          "deep",
+          "rem",
+          "light",
+          "awake"
+        ],
+        "type": "string"
+      },
+      "SourceType": {
+        "enum": [
+          "health_connect",
+          "ble_gatt",
+          "replay_demo"
+        ],
+        "type": "string"
+      },
+      "TagTone": {
+        "enum": [
+          "positive",
+          "warning",
+          "neutral"
+        ],
+        "type": "string"
+      },
+      "ThemeMode": {
+        "enum": [
+          "system",
+          "light",
+          "dark"
+        ],
+        "type": "string"
+      },
       "UpdateEnergyProfileRequest": {
         "additionalProperties": false,
         "properties": {
-          "$schema": {
-            "description": "A URL to the JSON Schema for this object.",
-            "examples": [
-              "http://localhost:8080/schemas/UpdateEnergyProfileRequest.json"
-            ],
-            "format": "uri",
-            "readOnly": true,
-            "type": "string"
-          },
           "chronotype": {
-            "enum": [
-              "morning_lark",
-              "balanced",
-              "night_owl"
-            ],
-            "type": "string"
+            "$ref": "#/components/schemas/Chronotype"
           },
           "minRecoveryBufferMin": {
             "format": "int64",
@@ -2632,10 +2225,7 @@
             "items": {
               "$ref": "#/components/schemas/DailyMinuteWindow"
             },
-            "type": [
-              "array",
-              "null"
-            ]
+            "type": "array"
           },
           "workEndMinute": {
             "format": "int64",
@@ -2662,27 +2252,13 @@
       "UpdateMeRequest": {
         "additionalProperties": false,
         "properties": {
-          "$schema": {
-            "description": "A URL to the JSON Schema for this object.",
-            "examples": [
-              "http://localhost:8080/schemas/UpdateMeRequest.json"
-            ],
-            "format": "uri",
-            "readOnly": true,
-            "type": "string"
-          },
           "displayName": {
             "maxLength": 64,
             "minLength": 1,
             "type": "string"
           },
           "themeMode": {
-            "enum": [
-              "system",
-              "light",
-              "dark"
-            ],
-            "type": "string"
+            "$ref": "#/components/schemas/ThemeMode"
           },
           "timezone": {
             "type": "string"
@@ -2693,51 +2269,33 @@
       "UpdateScheduleItemRequest": {
         "additionalProperties": false,
         "properties": {
-          "$schema": {
-            "description": "A URL to the JSON Schema for this object.",
-            "examples": [
-              "http://localhost:8080/schemas/UpdateScheduleItemRequest.json"
-            ],
-            "format": "uri",
-            "readOnly": true,
-            "type": "string"
-          },
           "allowOverlap": {
             "type": "boolean"
           },
           "category": {
-            "enum": [
-              "deep_work",
-              "meeting",
-              "recovery",
-              "routine",
-              "urgent"
-            ],
-            "type": "string"
+            "$ref": "#/components/schemas/ScheduleCategory"
+          },
+          "clearDeadline": {
+            "description": "为 true 时显式清除截止时间（等价于 deadlineAt=null）",
+            "type": "boolean"
           },
           "cognitiveLoad": {
-            "enum": [
-              "high",
-              "medium",
-              "low"
-            ],
-            "type": "string"
+            "$ref": "#/components/schemas/CognitiveLoad"
           },
           "deadlineAt": {
+            "description": "更新截止时间；传 null 可显式清除",
             "format": "date-time",
-            "type": "string"
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "endAt": {
             "format": "date-time",
             "type": "string"
           },
           "flexibility": {
-            "enum": [
-              "hard_locked",
-              "flexible",
-              "focus_shield"
-            ],
-            "type": "string"
+            "$ref": "#/components/schemas/Flexibility"
           },
           "notes": {
             "type": "string"
@@ -2752,13 +2310,7 @@
             "type": "string"
           },
           "status": {
-            "enum": [
-              "planned",
-              "in_progress",
-              "completed",
-              "cancelled"
-            ],
-            "type": "string"
+            "$ref": "#/components/schemas/ScheduleStatus"
           },
           "title": {
             "maxLength": 200,
@@ -2771,22 +2323,8 @@
       "UpdateWorkspaceMemberConfigRequest": {
         "additionalProperties": false,
         "properties": {
-          "$schema": {
-            "description": "A URL to the JSON Schema for this object.",
-            "examples": [
-              "http://localhost:8080/schemas/UpdateWorkspaceMemberConfigRequest.json"
-            ],
-            "format": "uri",
-            "readOnly": true,
-            "type": "string"
-          },
           "privacyLevel": {
-            "enum": [
-              "busy_only",
-              "energy_tier",
-              "full_title"
-            ],
-            "type": "string"
+            "$ref": "#/components/schemas/PrivacyLevel"
           }
         },
         "required": [
@@ -2798,12 +2336,7 @@
         "additionalProperties": false,
         "properties": {
           "cognitiveLoad": {
-            "enum": [
-              "high",
-              "medium",
-              "low"
-            ],
-            "type": "string"
+            "$ref": "#/components/schemas/CognitiveLoad"
           },
           "deadlineAt": {
             "format": "date-time",
@@ -2835,15 +2368,6 @@
       "UserProfile": {
         "additionalProperties": false,
         "properties": {
-          "$schema": {
-            "description": "A URL to the JSON Schema for this object.",
-            "examples": [
-              "http://localhost:8080/schemas/UserProfile.json"
-            ],
-            "format": "uri",
-            "readOnly": true,
-            "type": "string"
-          },
           "createdAt": {
             "format": "date-time",
             "type": "string"
@@ -2862,12 +2386,7 @@
             "type": "string"
           },
           "themeMode": {
-            "enum": [
-              "system",
-              "light",
-              "dark"
-            ],
-            "type": "string"
+            "$ref": "#/components/schemas/ThemeMode"
           },
           "timezone": {
             "type": "string"
@@ -2891,15 +2410,6 @@
       "WorkspaceAvailabilityResponse": {
         "additionalProperties": false,
         "properties": {
-          "$schema": {
-            "description": "A URL to the JSON Schema for this object.",
-            "examples": [
-              "http://localhost:8080/schemas/WorkspaceAvailabilityResponse.json"
-            ],
-            "format": "uri",
-            "readOnly": true,
-            "type": "string"
-          },
           "from": {
             "format": "date-time",
             "type": "string"
@@ -2908,10 +2418,7 @@
             "items": {
               "$ref": "#/components/schemas/MemberAvailabilityView"
             },
-            "type": [
-              "array",
-              "null"
-            ]
+            "type": "array"
           },
           "to": {
             "format": "date-time",
@@ -2933,15 +2440,6 @@
       "WorkspaceDTO": {
         "additionalProperties": false,
         "properties": {
-          "$schema": {
-            "description": "A URL to the JSON Schema for this object.",
-            "examples": [
-              "http://localhost:8080/schemas/WorkspaceDTO.json"
-            ],
-            "format": "uri",
-            "readOnly": true,
-            "type": "string"
-          },
           "createdAt": {
             "format": "date-time",
             "type": "string"
@@ -2962,20 +2460,10 @@
             "type": "integer"
           },
           "myPrivacyLevel": {
-            "enum": [
-              "busy_only",
-              "energy_tier",
-              "full_title"
-            ],
-            "type": "string"
+            "$ref": "#/components/schemas/PrivacyLevel"
           },
           "myRole": {
-            "enum": [
-              "owner",
-              "admin",
-              "member"
-            ],
-            "type": "string"
+            "$ref": "#/components/schemas/WorkspaceRole"
           },
           "name": {
             "maxLength": 64,
@@ -3008,23 +2496,11 @@
       "WorkspaceListResponse": {
         "additionalProperties": false,
         "properties": {
-          "$schema": {
-            "description": "A URL to the JSON Schema for this object.",
-            "examples": [
-              "http://localhost:8080/schemas/WorkspaceListResponse.json"
-            ],
-            "format": "uri",
-            "readOnly": true,
-            "type": "string"
-          },
           "workspaces": {
             "items": {
               "$ref": "#/components/schemas/WorkspaceDTO"
             },
-            "type": [
-              "array",
-              "null"
-            ]
+            "type": "array"
           }
         },
         "required": [
@@ -3035,15 +2511,6 @@
       "WorkspaceMemberDTO": {
         "additionalProperties": false,
         "properties": {
-          "$schema": {
-            "description": "A URL to the JSON Schema for this object.",
-            "examples": [
-              "http://localhost:8080/schemas/WorkspaceMemberDTO.json"
-            ],
-            "format": "uri",
-            "readOnly": true,
-            "type": "string"
-          },
           "displayName": {
             "type": "string"
           },
@@ -3052,20 +2519,10 @@
             "type": "string"
           },
           "privacyLevel": {
-            "enum": [
-              "busy_only",
-              "energy_tier",
-              "full_title"
-            ],
-            "type": "string"
+            "$ref": "#/components/schemas/PrivacyLevel"
           },
           "role": {
-            "enum": [
-              "owner",
-              "admin",
-              "member"
-            ],
-            "type": "string"
+            "$ref": "#/components/schemas/WorkspaceRole"
           },
           "timezone": {
             "type": "string"
@@ -3093,23 +2550,11 @@
       "WorkspaceMemberListResponse": {
         "additionalProperties": false,
         "properties": {
-          "$schema": {
-            "description": "A URL to the JSON Schema for this object.",
-            "examples": [
-              "http://localhost:8080/schemas/WorkspaceMemberListResponse.json"
-            ],
-            "format": "uri",
-            "readOnly": true,
-            "type": "string"
-          },
           "members": {
             "items": {
               "$ref": "#/components/schemas/WorkspaceMemberDTO"
             },
-            "type": [
-              "array",
-              "null"
-            ]
+            "type": "array"
           },
           "workspaceId": {
             "format": "uuid",
@@ -3121,6 +2566,14 @@
           "members"
         ],
         "type": "object"
+      },
+      "WorkspaceRole": {
+        "enum": [
+          "owner",
+          "admin",
+          "member"
+        ],
+        "type": "string"
       },
       "WsAvailabilityChangedPayload": {
         "additionalProperties": false,
@@ -3134,12 +2587,7 @@
             "type": "string"
           },
           "reason": {
-            "enum": [
-              "schedule_changed",
-              "privacy_changed",
-              "energy_tier_changed"
-            ],
-            "type": "string"
+            "$ref": "#/components/schemas/AvailabilityChangeReason"
           },
           "userId": {
             "format": "uuid",
@@ -3174,36 +2622,16 @@
             "type": "string"
           },
           "recommendedStrategy": {
-            "enum": [
-              "protect_deadline",
-              "protect_recovery",
-              "minimize_changes"
-            ],
-            "type": "string"
+            "$ref": "#/components/schemas/RescueStrategy"
           },
           "severity": {
-            "enum": [
-              "warning",
-              "critical"
-            ],
-            "type": "string"
+            "$ref": "#/components/schemas/OverloadSeverity"
           },
           "tier": {
-            "enum": [
-              "peak",
-              "steady",
-              "strained",
-              "depleted"
-            ],
-            "type": "string"
+            "$ref": "#/components/schemas/EnergyTier"
           },
           "triggerReason": {
-            "enum": [
-              "urgent_task",
-              "team_meeting_overload",
-              "wearable_fatigue"
-            ],
-            "type": "string"
+            "$ref": "#/components/schemas/RescueTriggerReason"
           },
           "userId": {
             "format": "uuid",
@@ -3230,13 +2658,7 @@
             "type": "string"
           },
           "dataFreshness": {
-            "enum": [
-              "live_wearable",
-              "recent_wearable",
-              "replay_demo",
-              "baseline_only"
-            ],
-            "type": "string"
+            "$ref": "#/components/schemas/DataFreshness"
           },
           "localDay": {
             "format": "date",
@@ -3249,13 +2671,7 @@
             "type": "integer"
           },
           "tier": {
-            "enum": [
-              "peak",
-              "steady",
-              "strained",
-              "depleted"
-            ],
-            "type": "string"
+            "$ref": "#/components/schemas/EnergyTier"
           },
           "userId": {
             "format": "uuid",
@@ -3283,30 +2699,37 @@
             "format": "date-time",
             "type": "string"
           },
-          "payload": {
-            "additionalProperties": {},
-            "type": "object"
-          },
+          "payload": {},
           "type": {
-            "enum": [
-              "energy.updated",
-              "energy.overload_alert",
-              "schedule.updated",
-              "workspace.meeting_confirmed",
-              "workspace.meeting_cancelled",
-              "workspace.meeting_responded",
-              "workspace.availability_changed"
-            ],
-            "type": "string"
+            "$ref": "#/components/schemas/WsEventType"
+          },
+          "version": {
+            "default": 1,
+            "format": "int64",
+            "minimum": 1,
+            "type": "integer"
           }
         },
         "required": [
+          "version",
           "eventId",
           "type",
           "occurredAt",
           "payload"
         ],
         "type": "object"
+      },
+      "WsEventType": {
+        "enum": [
+          "energy.updated",
+          "energy.overload_alert",
+          "schedule.updated",
+          "workspace.meeting_confirmed",
+          "workspace.meeting_cancelled",
+          "workspace.meeting_responded",
+          "workspace.availability_changed"
+        ],
+        "type": "string"
       },
       "WsScheduleUpdatedPayload": {
         "additionalProperties": false,
@@ -3319,6 +2742,10 @@
             "format": "date-time",
             "type": "string"
           },
+          "baselineLocalDay": {
+            "format": "date",
+            "type": "string"
+          },
           "baselineVersion": {
             "type": "string"
           },
@@ -3326,21 +2753,10 @@
             "items": {
               "type": "string"
             },
-            "type": [
-              "array",
-              "null"
-            ]
+            "type": "array"
           },
           "reason": {
-            "enum": [
-              "item_created",
-              "item_updated",
-              "item_cancelled",
-              "rescue_applied",
-              "rescue_reverted",
-              "team_meeting_synced"
-            ],
-            "type": "string"
+            "$ref": "#/components/schemas/ScheduleUpdateReason"
           },
           "userId": {
             "format": "uuid",
@@ -3349,6 +2765,7 @@
         },
         "required": [
           "userId",
+          "baselineLocalDay",
           "baselineVersion",
           "reason",
           "affectedFrom",
@@ -3360,15 +2777,6 @@
       "WsTicketResponse": {
         "additionalProperties": false,
         "properties": {
-          "$schema": {
-            "description": "A URL to the JSON Schema for this object.",
-            "examples": [
-              "http://localhost:8080/schemas/WsTicketResponse.json"
-            ],
-            "format": "uri",
-            "readOnly": true,
-            "type": "string"
-          },
           "expiresAt": {
             "format": "date-time",
             "type": "string"
@@ -3427,12 +2835,7 @@
         "additionalProperties": false,
         "properties": {
           "cognitiveLoad": {
-            "enum": [
-              "high",
-              "medium",
-              "low"
-            ],
-            "type": "string"
+            "$ref": "#/components/schemas/CognitiveLoad"
           },
           "endAt": {
             "format": "date-time",
@@ -3446,10 +2849,7 @@
             "items": {
               "type": "string"
             },
-            "type": [
-              "array",
-              "null"
-            ]
+            "type": "array"
           },
           "proposalId": {
             "format": "uuid",
@@ -3494,11 +2894,7 @@
             "type": "string"
           },
           "responseStatus": {
-            "enum": [
-              "accepted",
-              "declined"
-            ],
-            "type": "string"
+            "$ref": "#/components/schemas/MeetingDecisionStatus"
           },
           "userId": {
             "format": "uuid",
@@ -3633,7 +3029,7 @@
               }
             }
           },
-          "default": {
+          "401": {
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -3641,7 +3037,27 @@
                 }
               }
             },
-            "description": "Error"
+            "description": "Unauthorized"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "Internal Server Error"
           }
         },
         "security": [
@@ -3669,7 +3085,7 @@
             },
             "description": "OK"
           },
-          "default": {
+          "401": {
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -3677,7 +3093,17 @@
                 }
               }
             },
-            "description": "Error"
+            "description": "Unauthorized"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "Internal Server Error"
           }
         },
         "security": [
@@ -3713,7 +3139,7 @@
             },
             "description": "OK"
           },
-          "default": {
+          "401": {
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -3721,7 +3147,27 @@
                 }
               }
             },
-            "description": "Error"
+            "description": "Unauthorized"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "Internal Server Error"
           }
         },
         "security": [
@@ -3890,7 +3336,7 @@
             },
             "description": "OK"
           },
-          "default": {
+          "401": {
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -3898,7 +3344,17 @@
                 }
               }
             },
-            "description": "Error"
+            "description": "Unauthorized"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "Internal Server Error"
           }
         },
         "security": [
@@ -3936,7 +3392,7 @@
             },
             "description": "OK"
           },
-          "default": {
+          "401": {
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -3944,7 +3400,27 @@
                 }
               }
             },
-            "description": "Error"
+            "description": "Unauthorized"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "Internal Server Error"
           }
         },
         "security": [
@@ -3982,7 +3458,7 @@
             },
             "description": "OK"
           },
-          "default": {
+          "401": {
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -3990,7 +3466,27 @@
                 }
               }
             },
-            "description": "Error"
+            "description": "Unauthorized"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "Internal Server Error"
           }
         },
         "security": [
@@ -4018,7 +3514,7 @@
             },
             "description": "OK"
           },
-          "default": {
+          "401": {
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -4026,7 +3522,17 @@
                 }
               }
             },
-            "description": "Error"
+            "description": "Unauthorized"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "Internal Server Error"
           }
         },
         "security": [
@@ -4062,7 +3568,7 @@
             },
             "description": "OK"
           },
-          "default": {
+          "401": {
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -4070,7 +3576,27 @@
                 }
               }
             },
-            "description": "Error"
+            "description": "Unauthorized"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "Internal Server Error"
           }
         },
         "security": [
@@ -4105,13 +3631,13 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/EnergyComputeOutput"
+                  "$ref": "#/components/schemas/EnergyTodayResponse"
                 }
               }
             },
             "description": "OK"
           },
-          "default": {
+          "401": {
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -4119,7 +3645,27 @@
                 }
               }
             },
-            "description": "Error"
+            "description": "Unauthorized"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "Internal Server Error"
           }
         },
         "security": [
@@ -4127,7 +3673,7 @@
             "BearerAuth": []
           }
         ],
-        "summary": "获取指定日期的实时精力电量、四因子拆解、24h 节律曲线、保护盾与穿戴源诊断",
+        "summary": "获取指定日期的实时精力电量、四因子拆解、本地自然日节律曲线、保护盾与穿戴源诊断",
         "tags": [
           "Energy"
         ]
@@ -4219,7 +3765,7 @@
             },
             "description": "OK"
           },
-          "default": {
+          "401": {
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -4227,7 +3773,27 @@
                 }
               }
             },
-            "description": "Error"
+            "description": "Unauthorized"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "Internal Server Error"
           }
         },
         "security": [
@@ -4263,7 +3829,7 @@
             },
             "description": "Created"
           },
-          "default": {
+          "401": {
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -4271,7 +3837,37 @@
                 }
               }
             },
-            "description": "Error"
+            "description": "Unauthorized"
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "Internal Server Error"
           }
         },
         "security": [
@@ -4303,7 +3899,7 @@
           "204": {
             "description": "No Content"
           },
-          "default": {
+          "401": {
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -4311,7 +3907,47 @@
                 }
               }
             },
-            "description": "Error"
+            "description": "Unauthorized"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "Internal Server Error"
           }
         },
         "security": [
@@ -4358,7 +3994,7 @@
             },
             "description": "OK"
           },
-          "default": {
+          "401": {
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -4366,7 +4002,47 @@
                 }
               }
             },
-            "description": "Error"
+            "description": "Unauthorized"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "Internal Server Error"
           }
         },
         "security": [
@@ -4383,6 +4059,17 @@
     "/api/v1/schedule/rescue/apply": {
       "post": {
         "operationId": "applyRescueOption",
+        "parameters": [
+          {
+            "description": "可选请求幂等键（防弱网重复应用救援方案）",
+            "in": "header",
+            "name": "Idempotency-Key",
+            "schema": {
+              "description": "可选请求幂等键（防弱网重复应用救援方案）",
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -4404,7 +4091,7 @@
             },
             "description": "OK"
           },
-          "default": {
+          "401": {
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -4412,7 +4099,37 @@
                 }
               }
             },
-            "description": "Error"
+            "description": "Unauthorized"
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "Internal Server Error"
           }
         },
         "security": [
@@ -4462,7 +4179,7 @@
             },
             "description": "OK"
           },
-          "default": {
+          "401": {
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -4470,7 +4187,27 @@
                 }
               }
             },
-            "description": "Error"
+            "description": "Unauthorized"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "Internal Server Error"
           }
         },
         "security": [
@@ -4508,7 +4245,7 @@
             },
             "description": "OK"
           },
-          "default": {
+          "401": {
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -4516,7 +4253,27 @@
                 }
               }
             },
-            "description": "Error"
+            "description": "Unauthorized"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "Internal Server Error"
           }
         },
         "security": [
@@ -4524,7 +4281,7 @@
             "BearerAuth": []
           }
         ],
-        "summary": "预览突发插单或疲劳过载的三套日程救援方案（纯函数计算，不写库）",
+        "summary": "预览突发插单或疲劳过载的日程救援方案（纯函数计算，不写库）",
         "tags": [
           "Schedule"
         ]
@@ -4554,7 +4311,7 @@
             },
             "description": "OK"
           },
-          "default": {
+          "401": {
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -4562,7 +4319,47 @@
                 }
               }
             },
-            "description": "Error"
+            "description": "Unauthorized"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "Internal Server Error"
           }
         },
         "security": [
@@ -4590,7 +4387,7 @@
             },
             "description": "OK"
           },
-          "default": {
+          "401": {
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -4598,7 +4395,17 @@
                 }
               }
             },
-            "description": "Error"
+            "description": "Unauthorized"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "Internal Server Error"
           }
         },
         "security": [
@@ -4634,7 +4441,7 @@
             },
             "description": "Created"
           },
-          "default": {
+          "401": {
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -4642,7 +4449,27 @@
                 }
               }
             },
-            "description": "Error"
+            "description": "Unauthorized"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "Internal Server Error"
           }
         },
         "security": [
@@ -4680,7 +4507,7 @@
             },
             "description": "OK"
           },
-          "default": {
+          "401": {
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -4688,7 +4515,47 @@
                 }
               }
             },
-            "description": "Error"
+            "description": "Unauthorized"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "Internal Server Error"
           }
         },
         "security": [
@@ -4743,12 +4610,10 @@
             "schema": {
               "description": "可选过滤工作区成员子集",
               "items": {
+                "format": "uuid",
                 "type": "string"
               },
-              "type": [
-                "array",
-                "null"
-              ]
+              "type": "array"
             }
           }
         ],
@@ -4763,7 +4628,7 @@
             },
             "description": "OK"
           },
-          "default": {
+          "401": {
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -4771,7 +4636,37 @@
                 }
               }
             },
-            "description": "Error"
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "Internal Server Error"
           }
         },
         "security": [
@@ -4820,7 +4715,7 @@
             },
             "description": "OK"
           },
-          "default": {
+          "401": {
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -4828,7 +4723,37 @@
                 }
               }
             },
-            "description": "Error"
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "Internal Server Error"
           }
         },
         "security": [
@@ -4860,12 +4785,7 @@
             "in": "query",
             "name": "status",
             "schema": {
-              "enum": [
-                "draft",
-                "confirmed",
-                "cancelled"
-              ],
-              "type": "string"
+              "$ref": "#/components/schemas/MeetingProposalStatus"
             }
           },
           {
@@ -4918,7 +4838,7 @@
             },
             "description": "OK"
           },
-          "default": {
+          "401": {
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -4926,7 +4846,37 @@
                 }
               }
             },
-            "description": "Error"
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "Internal Server Error"
           }
         },
         "security": [
@@ -4984,7 +4934,7 @@
             },
             "description": "Created"
           },
-          "default": {
+          "401": {
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -4992,7 +4942,57 @@
                 }
               }
             },
-            "description": "Error"
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "Internal Server Error"
           }
         },
         "security": [
@@ -5035,13 +5035,13 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/MeetingSolverOutput"
+                  "$ref": "#/components/schemas/RecommendMeetingResponse"
                 }
               }
             },
             "description": "OK"
           },
-          "default": {
+          "401": {
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -5049,7 +5049,37 @@
                 }
               }
             },
-            "description": "Error"
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "Internal Server Error"
           }
         },
         "security": [
@@ -5057,7 +5087,7 @@
             "BearerAuth": []
           }
         ],
-        "summary": "求解团队协同排会 Top 3 黄金窗口（最大搜索跨度 14 天）",
+        "summary": "求解团队协同排会黄金窗口（最大搜索跨度 14 天）",
         "tags": [
           "Workspaces"
         ]
@@ -5106,7 +5136,7 @@
             },
             "description": "OK"
           },
-          "default": {
+          "401": {
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -5114,7 +5144,57 @@
                 }
               }
             },
-            "description": "Error"
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "Internal Server Error"
           }
         },
         "security": [
@@ -5172,7 +5252,7 @@
             },
             "description": "OK"
           },
-          "default": {
+          "401": {
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -5180,7 +5260,57 @@
                 }
               }
             },
-            "description": "Error"
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "Internal Server Error"
           }
         },
         "security": [
@@ -5219,7 +5349,7 @@
             },
             "description": "OK"
           },
-          "default": {
+          "401": {
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -5227,7 +5357,37 @@
                 }
               }
             },
-            "description": "Error"
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "Internal Server Error"
           }
         },
         "security": [
@@ -5266,7 +5426,7 @@
       "name": "Energy"
     },
     {
-      "description": "个人统一时间块 CRUD 与突发/疲劳 3 策略可撤销救援",
+      "description": "个人统一时间块 CRUD 与突发/疲劳可撤销救援",
       "name": "Schedule"
     },
     {

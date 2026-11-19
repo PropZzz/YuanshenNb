@@ -1,6 +1,8 @@
 package engine_test
 
 import (
+	"reflect"
+	"strings"
 	"testing"
 	"time"
 
@@ -62,5 +64,91 @@ func TestComputeBaselineVersion_OrderIndependentAndSensitive(t *testing.T) {
 	v3 := engine.ComputeBaselineVersion(day, []engine.ScheduleItemSnapshot{itemA, itemBChanged})
 	if v3 == v1 {
 		t.Fatalf("expected baselineVersion to change when next-day item shifts")
+	}
+}
+
+func TestLocalDayWindowUTC_StandardAndDST(t *testing.T) {
+	// 1. 标准时区（Asia/Shanghai 恒定 UTC+8，24 小时）
+	start, end, err := engine.LocalDayWindowUTC("2026-11-18", "Asia/Shanghai")
+	if err != nil {
+		t.Fatalf("Asia/Shanghai failed: %v", err)
+	}
+	wantStart := time.Date(2026, 11, 17, 16, 0, 0, 0, time.UTC)
+	if !start.Equal(wantStart) {
+		t.Fatalf("expected start %v, got %v", wantStart, start)
+	}
+	if diff := end.Sub(start); diff != 24*time.Hour {
+		t.Fatalf("expected 24h duration, got %v", diff)
+	}
+
+	// 2. 美国夏令时开始日（2026-03-08 America/New_York，23 小时）
+	springStart, springEnd, err := engine.LocalDayWindowUTC("2026-03-08", "America/New_York")
+	if err != nil {
+		t.Fatalf("America/New_York spring DST failed: %v", err)
+	}
+	if diff := springEnd.Sub(springStart); diff != 23*time.Hour {
+		t.Fatalf("expected 23h spring DST day, got %v", diff)
+	}
+
+	// 3. 美国夏令时结束日（2026-11-01 America/New_York，25 小时）
+	fallStart, fallEnd, err := engine.LocalDayWindowUTC("2026-11-01", "America/New_York")
+	if err != nil {
+		t.Fatalf("America/New_York fall DST failed: %v", err)
+	}
+	if diff := fallEnd.Sub(fallStart); diff != 25*time.Hour {
+		t.Fatalf("expected 25h fall DST day, got %v", diff)
+	}
+
+	// 4. 48h 救援窗口校验
+	rescueStart, rescueEnd, err := engine.RescueWindowUTC("2026-11-18", "Asia/Shanghai")
+	if err != nil {
+		t.Fatalf("RescueWindowUTC failed: %v", err)
+	}
+	if !rescueStart.Equal(wantStart) || rescueEnd.Sub(rescueStart) != 48*time.Hour {
+		t.Fatalf("unexpected rescue window: [%v, %v)", rescueStart, rescueEnd)
+	}
+
+	// 5. 非法输入校验
+	if _, _, err := engine.LocalDayWindowUTC("2026/11/18", "Asia/Shanghai"); err == nil {
+		t.Fatalf("expected error for malformed localDay")
+	}
+	if _, _, err := engine.LocalDayWindowUTC("2026-11-18", "Invalid/Zone"); err == nil {
+		t.Fatalf("expected error for invalid timezone")
+	}
+}
+
+func TestMemberRawSchedulingData_NoBiometricFields(t *testing.T) {
+	forbidden := []string{"hrv", "rhr", "heart", "sleep", "biometric", "score"}
+	assertNoForbiddenFields(t, reflect.TypeOf(engine.MemberRawSchedulingData{}), "MemberRawSchedulingData", forbidden, map[reflect.Type]bool{})
+	assertNoForbiddenFields(t, reflect.TypeOf(engine.MemberAvailabilityView{}), "MemberAvailabilityView", forbidden, map[reflect.Type]bool{})
+}
+
+func assertNoForbiddenFields(t *testing.T, typ reflect.Type, path string, forbidden []string, visited map[reflect.Type]bool) {
+	t.Helper()
+	for typ.Kind() == reflect.Pointer || typ.Kind() == reflect.Slice || typ.Kind() == reflect.Array {
+		typ = typ.Elem()
+	}
+	if typ.Kind() != reflect.Struct {
+		return
+	}
+	if visited[typ] {
+		return
+	}
+	visited[typ] = true
+
+	// PredictedCurve 允许在输入侧作为内部逐小时能量点传入（投影后仅保留 Tier），跳过对 PredictedCurve 本身的 Score 误报
+	for i := 0; i < typ.NumField(); i++ {
+		f := typ.Field(i)
+		if f.Name == "PredictedCurve" {
+			continue
+		}
+		lowerName := strings.ToLower(f.Name)
+		lowerJSON := strings.ToLower(strings.Split(f.Tag.Get("json"), ",")[0])
+		for _, kw := range forbidden {
+			if strings.Contains(lowerName, kw) || strings.Contains(lowerJSON, kw) {
+				t.Fatalf("forbidden biometric/score field %q (json %q) exposed at %s.%s", f.Name, lowerJSON, path, f.Name)
+			}
+		}
+		assertNoForbiddenFields(t, f.Type, path+"."+f.Name, forbidden, visited)
 	}
 }

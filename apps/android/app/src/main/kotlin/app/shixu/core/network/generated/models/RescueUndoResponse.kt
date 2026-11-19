@@ -23,6 +23,7 @@
 
 package app.shixu.core.network.generated.models
 
+import app.shixu.core.network.generated.models.RescueSnapshotStatus
 import app.shixu.core.network.generated.models.ScheduleItemDTO
 
 import kotlinx.serialization.Serializable
@@ -34,42 +35,33 @@ import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 
 /**
+ * @param baselineLocalDay
  * @param baselineVersion
  * @param restoredItems
  * @param snapshotId
  * @param status
- * @param dollarSchema A URL to the JSON Schema for this object.
  */
 @Serializable
 
 data class RescueUndoResponse (
 
+    @Contextual @SerialName(value = "baselineLocalDay")
+    val baselineLocalDay: java.time.LocalDate,
+
     @SerialName(value = "baselineVersion")
     val baselineVersion: kotlin.String,
 
     @SerialName(value = "restoredItems")
-    val restoredItems: kotlin.collections.List<ScheduleItemDTO>?,
+    val restoredItems: kotlin.collections.List<ScheduleItemDTO>,
 
     @Contextual @SerialName(value = "snapshotId")
     val snapshotId: java.util.UUID,
 
     @SerialName(value = "status")
-    val status: RescueUndoResponse.Status,
-
-    /* A URL to the JSON Schema for this object. */
-    @Contextual @SerialName(value = "\$schema")
-    val dollarSchema: java.net.URI? = null
+    val status: RescueSnapshotStatus
 
 ) {
 
-    /**
-     * Values: applied,reverted
-     */
-    @Serializable
-    enum class Status(val value: kotlin.String) {
-        @SerialName(value = "applied") applied("applied"),
-        @SerialName(value = "reverted") reverted("reverted");
-    }
 
 }
 

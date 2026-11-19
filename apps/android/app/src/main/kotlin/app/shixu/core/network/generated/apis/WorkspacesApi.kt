@@ -14,9 +14,10 @@ import app.shixu.core.network.generated.models.ConfirmMeetingResponse
 import app.shixu.core.network.generated.models.CreateWorkspaceRequest
 import app.shixu.core.network.generated.models.JoinWorkspaceRequest
 import app.shixu.core.network.generated.models.MeetingProposalListResponse
-import app.shixu.core.network.generated.models.MeetingSolverOutput
+import app.shixu.core.network.generated.models.MeetingProposalStatus
 import app.shixu.core.network.generated.models.ProblemDetail
 import app.shixu.core.network.generated.models.RecommendMeetingRequest
+import app.shixu.core.network.generated.models.RecommendMeetingResponse
 import app.shixu.core.network.generated.models.RespondMeetingRequest
 import app.shixu.core.network.generated.models.RespondMeetingResponse
 import app.shixu.core.network.generated.models.UpdateWorkspaceMemberConfigRequest
@@ -33,7 +34,12 @@ interface WorkspacesApi {
      * 
      * Responses:
      *  - 200: OK
-     *  - 0: Error
+     *  - 401: Unauthorized
+     *  - 403: Forbidden
+     *  - 404: Not Found
+     *  - 409: Conflict
+     *  - 422: Unprocessable Entity
+     *  - 500: Internal Server Error
      *
      * @param id 
      * @param proposalId 
@@ -49,7 +55,12 @@ interface WorkspacesApi {
      * 
      * Responses:
      *  - 201: Created
-     *  - 0: Error
+     *  - 401: Unauthorized
+     *  - 403: Forbidden
+     *  - 404: Not Found
+     *  - 409: Conflict
+     *  - 422: Unprocessable Entity
+     *  - 500: Internal Server Error
      *
      * @param id 
      * @param confirmMeetingRequest 
@@ -65,7 +76,9 @@ interface WorkspacesApi {
      * 
      * Responses:
      *  - 201: Created
-     *  - 0: Error
+     *  - 401: Unauthorized
+     *  - 422: Unprocessable Entity
+     *  - 500: Internal Server Error
      *
      * @param createWorkspaceRequest 
      * @return [WorkspaceDTO]
@@ -79,7 +92,10 @@ interface WorkspacesApi {
      * 
      * Responses:
      *  - 200: OK
-     *  - 0: Error
+     *  - 401: Unauthorized
+     *  - 403: Forbidden
+     *  - 422: Unprocessable Entity
+     *  - 500: Internal Server Error
      *
      * @param id 
      * @param from 
@@ -96,7 +112,11 @@ interface WorkspacesApi {
      * 
      * Responses:
      *  - 200: OK
-     *  - 0: Error
+     *  - 401: Unauthorized
+     *  - 404: Not Found
+     *  - 409: Conflict
+     *  - 422: Unprocessable Entity
+     *  - 500: Internal Server Error
      *
      * @param joinWorkspaceRequest 
      * @return [WorkspaceDTO]
@@ -104,24 +124,16 @@ interface WorkspacesApi {
     @POST("api/v1/workspaces/join")
     suspend fun joinWorkspace(@Body joinWorkspaceRequest: JoinWorkspaceRequest): Response<WorkspaceDTO>
 
-
-    /**
-    * enum for parameter status
-    */
-    @Serializable
-    enum class StatusListWorkspaceMeetings(val value: kotlin.String) {
-        @SerialName(value = "draft") draft("draft"),
-        @SerialName(value = "confirmed") confirmed("confirmed"),
-        @SerialName(value = "cancelled") cancelled("cancelled")
-    }
-
     /**
      * GET api/v1/workspaces/{id}/meetings
      * 查询团队工作区的会议提案列表及各参会人回执状态
      * 
      * Responses:
      *  - 200: OK
-     *  - 0: Error
+     *  - 401: Unauthorized
+     *  - 403: Forbidden
+     *  - 422: Unprocessable Entity
+     *  - 500: Internal Server Error
      *
      * @param id 
      * @param status  (optional)
@@ -132,7 +144,7 @@ interface WorkspacesApi {
      * @return [MeetingProposalListResponse]
      */
     @GET("api/v1/workspaces/{id}/meetings")
-    suspend fun listWorkspaceMeetings(@Path("id") id: java.util.UUID, @Query("status") status: StatusListWorkspaceMeetings? = null, @Query("from") from: java.time.OffsetDateTime? = null, @Query("to") to: java.time.OffsetDateTime? = null, @Query("limit") limit: kotlin.Long? = 20L, @Query("cursor") cursor: kotlin.String? = null): Response<MeetingProposalListResponse>
+    suspend fun listWorkspaceMeetings(@Path("id") id: java.util.UUID, @Query("status") status: MeetingProposalStatus? = null, @Query("from") from: java.time.OffsetDateTime? = null, @Query("to") to: java.time.OffsetDateTime? = null, @Query("limit") limit: kotlin.Long? = 20L, @Query("cursor") cursor: kotlin.String? = null): Response<MeetingProposalListResponse>
 
     /**
      * GET api/v1/workspaces/{id}/members
@@ -140,7 +152,10 @@ interface WorkspacesApi {
      * 
      * Responses:
      *  - 200: OK
-     *  - 0: Error
+     *  - 401: Unauthorized
+     *  - 403: Forbidden
+     *  - 422: Unprocessable Entity
+     *  - 500: Internal Server Error
      *
      * @param id 
      * @return [WorkspaceMemberListResponse]
@@ -154,7 +169,8 @@ interface WorkspacesApi {
      * 
      * Responses:
      *  - 200: OK
-     *  - 0: Error
+     *  - 401: Unauthorized
+     *  - 500: Internal Server Error
      *
      * @return [WorkspaceListResponse]
      */
@@ -163,18 +179,21 @@ interface WorkspacesApi {
 
     /**
      * POST api/v1/workspaces/{id}/meetings/recommend
-     * 求解团队协同排会 Top 3 黄金窗口（最大搜索跨度 14 天）
+     * 求解团队协同排会黄金窗口（最大搜索跨度 14 天）
      * 
      * Responses:
      *  - 200: OK
-     *  - 0: Error
+     *  - 401: Unauthorized
+     *  - 403: Forbidden
+     *  - 422: Unprocessable Entity
+     *  - 500: Internal Server Error
      *
      * @param id 
      * @param recommendMeetingRequest 
-     * @return [MeetingSolverOutput]
+     * @return [RecommendMeetingResponse]
      */
     @POST("api/v1/workspaces/{id}/meetings/recommend")
-    suspend fun recommendWorkspaceMeetings(@Path("id") id: java.util.UUID, @Body recommendMeetingRequest: RecommendMeetingRequest): Response<MeetingSolverOutput>
+    suspend fun recommendWorkspaceMeetings(@Path("id") id: java.util.UUID, @Body recommendMeetingRequest: RecommendMeetingRequest): Response<RecommendMeetingResponse>
 
     /**
      * POST api/v1/workspaces/{id}/meetings/{proposalId}/respond
@@ -182,7 +201,12 @@ interface WorkspacesApi {
      * 
      * Responses:
      *  - 200: OK
-     *  - 0: Error
+     *  - 401: Unauthorized
+     *  - 403: Forbidden
+     *  - 404: Not Found
+     *  - 409: Conflict
+     *  - 422: Unprocessable Entity
+     *  - 500: Internal Server Error
      *
      * @param id 
      * @param proposalId 
@@ -198,7 +222,10 @@ interface WorkspacesApi {
      * 
      * Responses:
      *  - 200: OK
-     *  - 0: Error
+     *  - 401: Unauthorized
+     *  - 403: Forbidden
+     *  - 422: Unprocessable Entity
+     *  - 500: Internal Server Error
      *
      * @param id 
      * @param updateWorkspaceMemberConfigRequest 

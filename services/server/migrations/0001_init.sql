@@ -8,10 +8,20 @@
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 CREATE EXTENSION IF NOT EXISTS btree_gist;
 
+-- +goose StatementBegin
+CREATE OR REPLACE FUNCTION set_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = NOW();
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+-- +goose StatementEnd
+
 -- 1. 用户与认证会话
 CREATE TABLE users (
     id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    email           TEXT NOT NULL UNIQUE,
+    email           TEXT NOT NULL UNIQUE CHECK (email = lower(btrim(email))),
     display_name    TEXT NOT NULL,
     password_hash   TEXT NOT NULL, -- Argon2id
     timezone        TEXT NOT NULL DEFAULT 'Asia/Shanghai',
@@ -19,6 +29,10 @@ CREATE TABLE users (
     created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+CREATE TRIGGER trg_users_set_updated_at
+    BEFORE UPDATE ON users
+    FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 
 CREATE TABLE refresh_tokens (
     id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -73,6 +87,10 @@ CREATE TABLE energy_profiles (
     CHECK (work_end_minute > work_start_minute)
 );
 
+CREATE TRIGGER trg_energy_profiles_set_updated_at
+    BEFORE UPDATE ON energy_profiles
+    FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
 CREATE TABLE energy_snapshots (
     id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id         UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -81,7 +99,7 @@ CREATE TABLE energy_snapshots (
     score           INTEGER NOT NULL CHECK (score BETWEEN 0 AND 100),
     tier            TEXT NOT NULL CHECK (tier IN ('peak', 'steady', 'strained', 'depleted')),
     data_freshness  TEXT NOT NULL CHECK (data_freshness IN ('live_wearable', 'recent_wearable', 'replay_demo', 'baseline_only')),
-    hourly_curve    JSONB NOT NULL, -- 未来 24h 预测点位数组 [{hourStartAt, score, tier}]
+    hourly_curve    JSONB NOT NULL, -- 用户本地自然日所有整点预测点位数组 [{hourStartAt, score, tier}]（常规 24 点，DST 切换日 23/25 点）
     drivers         JSONB NOT NULL DEFAULT '{}'::jsonb, -- 可解释因子（睡眠分、HRV 偏差、会议耗能等）
     focus_shields   JSONB NOT NULL DEFAULT '[]'::jsonb, -- 推荐保护窗口列表
     overload_alert  JSONB, -- 触发疲劳过载预警时的结构体（无预警时为 NULL）
@@ -101,6 +119,10 @@ CREATE TABLE workspaces (
     created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+CREATE TRIGGER trg_workspaces_set_updated_at
+    BEFORE UPDATE ON workspaces
+    FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 
 CREATE TABLE workspace_members (
     workspace_id    UUID NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
@@ -135,6 +157,10 @@ CREATE TABLE meeting_proposals (
     CHECK (status <> 'confirmed' OR (confirmed_start_at IS NOT NULL AND confirmed_end_at IS NOT NULL))
 );
 
+CREATE TRIGGER trg_meeting_proposals_set_updated_at
+    BEFORE UPDATE ON meeting_proposals
+    FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
 CREATE UNIQUE INDEX uq_meeting_proposals_idempotency
     ON meeting_proposals (workspace_id, organizer_id, idempotency_key)
     WHERE idempotency_key IS NOT NULL;
@@ -166,7 +192,7 @@ CREATE TABLE schedule_items (
     end_at              TIMESTAMPTZ NOT NULL,
     duration_minutes    INTEGER GENERATED ALWAYS AS (
         GREATEST(1, FLOOR(EXTRACT(EPOCH FROM (end_at - start_at)) / 60)::INTEGER)
-    ) STORED,
+    ) STORED NOT NULL,
     time_range          TSTZRANGE GENERATED ALWAYS AS (tstzrange(start_at, end_at, '[)')) STORED,
     deadline_at         TIMESTAMPTZ,
     reminder_minutes    INTEGER NOT NULL DEFAULT 10 CHECK (reminder_minutes >= 0),
@@ -174,6 +200,10 @@ CREATE TABLE schedule_items (
     updated_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     CHECK (end_at > start_at)
 );
+
+CREATE TRIGGER trg_schedule_items_set_updated_at
+    BEFORE UPDATE ON schedule_items
+    FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 
 CREATE UNIQUE INDEX uq_schedule_items_proposal_user
     ON schedule_items (meeting_proposal_id, user_id)
@@ -197,6 +227,7 @@ CREATE TABLE rescue_snapshots (
     local_day        DATE NOT NULL,
     baseline_version TEXT NOT NULL,
     option_hash      TEXT NOT NULL,
+    idempotency_key  TEXT, -- 可选请求幂等键（防弱网重复应用救援方案）
     strategy         TEXT NOT NULL CHECK (strategy IN ('protect_deadline', 'protect_recovery', 'minimize_changes')),
     trigger_reason   TEXT NOT NULL CHECK (trigger_reason IN ('urgent_task', 'team_meeting_overload', 'wearable_fatigue')),
     before_items     JSONB NOT NULL,
@@ -205,6 +236,10 @@ CREATE TABLE rescue_snapshots (
     applied_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     reverted_at      TIMESTAMPTZ
 );
+
+CREATE UNIQUE INDEX uq_rescue_snapshots_idempotency
+    ON rescue_snapshots (user_id, idempotency_key)
+    WHERE idempotency_key IS NOT NULL;
 
 CREATE INDEX idx_rescue_snapshots_user ON rescue_snapshots (user_id, applied_at DESC);
 
@@ -220,3 +255,4 @@ DROP TABLE IF EXISTS energy_profiles;
 DROP TABLE IF EXISTS biometric_samples;
 DROP TABLE IF EXISTS refresh_tokens;
 DROP TABLE IF EXISTS users;
+DROP FUNCTION IF EXISTS set_updated_at();

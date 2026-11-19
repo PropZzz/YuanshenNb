@@ -25,6 +25,7 @@ package app.shixu.core.network.generated.models
 
 import app.shixu.core.network.generated.models.AvailabilitySlot
 import app.shixu.core.network.generated.models.PrivacyEnergyBucket
+import app.shixu.core.network.generated.models.PrivacyLevel
 
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerialName
@@ -52,10 +53,10 @@ data class MemberAvailabilityView (
     val displayName: kotlin.String,
 
     @SerialName(value = "privacyLevel")
-    val privacyLevel: MemberAvailabilityView.PrivacyLevel,
+    val privacyLevel: PrivacyLevel,
 
     @SerialName(value = "slots")
-    val slots: kotlin.collections.List<AvailabilitySlot>?,
+    val slots: kotlin.collections.List<AvailabilitySlot>,
 
     @SerialName(value = "timezone")
     val timezone: kotlin.String,
@@ -74,15 +75,6 @@ data class MemberAvailabilityView (
 
 ) {
 
-    /**
-     * Values: busy_only,energy_tier,full_title
-     */
-    @Serializable
-    enum class PrivacyLevel(val value: kotlin.String) {
-        @SerialName(value = "busy_only") busy_only("busy_only"),
-        @SerialName(value = "energy_tier") energy_tier("energy_tier"),
-        @SerialName(value = "full_title") full_title("full_title");
-    }
 
 }
 

@@ -166,7 +166,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 获取指定日期的实时精力电量、四因子拆解、24h 节律曲线、保护盾与穿戴源诊断 */
+        /** 获取指定日期的实时精力电量、四因子拆解、本地自然日节律曲线、保护盾与穿戴源诊断 */
         get: operations["getTodayEnergy"];
         put?: never;
         post?: never;
@@ -272,7 +272,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** 预览突发插单或疲劳过载的三套日程救援方案（纯函数计算，不写库） */
+        /** 预览突发插单或疲劳过载的日程救援方案（纯函数计算，不写库） */
         post: operations["previewRescueOptions"];
         delete?: never;
         options?: never;
@@ -409,7 +409,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** 求解团队协同排会 Top 3 黄金窗口（最大搜索跨度 14 天） */
+        /** 求解团队协同排会黄金窗口（最大搜索跨度 14 天） */
         post: operations["recommendWorkspaceMeetings"];
         delete?: never;
         options?: never;
@@ -473,12 +473,6 @@ export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
         AuthTokensResponse: {
-            /**
-             * Format: uri
-             * @description A URL to the JSON Schema for this object.
-             * @example http://localhost:8080/schemas/AuthTokensResponse.json
-             */
-            readonly $schema?: string;
             accessToken: string;
             /** Format: int64 */
             expiresInSeconds: number;
@@ -486,36 +480,27 @@ export interface components {
             refreshToken: string;
             user: components["schemas"]["UserProfile"];
         };
+        /** @enum {string} */
+        AvailabilityChangeReason: "schedule_changed" | "privacy_changed" | "energy_tier_changed";
         AvailabilitySlot: {
             /** Format: date-time */
             endAt: string;
-            /** @enum {string} */
-            kind: "busy" | "focus_shield" | "soft_busy";
+            kind: components["schemas"]["AvailabilitySlotKind"];
             /** Format: date-time */
             startAt: string;
             title?: string;
         };
+        /** @enum {string} */
+        AvailabilitySlotKind: "busy" | "focus_shield" | "soft_busy";
         BiometricBatchRequest: {
-            /**
-             * Format: uri
-             * @description A URL to the JSON Schema for this object.
-             * @example http://localhost:8080/schemas/BiometricBatchRequest.json
-             */
-            readonly $schema?: string;
-            samples: components["schemas"]["BiometricSampleDTO"][] | null;
+            samples: components["schemas"]["BiometricSampleDTO"][];
         };
         BiometricBatchResponse: {
-            /**
-             * Format: uri
-             * @description A URL to the JSON Schema for this object.
-             * @example http://localhost:8080/schemas/BiometricBatchResponse.json
-             */
-            readonly $schema?: string;
             /** Format: int64 */
             acceptedCount: number;
             /** Format: int64 */
             deduplicatedCount: number;
-            latestEnergy: components["schemas"]["EnergyComputeOutput"];
+            latestEnergy: components["schemas"]["EnergyTodayResponse"];
         };
         BiometricSampleDTO: {
             /** Format: date-time */
@@ -525,19 +510,19 @@ export interface components {
             metadata?: {
                 [key: string]: unknown;
             };
-            /** @enum {string} */
-            metricType: "heart_rate" | "hrv_rmssd" | "resting_hr" | "sleep_session" | "sleep_stage" | "active_calories";
+            metricType: components["schemas"]["MetricType"];
             /** Format: double */
             numericValue: number;
             /** Format: date-time */
             recordedAt: string;
-            /** @enum {string} */
-            sourceType: "health_connect" | "ble_gatt" | "replay_demo";
+            /** @description metricType=sleep_stage 时的强类型睡眠分期 */
+            sleepStage?: components["schemas"]["SleepStage"];
+            sourceType: components["schemas"]["SourceType"];
             unit: string;
         };
         BlockingDiagnostic: {
-            blockingDisplayNames: string[] | null;
-            blockingUserIds: string[] | null;
+            blockingDisplayNames: string[];
+            blockingUserIds: string[];
             code: string;
             /** Format: date */
             day?: string;
@@ -545,85 +530,50 @@ export interface components {
             suggestedAction: string;
         };
         CancelMeetingRequest: {
-            /**
-             * Format: uri
-             * @description A URL to the JSON Schema for this object.
-             * @example http://localhost:8080/schemas/CancelMeetingRequest.json
-             */
-            readonly $schema?: string;
             reason?: string;
         };
         CancelMeetingResponse: {
-            /**
-             * Format: uri
-             * @description A URL to the JSON Schema for this object.
-             * @example http://localhost:8080/schemas/CancelMeetingResponse.json
-             */
-            readonly $schema?: string;
             /** Format: int64 */
             cancelledScheduleCount: number;
             /** Format: uuid */
             proposalId: string;
-            /** @enum {string} */
-            status: "cancelled";
+            status: components["schemas"]["MeetingProposalStatus"];
             /** Format: date-time */
             updatedAt: string;
         };
+        /** @enum {string} */
+        Chronotype: "morning_lark" | "balanced" | "night_owl";
+        /** @enum {string} */
+        CognitiveLoad: "high" | "medium" | "low";
         ConfirmMeetingRequest: {
-            /**
-             * Format: uri
-             * @description A URL to the JSON Schema for this object.
-             * @example http://localhost:8080/schemas/ConfirmMeetingRequest.json
-             */
-            readonly $schema?: string;
-            /** @enum {string} */
-            cognitiveLoad: "high" | "medium" | "low";
+            cognitiveLoad: components["schemas"]["CognitiveLoad"];
             description?: string;
-            /** Format: int64 */
-            durationMinutes: number;
             /** Format: date-time */
             endAt: string;
-            optionalIds?: string[] | null;
-            participantIds: string[] | null;
+            optionalIds?: string[];
+            participantIds: string[];
             /** Format: uuid */
             proposalId?: string;
-            recommendationMeta?: {
-                [key: string]: unknown;
-            };
+            recommendationMeta?: components["schemas"]["MeetingRecommendationMeta"];
             /** Format: date-time */
             startAt: string;
             title: string;
         };
         ConfirmMeetingResponse: {
-            /**
-             * Format: uri
-             * @description A URL to the JSON Schema for this object.
-             * @example http://localhost:8080/schemas/ConfirmMeetingResponse.json
-             */
-            readonly $schema?: string;
             /** Format: int64 */
             createdScheduleCount: number;
             proposal: components["schemas"]["MeetingProposalDTO"];
         };
         CreateScheduleItemRequest: {
-            /**
-             * Format: uri
-             * @description A URL to the JSON Schema for this object.
-             * @example http://localhost:8080/schemas/CreateScheduleItemRequest.json
-             */
-            readonly $schema?: string;
             /** @default false */
             allowOverlap: boolean;
-            /** @enum {string} */
-            category: "deep_work" | "meeting" | "recovery" | "routine" | "urgent";
-            /** @enum {string} */
-            cognitiveLoad: "high" | "medium" | "low";
+            category: components["schemas"]["ScheduleCategory"];
+            cognitiveLoad: components["schemas"]["CognitiveLoad"];
             /** Format: date-time */
             deadlineAt?: string;
             /** Format: date-time */
             endAt: string;
-            /** @enum {string} */
-            flexibility: "hard_locked" | "flexible" | "focus_shield";
+            flexibility: components["schemas"]["Flexibility"];
             notes?: string;
             /**
              * Format: int64
@@ -635,16 +585,9 @@ export interface components {
             title: string;
         };
         CreateWorkspaceRequest: {
-            /**
-             * Format: uri
-             * @description A URL to the JSON Schema for this object.
-             * @example http://localhost:8080/schemas/CreateWorkspaceRequest.json
-             */
-            readonly $schema?: string;
             description?: string;
             name: string;
-            /** @enum {string} */
-            privacyLevel?: "busy_only" | "energy_tier" | "full_title";
+            privacyLevel?: components["schemas"]["PrivacyLevel"];
         };
         DailyMinuteWindow: {
             /** Format: int64 */
@@ -652,30 +595,10 @@ export interface components {
             /** Format: int64 */
             startMinute: number;
         };
-        EnergyComputeOutput: {
-            /**
-             * Format: uri
-             * @description A URL to the JSON Schema for this object.
-             * @example http://localhost:8080/schemas/EnergyComputeOutput.json
-             */
-            readonly $schema?: string;
-            /** Format: date-time */
-            computedAt: string;
-            /** @enum {string} */
-            dataFreshness: "live_wearable" | "recent_wearable" | "replay_demo" | "baseline_only";
-            diagnostics: components["schemas"]["EnergySourceDiagnostics"];
-            drivers: components["schemas"]["EnergyDrivers"];
-            focusShields: components["schemas"]["FocusShieldWindow"][] | null;
-            hourlyCurve: components["schemas"]["HourlyEnergyPoint"][] | null;
-            /** Format: date */
-            localDay: string;
-            overloadAlert?: components["schemas"]["OverloadAlert"];
-            /** Format: int64 */
-            score: number;
-            /** @enum {string} */
-            tier: "peak" | "steady" | "strained" | "depleted";
-            timezone: string;
-        };
+        /** @enum {string} */
+        DataFreshness: "live_wearable" | "recent_wearable" | "replay_demo" | "baseline_only";
+        /** @enum {string} */
+        DiffOp: "create" | "move" | "defer" | "unchanged";
         EnergyDrivers: {
             /** Format: double */
             autonomicDeltaScore: number;
@@ -696,19 +619,12 @@ export interface components {
             summary: string;
         };
         EnergyProfileDTO: {
-            /**
-             * Format: uri
-             * @description A URL to the JSON Schema for this object.
-             * @example http://localhost:8080/schemas/EnergyProfileDTO.json
-             */
-            readonly $schema?: string;
-            /** @enum {string} */
-            chronotype: "morning_lark" | "balanced" | "night_owl";
+            chronotype: components["schemas"]["Chronotype"];
             /** Format: double */
             hrvBaselineMs?: number;
             /** Format: int64 */
             minRecoveryBufferMin: number;
-            preferredFocusWindows: components["schemas"]["DailyMinuteWindow"][] | null;
+            preferredFocusWindows: components["schemas"]["DailyMinuteWindow"][];
             /** Format: double */
             rhrBaselineBpm?: number;
             /** Format: date-time */
@@ -727,38 +643,59 @@ export interface components {
             hrvBaselineMs?: number;
             /** Format: date-time */
             lastSyncedAt?: string;
-            /** @enum {string} */
-            primarySource?: "health_connect" | "ble_gatt" | "replay_demo";
+            primarySource?: components["schemas"]["SourceType"];
             /** Format: double */
             rhrBaselineBpm?: number;
         };
+        /** @enum {string} */
+        EnergyTier: "peak" | "steady" | "strained" | "depleted";
+        EnergyTodayResponse: {
+            /** Format: date-time */
+            computedAt: string;
+            dataFreshness: components["schemas"]["DataFreshness"];
+            diagnostics: components["schemas"]["EnergySourceDiagnostics"];
+            drivers: components["schemas"]["EnergyDrivers"];
+            focusShields: components["schemas"]["FocusShieldWindow"][];
+            hourlyCurve: components["schemas"]["HourlyEnergyPoint"][];
+            /** Format: date */
+            localDay: string;
+            overloadAlert?: components["schemas"]["OverloadAlert"];
+            /** Format: int64 */
+            score: number;
+            tier: components["schemas"]["EnergyTier"];
+            timezone: string;
+        };
+        /** @enum {string} */
+        ErrorCode: "BAD_REQUEST" | "UNAUTHORIZED" | "INVALID_CREDENTIALS" | "INVALID_REFRESH_TOKEN" | "TOKEN_REUSE_DETECTED" | "INVALID_WS_TICKET" | "FORBIDDEN" | "FORBIDDEN_NOT_WORKSPACE_MEMBER" | "FORBIDDEN_INSUFFICIENT_ROLE" | "FORBIDDEN_NOT_MEETING_PARTICIPANT" | "NOT_FOUND" | "INVITE_CODE_NOT_FOUND" | "MEETING_PROPOSAL_NOT_FOUND" | "SNAPSHOT_NOT_FOUND" | "METHOD_NOT_ALLOWED" | "CONFLICT" | "EMAIL_ALREADY_EXISTS" | "ALREADY_WORKSPACE_MEMBER" | "CONFLICT_SCHEDULE_OVERLAP" | "CONFLICT_MEMBER_BUSY" | "MEETING_MANAGED_BY_PROPOSAL" | "MEETING_ALREADY_CANCELLED" | "STALE_BASELINE_VERSION" | "ALREADY_REVERTED" | "SNAPSHOT_RESTORE_CONFLICT" | "VALIDATION_FAILED" | "RANGE_TOO_LARGE" | "INVALID_TIME_RANGE" | "DEADLINE_IN_PAST" | "INVALID_BIOMETRIC_SAMPLE" | "INVALID_WORK_HOURS" | "PARTICIPANT_NOT_IN_WORKSPACE" | "TOO_MANY_REQUESTS" | "INTERNAL_SERVER_ERROR" | "SERVICE_UNAVAILABLE";
         ErrorDetailItem: {
-            location: string;
+            location?: string;
             message: string;
             value?: unknown;
         };
         ExplanationTag: {
             code: string;
             label: string;
-            /** @enum {string} */
-            tone: "positive" | "warning" | "neutral";
+            tone: components["schemas"]["TagTone"];
         };
+        /** @enum {string} */
+        Flexibility: "hard_locked" | "flexible" | "focus_shield";
+        /** @enum {string} */
+        FocusShieldSource: "preferred_window" | "auto_peak";
         FocusShieldWindow: {
             /** Format: int64 */
             avgScore: number;
             /** Format: date-time */
             endAt: string;
-            /** @enum {string} */
-            source: "preferred_window" | "auto_peak";
+            source: components["schemas"]["FocusShieldSource"];
             /** Format: date-time */
             startAt: string;
         };
         GoldenWindowRecommendation: {
-            affectedMembers: components["schemas"]["MemberWindowImpact"][] | null;
+            affectedMembers: components["schemas"]["MemberWindowImpact"][];
             breakdown: components["schemas"]["ScoreBreakdown"];
             /** Format: date-time */
             endAt: string;
-            explanationTags: components["schemas"]["ExplanationTag"][] | null;
+            explanationTags: components["schemas"]["ExplanationTag"][];
             /** Format: int64 */
             rank: number;
             /** Format: int64 */
@@ -767,15 +704,10 @@ export interface components {
             startAt: string;
             summary: string;
         };
+        /** @enum {string} */
+        HealthDBStatus: "up" | "down";
         HealthResponse: {
-            /**
-             * Format: uri
-             * @description A URL to the JSON Schema for this object.
-             * @example http://localhost:8080/schemas/HealthResponse.json
-             */
-            readonly $schema?: string;
-            /** @enum {string} */
-            dbStatus: "up" | "down";
+            dbStatus: components["schemas"]["HealthDBStatus"];
             ok: boolean;
             /** Format: date-time */
             serverTime: string;
@@ -786,53 +718,33 @@ export interface components {
             hourStartAt: string;
             /** Format: int64 */
             score: number;
-            /** @enum {string} */
-            tier: "peak" | "steady" | "strained" | "depleted";
+            tier: components["schemas"]["EnergyTier"];
         };
         JoinWorkspaceRequest: {
-            /**
-             * Format: uri
-             * @description A URL to the JSON Schema for this object.
-             * @example http://localhost:8080/schemas/JoinWorkspaceRequest.json
-             */
-            readonly $schema?: string;
             inviteCode: string;
-            /** @enum {string} */
-            privacyLevel?: "busy_only" | "energy_tier" | "full_title";
+            privacyLevel?: components["schemas"]["PrivacyLevel"];
         };
         LoginRequest: {
-            /**
-             * Format: uri
-             * @description A URL to the JSON Schema for this object.
-             * @example http://localhost:8080/schemas/LoginRequest.json
-             */
-            readonly $schema?: string;
             deviceName?: string;
             /** Format: email */
             email: string;
             password: string;
         };
         LogoutRequest: {
-            /**
-             * Format: uri
-             * @description A URL to the JSON Schema for this object.
-             * @example http://localhost:8080/schemas/LogoutRequest.json
-             */
-            readonly $schema?: string;
             /** @description Android 端必传；Web 端可省略并自动回退读取 HttpOnly Cookie */
             refreshToken?: string;
         };
+        /** @enum {string} */
+        MeetingDecisionStatus: "accepted" | "declined";
         MeetingParticipantView: {
             displayName: string;
             required: boolean;
-            /** @enum {string} */
-            responseStatus: "pending" | "accepted" | "declined";
+            responseStatus: components["schemas"]["MeetingResponseStatus"];
             /** Format: uuid */
             userId: string;
         };
         MeetingProposalDTO: {
-            /** @enum {string} */
-            cognitiveLoad: "high" | "medium" | "low";
+            cognitiveLoad: components["schemas"]["CognitiveLoad"];
             /** Format: date-time */
             confirmedEndAt?: string;
             /** Format: date-time */
@@ -846,12 +758,9 @@ export interface components {
             id: string;
             /** Format: uuid */
             organizerId: string;
-            participants: components["schemas"]["MeetingParticipantView"][] | null;
-            recommendationMeta: {
-                [key: string]: unknown;
-            };
-            /** @enum {string} */
-            status: "draft" | "confirmed" | "cancelled";
+            participants: components["schemas"]["MeetingParticipantView"][];
+            recommendationMeta?: components["schemas"]["MeetingRecommendationMeta"];
+            status: components["schemas"]["MeetingProposalStatus"];
             title: string;
             /** Format: date-time */
             updatedAt: string;
@@ -859,31 +768,27 @@ export interface components {
             workspaceId: string;
         };
         MeetingProposalListResponse: {
-            /**
-             * Format: uri
-             * @description A URL to the JSON Schema for this object.
-             * @example http://localhost:8080/schemas/MeetingProposalListResponse.json
-             */
-            readonly $schema?: string;
-            meetings: components["schemas"]["MeetingProposalDTO"][] | null;
+            meetings: components["schemas"]["MeetingProposalDTO"][];
             nextCursor?: string;
         };
-        MeetingSolverOutput: {
-            /**
-             * Format: uri
-             * @description A URL to the JSON Schema for this object.
-             * @example http://localhost:8080/schemas/MeetingSolverOutput.json
-             */
-            readonly $schema?: string;
-            blockingDiagnostics: components["schemas"]["BlockingDiagnostic"][] | null;
-            recommendations: components["schemas"]["GoldenWindowRecommendation"][] | null;
+        /** @enum {string} */
+        MeetingProposalStatus: "draft" | "confirmed" | "cancelled";
+        MeetingRecommendationMeta: {
+            breakdown?: components["schemas"]["ScoreBreakdown"];
+            explanationTags?: components["schemas"]["ExplanationTag"][];
+            /** Format: int64 */
+            rank?: number;
+            /** Format: int64 */
+            score?: number;
+            summary?: string;
         };
+        /** @enum {string} */
+        MeetingResponseStatus: "pending" | "accepted" | "declined";
         MemberAvailabilityView: {
             displayName: string;
-            energyBuckets?: components["schemas"]["PrivacyEnergyBucket"][] | null;
-            /** @enum {string} */
-            privacyLevel: "busy_only" | "energy_tier" | "full_title";
-            slots: components["schemas"]["AvailabilitySlot"][] | null;
+            energyBuckets?: components["schemas"]["PrivacyEnergyBucket"][];
+            privacyLevel: components["schemas"]["PrivacyLevel"];
+            slots: components["schemas"]["AvailabilitySlot"][];
             timezone: string;
             /** Format: uuid */
             userId: string;
@@ -896,42 +801,35 @@ export interface components {
             breaksFocusShield: boolean;
             causesContinuousOverload: boolean;
             displayName: string;
-            /** @enum {string} */
-            energyTier?: "peak" | "steady" | "strained" | "depleted";
+            energyTier?: components["schemas"]["EnergyTier"];
             required: boolean;
             /** Format: uuid */
             userId: string;
         };
+        /** @enum {string} */
+        MetricType: "heart_rate" | "hrv_rmssd" | "resting_hr" | "sleep_session" | "sleep_stage" | "active_calories";
         OverloadAlert: {
             /** Format: int64 */
             currentScore: number;
             message: string;
-            /** @enum {string} */
-            recommendedStrategy: "protect_deadline" | "protect_recovery" | "minimize_changes";
-            /** @enum {string} */
-            severity: "warning" | "critical";
-            /** @enum {string} */
-            tier: "peak" | "steady" | "strained" | "depleted";
-            /** @enum {string} */
-            triggerReason: "urgent_task" | "team_meeting_overload" | "wearable_fatigue";
+            recommendedStrategy: components["schemas"]["RescueStrategy"];
+            severity: components["schemas"]["OverloadSeverity"];
+            tier: components["schemas"]["EnergyTier"];
+            triggerReason: components["schemas"]["RescueTriggerReason"];
         };
+        /** @enum {string} */
+        OverloadSeverity: "warning" | "critical";
         PrivacyEnergyBucket: {
             /** Format: date-time */
             hourStartAt: string;
-            /** @enum {string} */
-            tier: "peak" | "steady" | "strained" | "depleted";
+            tier: components["schemas"]["EnergyTier"];
         };
+        /** @enum {string} */
+        PrivacyLevel: "busy_only" | "energy_tier" | "full_title";
         ProblemDetail: {
-            /**
-             * Format: uri
-             * @description A URL to the JSON Schema for this object.
-             * @example http://localhost:8080/schemas/ProblemDetail.json
-             */
-            readonly $schema?: string;
-            /** @enum {string} */
-            code: "BAD_REQUEST" | "UNAUTHORIZED" | "INVALID_CREDENTIALS" | "INVALID_REFRESH_TOKEN" | "TOKEN_REUSE_DETECTED" | "INVALID_WS_TICKET" | "FORBIDDEN_NOT_WORKSPACE_MEMBER" | "FORBIDDEN_INSUFFICIENT_ROLE" | "FORBIDDEN_NOT_MEETING_PARTICIPANT" | "NOT_FOUND" | "INVITE_CODE_NOT_FOUND" | "MEETING_PROPOSAL_NOT_FOUND" | "SNAPSHOT_NOT_FOUND" | "EMAIL_ALREADY_EXISTS" | "ALREADY_WORKSPACE_MEMBER" | "CONFLICT_SCHEDULE_OVERLAP" | "CONFLICT_MEMBER_BUSY" | "MEETING_MANAGED_BY_PROPOSAL" | "MEETING_ALREADY_CANCELLED" | "STALE_BASELINE_VERSION" | "ALREADY_REVERTED" | "SNAPSHOT_RESTORE_CONFLICT" | "VALIDATION_FAILED" | "RANGE_TOO_LARGE" | "INVALID_TIME_RANGE" | "DEADLINE_IN_PAST" | "INVALID_BIOMETRIC_SAMPLE" | "INVALID_WORK_HOURS" | "PARTICIPANT_NOT_IN_WORKSPACE" | "SERVICE_UNAVAILABLE";
+            code: components["schemas"]["ErrorCode"];
             detail: string;
-            errors?: components["schemas"]["ErrorDetailItem"][] | null;
+            errors?: components["schemas"]["ErrorDetailItem"][];
             /** Format: int64 */
             status: number;
             title: string;
@@ -939,19 +837,17 @@ export interface components {
             type: string;
         };
         RecommendMeetingRequest: {
-            /**
-             * Format: uri
-             * @description A URL to the JSON Schema for this object.
-             * @example http://localhost:8080/schemas/RecommendMeetingRequest.json
-             */
-            readonly $schema?: string;
-            /** @enum {string} */
-            cognitiveLoad: "high" | "medium" | "low";
+            cognitiveLoad: components["schemas"]["CognitiveLoad"];
             description?: string;
             /** Format: int64 */
             durationMinutes: number;
-            optionalIds?: string[] | null;
-            participantIds: string[] | null;
+            /**
+             * Format: int64
+             * @default 3
+             */
+            maxResults: number;
+            optionalIds?: string[];
+            participantIds: string[];
             /** @default true */
             respectFocusShields: boolean;
             /** Format: date-time */
@@ -960,24 +856,16 @@ export interface components {
             searchTo: string;
             title: string;
         };
+        RecommendMeetingResponse: {
+            blockingDiagnostics: components["schemas"]["BlockingDiagnostic"][];
+            recommendations: components["schemas"]["GoldenWindowRecommendation"][];
+        };
         RefreshTokenRequest: {
-            /**
-             * Format: uri
-             * @description A URL to the JSON Schema for this object.
-             * @example http://localhost:8080/schemas/RefreshTokenRequest.json
-             */
-            readonly $schema?: string;
             deviceName?: string;
             /** @description Android 端必传；Web 端可省略并自动回退读取 HttpOnly Cookie */
             refreshToken?: string;
         };
         RegisterRequest: {
-            /**
-             * Format: uri
-             * @description A URL to the JSON Schema for this object.
-             * @example http://localhost:8080/schemas/RegisterRequest.json
-             */
-            readonly $schema?: string;
             deviceName?: string;
             displayName: string;
             /** Format: email */
@@ -986,66 +874,41 @@ export interface components {
             /** @default Asia/Shanghai */
             timezone: string;
         };
+        /** @enum {string} */
+        ReplayScenario: "well_rested" | "sleep_deprived" | "high_stress";
         ReplaySeedRequest: {
-            /**
-             * Format: uri
-             * @description A URL to the JSON Schema for this object.
-             * @example http://localhost:8080/schemas/ReplaySeedRequest.json
-             */
-            readonly $schema?: string;
             /**
              * Format: date
              * @description 本地日期 YYYY-MM-DD（默认今日）
              */
             day?: string;
-            /** @enum {string} */
-            scenario: "well_rested" | "sleep_deprived" | "high_stress";
+            scenario: components["schemas"]["ReplayScenario"];
         };
         ReplaySeedResponse: {
-            /**
-             * Format: uri
-             * @description A URL to the JSON Schema for this object.
-             * @example http://localhost:8080/schemas/ReplaySeedResponse.json
-             */
-            readonly $schema?: string;
             /** Format: date */
             day: string;
-            latestEnergy: components["schemas"]["EnergyComputeOutput"];
-            /** @enum {string} */
-            scenario: "well_rested" | "sleep_deprived" | "high_stress";
+            latestEnergy: components["schemas"]["EnergyTodayResponse"];
+            scenario: components["schemas"]["ReplayScenario"];
             /** Format: int64 */
             seededCount: number;
         };
         RescueApplyRequest: {
-            /**
-             * Format: uri
-             * @description A URL to the JSON Schema for this object.
-             * @example http://localhost:8080/schemas/RescueApplyRequest.json
-             */
-            readonly $schema?: string;
             baselineVersion: string;
             /** Format: date */
             day: string;
             expectedOptionHash?: string;
-            /** @enum {string} */
-            strategy: "protect_deadline" | "protect_recovery" | "minimize_changes";
-            /** @enum {string} */
-            triggerReason: "urgent_task" | "team_meeting_overload" | "wearable_fatigue";
+            strategy: components["schemas"]["RescueStrategy"];
+            triggerReason: components["schemas"]["RescueTriggerReason"];
             urgentTask?: components["schemas"]["UrgentTaskDTO"];
         };
         RescueApplyResponse: {
-            /**
-             * Format: uri
-             * @description A URL to the JSON Schema for this object.
-             * @example http://localhost:8080/schemas/RescueApplyResponse.json
-             */
-            readonly $schema?: string;
-            appliedItems: components["schemas"]["ScheduleItemDTO"][] | null;
+            appliedItems: components["schemas"]["ScheduleItemDTO"][];
+            /** Format: date */
+            baselineLocalDay: string;
             baselineVersion: string;
             /** Format: uuid */
             snapshotId: string;
-            /** @enum {string} */
-            strategy: "protect_deadline" | "protect_recovery" | "minimize_changes";
+            strategy: components["schemas"]["RescueStrategy"];
         };
         RescueDiffItem: {
             /** Format: date-time */
@@ -1056,34 +919,24 @@ export interface components {
             beforeEndAt?: string;
             /** Format: date-time */
             beforeStartAt?: string;
-            /** @enum {string} */
-            category: "deep_work" | "meeting" | "recovery" | "routine" | "urgent";
-            /** @enum {string} */
-            cognitiveLoad: "high" | "medium" | "low";
-            /** @enum {string} */
-            flexibility: "hard_locked" | "flexible" | "focus_shield";
+            category: components["schemas"]["ScheduleCategory"];
+            cognitiveLoad: components["schemas"]["CognitiveLoad"];
+            flexibility: components["schemas"]["Flexibility"];
             /** Format: uuid */
             itemId?: string;
-            /** @enum {string} */
-            op: "create" | "move" | "defer" | "unchanged";
+            op: components["schemas"]["DiffOp"];
             reasonCode: string;
             reasonLabel: string;
             title: string;
         };
         RescueHistoryResponse: {
-            /**
-             * Format: uri
-             * @description A URL to the JSON Schema for this object.
-             * @example http://localhost:8080/schemas/RescueHistoryResponse.json
-             */
-            readonly $schema?: string;
             nextCursor?: string;
-            snapshots: components["schemas"]["RescueSnapshotRecord"][] | null;
+            snapshots: components["schemas"]["RescueSnapshotRecord"][];
         };
         RescueOptionPlan: {
             /** Format: int64 */
             deferredCount: number;
-            diffItems: components["schemas"]["RescueDiffItem"][] | null;
+            diffItems: components["schemas"]["RescueDiffItem"][];
             feasible: boolean;
             /** Format: int64 */
             movedCount: number;
@@ -1092,41 +945,27 @@ export interface components {
             overdueRiskCount: number;
             /** Format: int64 */
             recoveryMinutes: number;
-            /** @enum {string} */
-            strategy: "protect_deadline" | "protect_recovery" | "minimize_changes";
+            strategy: components["schemas"]["RescueStrategy"];
             summary: string;
         };
         RescueOptionsRequest: {
-            /**
-             * Format: uri
-             * @description A URL to the JSON Schema for this object.
-             * @example http://localhost:8080/schemas/RescueOptionsRequest.json
-             */
-            readonly $schema?: string;
             /** Format: date */
             day: string;
-            /** @enum {string} */
-            triggerReason: "urgent_task" | "team_meeting_overload" | "wearable_fatigue";
+            triggerReason: components["schemas"]["RescueTriggerReason"];
             urgentTask?: components["schemas"]["UrgentTaskDTO"];
         };
         RescueOptionsResponse: {
-            /**
-             * Format: uri
-             * @description A URL to the JSON Schema for this object.
-             * @example http://localhost:8080/schemas/RescueOptionsResponse.json
-             */
-            readonly $schema?: string;
             baselineVersion: string;
             /** Format: date */
             day: string;
-            options: components["schemas"]["RescueOptionPlan"][] | null;
+            options: components["schemas"]["RescueOptionPlan"][];
         };
         RescueSnapshotRecord: {
-            afterItems: components["schemas"]["ScheduleItemSnapshot"][] | null;
+            afterItems: components["schemas"]["ScheduleItemSnapshot"][];
             /** Format: date-time */
             appliedAt: string;
             baselineVersion: string;
-            beforeItems: components["schemas"]["ScheduleItemSnapshot"][] | null;
+            beforeItems: components["schemas"]["ScheduleItemSnapshot"][];
             /** Format: uuid */
             id: string;
             /** Format: date */
@@ -1134,72 +973,49 @@ export interface components {
             optionHash: string;
             /** Format: date-time */
             revertedAt?: string;
-            /** @enum {string} */
-            status: "applied" | "reverted";
-            /** @enum {string} */
-            strategy: "protect_deadline" | "protect_recovery" | "minimize_changes";
-            /** @enum {string} */
-            triggerReason: "urgent_task" | "team_meeting_overload" | "wearable_fatigue";
+            status: components["schemas"]["RescueSnapshotStatus"];
+            strategy: components["schemas"]["RescueStrategy"];
+            triggerReason: components["schemas"]["RescueTriggerReason"];
             /** Format: uuid */
             userId: string;
         };
+        /** @enum {string} */
+        RescueSnapshotStatus: "applied" | "reverted";
+        /** @enum {string} */
+        RescueStrategy: "protect_deadline" | "protect_recovery" | "minimize_changes";
+        /** @enum {string} */
+        RescueTriggerReason: "urgent_task" | "team_meeting_overload" | "wearable_fatigue";
         RescueUndoRequest: {
-            /**
-             * Format: uri
-             * @description A URL to the JSON Schema for this object.
-             * @example http://localhost:8080/schemas/RescueUndoRequest.json
-             */
-            readonly $schema?: string;
             /** Format: uuid */
             snapshotId: string;
         };
         RescueUndoResponse: {
-            /**
-             * Format: uri
-             * @description A URL to the JSON Schema for this object.
-             * @example http://localhost:8080/schemas/RescueUndoResponse.json
-             */
-            readonly $schema?: string;
+            /** Format: date */
+            baselineLocalDay: string;
             baselineVersion: string;
-            restoredItems: components["schemas"]["ScheduleItemDTO"][] | null;
+            restoredItems: components["schemas"]["ScheduleItemDTO"][];
             /** Format: uuid */
             snapshotId: string;
-            /** @enum {string} */
-            status: "applied" | "reverted";
+            status: components["schemas"]["RescueSnapshotStatus"];
         };
         RespondMeetingRequest: {
-            /**
-             * Format: uri
-             * @description A URL to the JSON Schema for this object.
-             * @example http://localhost:8080/schemas/RespondMeetingRequest.json
-             */
-            readonly $schema?: string;
-            /** @enum {string} */
-            responseStatus: "accepted" | "declined";
+            responseStatus: components["schemas"]["MeetingDecisionStatus"];
         };
         RespondMeetingResponse: {
-            /**
-             * Format: uri
-             * @description A URL to the JSON Schema for this object.
-             * @example http://localhost:8080/schemas/RespondMeetingResponse.json
-             */
-            readonly $schema?: string;
             /** Format: uuid */
             proposalId: string;
-            /** @enum {string} */
-            responseStatus: "accepted" | "declined";
-            /** @enum {string} */
-            scheduleStatus: "planned" | "in_progress" | "completed" | "cancelled";
+            responseStatus: components["schemas"]["MeetingDecisionStatus"];
+            scheduleStatus: components["schemas"]["ScheduleStatus"];
             /** Format: date-time */
             updatedAt: string;
             /** Format: uuid */
             userId: string;
         };
+        /** @enum {string} */
+        ScheduleCategory: "deep_work" | "meeting" | "recovery" | "routine" | "urgent";
         ScheduleItemDTO: {
-            /** @enum {string} */
-            category: "deep_work" | "meeting" | "recovery" | "routine" | "urgent";
-            /** @enum {string} */
-            cognitiveLoad: "high" | "medium" | "low";
+            category: components["schemas"]["ScheduleCategory"];
+            cognitiveLoad: components["schemas"]["CognitiveLoad"];
             /** Format: date-time */
             createdAt: string;
             /** Format: date-time */
@@ -1208,8 +1024,7 @@ export interface components {
             durationMinutes: number;
             /** Format: date-time */
             endAt: string;
-            /** @enum {string} */
-            flexibility: "hard_locked" | "flexible" | "focus_shield";
+            flexibility: components["schemas"]["Flexibility"];
             /** Format: uuid */
             id: string;
             /** Format: uuid */
@@ -1219,8 +1034,7 @@ export interface components {
             reminderMinutes: number;
             /** Format: date-time */
             startAt: string;
-            /** @enum {string} */
-            status: "planned" | "in_progress" | "completed" | "cancelled";
+            status: components["schemas"]["ScheduleStatus"];
             title: string;
             /** Format: date-time */
             updatedAt: string;
@@ -1231,27 +1045,23 @@ export interface components {
         };
         ScheduleItemListResponse: {
             /**
-             * Format: uri
-             * @description A URL to the JSON Schema for this object.
-             * @example http://localhost:8080/schemas/ScheduleItemListResponse.json
+             * Format: date
+             * @description baselineVersion 对应的用户本地锚定日期 (YYYY-MM-DD)
              */
-            readonly $schema?: string;
+            baselineLocalDay: string;
             baselineVersion: string;
-            items: components["schemas"]["ScheduleItemDTO"][] | null;
+            items: components["schemas"]["ScheduleItemDTO"][];
         };
         ScheduleItemSnapshot: {
-            /** @enum {string} */
-            category: "deep_work" | "meeting" | "recovery" | "routine" | "urgent";
-            /** @enum {string} */
-            cognitiveLoad: "high" | "medium" | "low";
+            category: components["schemas"]["ScheduleCategory"];
+            cognitiveLoad: components["schemas"]["CognitiveLoad"];
             /** Format: date-time */
             deadlineAt?: string;
             /** Format: int64 */
             durationMinutes: number;
             /** Format: date-time */
             endAt: string;
-            /** @enum {string} */
-            flexibility: "hard_locked" | "flexible" | "focus_shield";
+            flexibility: components["schemas"]["Flexibility"];
             /** Format: uuid */
             id: string;
             /** Format: uuid */
@@ -1261,8 +1071,7 @@ export interface components {
             reminderMinutes: number;
             /** Format: date-time */
             startAt: string;
-            /** @enum {string} */
-            status: "planned" | "in_progress" | "completed" | "cancelled";
+            status: components["schemas"]["ScheduleStatus"];
             title: string;
             /** Format: date-time */
             updatedAt: string;
@@ -1273,14 +1082,17 @@ export interface components {
         };
         ScheduleMutationResponse: {
             /**
-             * Format: uri
-             * @description A URL to the JSON Schema for this object.
-             * @example http://localhost:8080/schemas/ScheduleMutationResponse.json
+             * Format: date
+             * @description baselineVersion 对应的用户本地锚定日期 (YYYY-MM-DD)
              */
-            readonly $schema?: string;
+            baselineLocalDay: string;
             baselineVersion: string;
             item: components["schemas"]["ScheduleItemDTO"];
         };
+        /** @enum {string} */
+        ScheduleStatus: "planned" | "in_progress" | "completed" | "cancelled";
+        /** @enum {string} */
+        ScheduleUpdateReason: "item_created" | "item_updated" | "item_cancelled" | "rescue_applied" | "rescue_reverted" | "team_meeting_synced";
         ScoreBreakdown: {
             /** Format: int64 */
             compactnessScore: number;
@@ -1293,75 +1105,56 @@ export interface components {
             /** Format: double */
             optionalAttendanceRatio: number;
         };
+        /** @enum {string} */
+        SleepStage: "deep" | "rem" | "light" | "awake";
+        /** @enum {string} */
+        SourceType: "health_connect" | "ble_gatt" | "replay_demo";
+        /** @enum {string} */
+        TagTone: "positive" | "warning" | "neutral";
+        /** @enum {string} */
+        ThemeMode: "system" | "light" | "dark";
         UpdateEnergyProfileRequest: {
-            /**
-             * Format: uri
-             * @description A URL to the JSON Schema for this object.
-             * @example http://localhost:8080/schemas/UpdateEnergyProfileRequest.json
-             */
-            readonly $schema?: string;
-            /** @enum {string} */
-            chronotype: "morning_lark" | "balanced" | "night_owl";
+            chronotype: components["schemas"]["Chronotype"];
             /** Format: int64 */
             minRecoveryBufferMin: number;
-            preferredFocusWindows: components["schemas"]["DailyMinuteWindow"][] | null;
+            preferredFocusWindows: components["schemas"]["DailyMinuteWindow"][];
             /** Format: int64 */
             workEndMinute: number;
             /** Format: int64 */
             workStartMinute: number;
         };
         UpdateMeRequest: {
-            /**
-             * Format: uri
-             * @description A URL to the JSON Schema for this object.
-             * @example http://localhost:8080/schemas/UpdateMeRequest.json
-             */
-            readonly $schema?: string;
             displayName?: string;
-            /** @enum {string} */
-            themeMode?: "system" | "light" | "dark";
+            themeMode?: components["schemas"]["ThemeMode"];
             timezone?: string;
         };
         UpdateScheduleItemRequest: {
-            /**
-             * Format: uri
-             * @description A URL to the JSON Schema for this object.
-             * @example http://localhost:8080/schemas/UpdateScheduleItemRequest.json
-             */
-            readonly $schema?: string;
             allowOverlap?: boolean;
-            /** @enum {string} */
-            category?: "deep_work" | "meeting" | "recovery" | "routine" | "urgent";
-            /** @enum {string} */
-            cognitiveLoad?: "high" | "medium" | "low";
-            /** Format: date-time */
-            deadlineAt?: string;
+            category?: components["schemas"]["ScheduleCategory"];
+            /** @description 为 true 时显式清除截止时间（等价于 deadlineAt=null） */
+            clearDeadline?: boolean;
+            cognitiveLoad?: components["schemas"]["CognitiveLoad"];
+            /**
+             * Format: date-time
+             * @description 更新截止时间；传 null 可显式清除
+             */
+            deadlineAt?: string | null;
             /** Format: date-time */
             endAt?: string;
-            /** @enum {string} */
-            flexibility?: "hard_locked" | "flexible" | "focus_shield";
+            flexibility?: components["schemas"]["Flexibility"];
             notes?: string;
             /** Format: int64 */
             reminderMinutes?: number;
             /** Format: date-time */
             startAt?: string;
-            /** @enum {string} */
-            status?: "planned" | "in_progress" | "completed" | "cancelled";
+            status?: components["schemas"]["ScheduleStatus"];
             title?: string;
         };
         UpdateWorkspaceMemberConfigRequest: {
-            /**
-             * Format: uri
-             * @description A URL to the JSON Schema for this object.
-             * @example http://localhost:8080/schemas/UpdateWorkspaceMemberConfigRequest.json
-             */
-            readonly $schema?: string;
-            /** @enum {string} */
-            privacyLevel: "busy_only" | "energy_tier" | "full_title";
+            privacyLevel: components["schemas"]["PrivacyLevel"];
         };
         UrgentTaskDTO: {
-            /** @enum {string} */
-            cognitiveLoad: "high" | "medium" | "low";
+            cognitiveLoad: components["schemas"]["CognitiveLoad"];
             /** Format: date-time */
             deadlineAt: string;
             /** Format: int64 */
@@ -1370,12 +1163,6 @@ export interface components {
             title: string;
         };
         UserProfile: {
-            /**
-             * Format: uri
-             * @description A URL to the JSON Schema for this object.
-             * @example http://localhost:8080/schemas/UserProfile.json
-             */
-            readonly $schema?: string;
             /** Format: date-time */
             createdAt: string;
             displayName: string;
@@ -1383,34 +1170,21 @@ export interface components {
             email: string;
             /** Format: uuid */
             id: string;
-            /** @enum {string} */
-            themeMode: "system" | "light" | "dark";
+            themeMode: components["schemas"]["ThemeMode"];
             timezone: string;
             /** Format: date-time */
             updatedAt: string;
         };
         WorkspaceAvailabilityResponse: {
-            /**
-             * Format: uri
-             * @description A URL to the JSON Schema for this object.
-             * @example http://localhost:8080/schemas/WorkspaceAvailabilityResponse.json
-             */
-            readonly $schema?: string;
             /** Format: date-time */
             from: string;
-            members: components["schemas"]["MemberAvailabilityView"][] | null;
+            members: components["schemas"]["MemberAvailabilityView"][];
             /** Format: date-time */
             to: string;
             /** Format: uuid */
             workspaceId: string;
         };
         WorkspaceDTO: {
-            /**
-             * Format: uri
-             * @description A URL to the JSON Schema for this object.
-             * @example http://localhost:8080/schemas/WorkspaceDTO.json
-             */
-            readonly $schema?: string;
             /** Format: date-time */
             createdAt: string;
             description: string;
@@ -1419,10 +1193,8 @@ export interface components {
             inviteCode: string;
             /** Format: int64 */
             memberCount: number;
-            /** @enum {string} */
-            myPrivacyLevel: "busy_only" | "energy_tier" | "full_title";
-            /** @enum {string} */
-            myRole: "owner" | "admin" | "member";
+            myPrivacyLevel: components["schemas"]["PrivacyLevel"];
+            myRole: components["schemas"]["WorkspaceRole"];
             name: string;
             /** Format: uuid */
             ownerId: string;
@@ -1430,28 +1202,14 @@ export interface components {
             updatedAt: string;
         };
         WorkspaceListResponse: {
-            /**
-             * Format: uri
-             * @description A URL to the JSON Schema for this object.
-             * @example http://localhost:8080/schemas/WorkspaceListResponse.json
-             */
-            readonly $schema?: string;
-            workspaces: components["schemas"]["WorkspaceDTO"][] | null;
+            workspaces: components["schemas"]["WorkspaceDTO"][];
         };
         WorkspaceMemberDTO: {
-            /**
-             * Format: uri
-             * @description A URL to the JSON Schema for this object.
-             * @example http://localhost:8080/schemas/WorkspaceMemberDTO.json
-             */
-            readonly $schema?: string;
             displayName: string;
             /** Format: date-time */
             joinedAt: string;
-            /** @enum {string} */
-            privacyLevel: "busy_only" | "energy_tier" | "full_title";
-            /** @enum {string} */
-            role: "owner" | "admin" | "member";
+            privacyLevel: components["schemas"]["PrivacyLevel"];
+            role: components["schemas"]["WorkspaceRole"];
             timezone: string;
             /** Format: uuid */
             userId: string;
@@ -1459,23 +1217,18 @@ export interface components {
             workspaceId: string;
         };
         WorkspaceMemberListResponse: {
-            /**
-             * Format: uri
-             * @description A URL to the JSON Schema for this object.
-             * @example http://localhost:8080/schemas/WorkspaceMemberListResponse.json
-             */
-            readonly $schema?: string;
-            members: components["schemas"]["WorkspaceMemberDTO"][] | null;
+            members: components["schemas"]["WorkspaceMemberDTO"][];
             /** Format: uuid */
             workspaceId: string;
         };
+        /** @enum {string} */
+        WorkspaceRole: "owner" | "admin" | "member";
         WsAvailabilityChangedPayload: {
             /** Format: date-time */
             affectedFrom?: string;
             /** Format: date-time */
             affectedTo?: string;
-            /** @enum {string} */
-            reason: "schedule_changed" | "privacy_changed" | "energy_tier_changed";
+            reason: components["schemas"]["AvailabilityChangeReason"];
             /** Format: uuid */
             userId: string;
             /** Format: uuid */
@@ -1487,28 +1240,22 @@ export interface components {
             /** Format: date */
             localDay: string;
             message: string;
-            /** @enum {string} */
-            recommendedStrategy: "protect_deadline" | "protect_recovery" | "minimize_changes";
-            /** @enum {string} */
-            severity: "warning" | "critical";
-            /** @enum {string} */
-            tier: "peak" | "steady" | "strained" | "depleted";
-            /** @enum {string} */
-            triggerReason: "urgent_task" | "team_meeting_overload" | "wearable_fatigue";
+            recommendedStrategy: components["schemas"]["RescueStrategy"];
+            severity: components["schemas"]["OverloadSeverity"];
+            tier: components["schemas"]["EnergyTier"];
+            triggerReason: components["schemas"]["RescueTriggerReason"];
             /** Format: uuid */
             userId: string;
         };
         WsEnergyUpdatedPayload: {
             /** Format: date-time */
             computedAt: string;
-            /** @enum {string} */
-            dataFreshness: "live_wearable" | "recent_wearable" | "replay_demo" | "baseline_only";
+            dataFreshness: components["schemas"]["DataFreshness"];
             /** Format: date */
             localDay: string;
             /** Format: int64 */
             score: number;
-            /** @enum {string} */
-            tier: "peak" | "steady" | "strained" | "depleted";
+            tier: components["schemas"]["EnergyTier"];
             /** Format: uuid */
             userId: string;
         };
@@ -1517,31 +1264,30 @@ export interface components {
             eventId: string;
             /** Format: date-time */
             occurredAt: string;
-            payload: {
-                [key: string]: unknown;
-            };
-            /** @enum {string} */
-            type: "energy.updated" | "energy.overload_alert" | "schedule.updated" | "workspace.meeting_confirmed" | "workspace.meeting_cancelled" | "workspace.meeting_responded" | "workspace.availability_changed";
+            payload: unknown;
+            type: components["schemas"]["WsEventType"];
+            /**
+             * Format: int64
+             * @default 1
+             */
+            version: number;
         };
+        /** @enum {string} */
+        WsEventType: "energy.updated" | "energy.overload_alert" | "schedule.updated" | "workspace.meeting_confirmed" | "workspace.meeting_cancelled" | "workspace.meeting_responded" | "workspace.availability_changed";
         WsScheduleUpdatedPayload: {
             /** Format: date-time */
             affectedFrom: string;
             /** Format: date-time */
             affectedTo: string;
+            /** Format: date */
+            baselineLocalDay: string;
             baselineVersion: string;
-            itemIds: string[] | null;
-            /** @enum {string} */
-            reason: "item_created" | "item_updated" | "item_cancelled" | "rescue_applied" | "rescue_reverted" | "team_meeting_synced";
+            itemIds: string[];
+            reason: components["schemas"]["ScheduleUpdateReason"];
             /** Format: uuid */
             userId: string;
         };
         WsTicketResponse: {
-            /**
-             * Format: uri
-             * @description A URL to the JSON Schema for this object.
-             * @example http://localhost:8080/schemas/WsTicketResponse.json
-             */
-            readonly $schema?: string;
             /** Format: date-time */
             expiresAt: string;
             ticket: string;
@@ -1561,13 +1307,12 @@ export interface components {
             workspaceId: string;
         };
         WsWorkspaceMeetingConfirmedPayload: {
-            /** @enum {string} */
-            cognitiveLoad: "high" | "medium" | "low";
+            cognitiveLoad: components["schemas"]["CognitiveLoad"];
             /** Format: date-time */
             endAt: string;
             /** Format: uuid */
             organizerId: string;
-            participantIds: string[] | null;
+            participantIds: string[];
             /** Format: uuid */
             proposalId: string;
             /** Format: date-time */
@@ -1582,8 +1327,7 @@ export interface components {
             proposalId: string;
             /** Format: date-time */
             respondedAt: string;
-            /** @enum {string} */
-            responseStatus: "accepted" | "declined";
+            responseStatus: components["schemas"]["MeetingDecisionStatus"];
             /** Format: uuid */
             userId: string;
             /** Format: uuid */
@@ -1671,8 +1415,26 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Error */
-            default: {
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -1700,8 +1462,17 @@ export interface operations {
                     "application/json": components["schemas"]["UserProfile"];
                 };
             };
-            /** @description Error */
-            default: {
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -1733,8 +1504,26 @@ export interface operations {
                     "application/json": components["schemas"]["UserProfile"];
                 };
             };
-            /** @description Error */
-            default: {
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -1866,8 +1655,17 @@ export interface operations {
                     "application/json": components["schemas"]["WsTicketResponse"];
                 };
             };
-            /** @description Error */
-            default: {
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -1899,8 +1697,26 @@ export interface operations {
                     "application/json": components["schemas"]["ReplaySeedResponse"];
                 };
             };
-            /** @description Error */
-            default: {
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -1932,8 +1748,26 @@ export interface operations {
                     "application/json": components["schemas"]["BiometricBatchResponse"];
                 };
             };
-            /** @description Error */
-            default: {
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -1961,8 +1795,17 @@ export interface operations {
                     "application/json": components["schemas"]["EnergyProfileDTO"];
                 };
             };
-            /** @description Error */
-            default: {
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -1994,8 +1837,26 @@ export interface operations {
                     "application/json": components["schemas"]["EnergyProfileDTO"];
                 };
             };
-            /** @description Error */
-            default: {
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2023,11 +1884,29 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["EnergyComputeOutput"];
+                    "application/json": components["schemas"]["EnergyTodayResponse"];
                 };
             };
-            /** @description Error */
-            default: {
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2097,8 +1976,26 @@ export interface operations {
                     "application/json": components["schemas"]["ScheduleItemListResponse"];
                 };
             };
-            /** @description Error */
-            default: {
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2130,8 +2027,35 @@ export interface operations {
                     "application/json": components["schemas"]["ScheduleMutationResponse"];
                 };
             };
-            /** @description Error */
-            default: {
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2159,8 +2083,44 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Error */
-            default: {
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2194,8 +2154,44 @@ export interface operations {
                     "application/json": components["schemas"]["ScheduleMutationResponse"];
                 };
             };
-            /** @description Error */
-            default: {
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2208,7 +2204,10 @@ export interface operations {
     applyRescueOption: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description 可选请求幂等键（防弱网重复应用救援方案） */
+                "Idempotency-Key"?: string;
+            };
             path?: never;
             cookie?: never;
         };
@@ -2227,8 +2226,35 @@ export interface operations {
                     "application/json": components["schemas"]["RescueApplyResponse"];
                 };
             };
-            /** @description Error */
-            default: {
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2259,8 +2285,26 @@ export interface operations {
                     "application/json": components["schemas"]["RescueHistoryResponse"];
                 };
             };
-            /** @description Error */
-            default: {
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2292,8 +2336,26 @@ export interface operations {
                     "application/json": components["schemas"]["RescueOptionsResponse"];
                 };
             };
-            /** @description Error */
-            default: {
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2325,8 +2387,44 @@ export interface operations {
                     "application/json": components["schemas"]["RescueUndoResponse"];
                 };
             };
-            /** @description Error */
-            default: {
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2354,8 +2452,17 @@ export interface operations {
                     "application/json": components["schemas"]["WorkspaceListResponse"];
                 };
             };
-            /** @description Error */
-            default: {
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2387,8 +2494,26 @@ export interface operations {
                     "application/json": components["schemas"]["WorkspaceDTO"];
                 };
             };
-            /** @description Error */
-            default: {
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2420,8 +2545,44 @@ export interface operations {
                     "application/json": components["schemas"]["WorkspaceDTO"];
                 };
             };
-            /** @description Error */
-            default: {
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2437,7 +2598,7 @@ export interface operations {
                 from: string;
                 to: string;
                 /** @description 可选过滤工作区成员子集 */
-                memberIds?: string[] | null;
+                memberIds?: string[];
             };
             header?: never;
             path: {
@@ -2456,8 +2617,35 @@ export interface operations {
                     "application/json": components["schemas"]["WorkspaceAvailabilityResponse"];
                 };
             };
-            /** @description Error */
-            default: {
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2491,8 +2679,35 @@ export interface operations {
                     "application/json": components["schemas"]["WorkspaceMemberDTO"];
                 };
             };
-            /** @description Error */
-            default: {
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2505,7 +2720,7 @@ export interface operations {
     listWorkspaceMeetings: {
         parameters: {
             query?: {
-                status?: "draft" | "confirmed" | "cancelled";
+                status?: components["schemas"]["MeetingProposalStatus"];
                 from?: string;
                 to?: string;
                 limit?: number;
@@ -2528,8 +2743,35 @@ export interface operations {
                     "application/json": components["schemas"]["MeetingProposalListResponse"];
                 };
             };
-            /** @description Error */
-            default: {
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2566,8 +2808,53 @@ export interface operations {
                     "application/json": components["schemas"]["ConfirmMeetingResponse"];
                 };
             };
-            /** @description Error */
-            default: {
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2598,11 +2885,38 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["MeetingSolverOutput"];
+                    "application/json": components["schemas"]["RecommendMeetingResponse"];
                 };
             };
-            /** @description Error */
-            default: {
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2637,8 +2951,53 @@ export interface operations {
                     "application/json": components["schemas"]["CancelMeetingResponse"];
                 };
             };
-            /** @description Error */
-            default: {
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2673,8 +3032,53 @@ export interface operations {
                     "application/json": components["schemas"]["RespondMeetingResponse"];
                 };
             };
-            /** @description Error */
-            default: {
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2704,8 +3108,35 @@ export interface operations {
                     "application/json": components["schemas"]["WorkspaceMemberListResponse"];
                 };
             };
-            /** @description Error */
-            default: {
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
                 headers: {
                     [name: string]: unknown;
                 };

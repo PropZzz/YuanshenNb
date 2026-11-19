@@ -23,6 +23,7 @@
 
 package app.shixu.core.network.generated.models
 
+import app.shixu.core.network.generated.models.CognitiveLoad
 
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerialName
@@ -47,7 +48,7 @@ import kotlinx.serialization.encoding.Encoder
 data class WsWorkspaceMeetingConfirmedPayload (
 
     @SerialName(value = "cognitiveLoad")
-    val cognitiveLoad: WsWorkspaceMeetingConfirmedPayload.CognitiveLoad,
+    val cognitiveLoad: CognitiveLoad,
 
     @Contextual @SerialName(value = "endAt")
     val endAt: java.time.OffsetDateTime,
@@ -56,7 +57,7 @@ data class WsWorkspaceMeetingConfirmedPayload (
     val organizerId: java.util.UUID,
 
     @SerialName(value = "participantIds")
-    val participantIds: kotlin.collections.List<kotlin.String>?,
+    val participantIds: kotlin.collections.List<kotlin.String>,
 
     @Contextual @SerialName(value = "proposalId")
     val proposalId: java.util.UUID,
@@ -72,15 +73,6 @@ data class WsWorkspaceMeetingConfirmedPayload (
 
 ) {
 
-    /**
-     * Values: high,medium,low
-     */
-    @Serializable
-    enum class CognitiveLoad(val value: kotlin.String) {
-        @SerialName(value = "high") high("high"),
-        @SerialName(value = "medium") medium("medium"),
-        @SerialName(value = "low") low("low");
-    }
 
 }
 

@@ -23,6 +23,9 @@
 
 package app.shixu.core.network.generated.models
 
+import app.shixu.core.network.generated.models.RescueSnapshotStatus
+import app.shixu.core.network.generated.models.RescueStrategy
+import app.shixu.core.network.generated.models.RescueTriggerReason
 import app.shixu.core.network.generated.models.ScheduleItemSnapshot
 
 import kotlinx.serialization.Serializable
@@ -52,7 +55,7 @@ import kotlinx.serialization.encoding.Encoder
 data class RescueSnapshotRecord (
 
     @SerialName(value = "afterItems")
-    val afterItems: kotlin.collections.List<ScheduleItemSnapshot>?,
+    val afterItems: kotlin.collections.List<ScheduleItemSnapshot>,
 
     @Contextual @SerialName(value = "appliedAt")
     val appliedAt: java.time.OffsetDateTime,
@@ -61,7 +64,7 @@ data class RescueSnapshotRecord (
     val baselineVersion: kotlin.String,
 
     @SerialName(value = "beforeItems")
-    val beforeItems: kotlin.collections.List<ScheduleItemSnapshot>?,
+    val beforeItems: kotlin.collections.List<ScheduleItemSnapshot>,
 
     @Contextual @SerialName(value = "id")
     val id: java.util.UUID,
@@ -73,13 +76,13 @@ data class RescueSnapshotRecord (
     val optionHash: kotlin.String,
 
     @SerialName(value = "status")
-    val status: RescueSnapshotRecord.Status,
+    val status: RescueSnapshotStatus,
 
     @SerialName(value = "strategy")
-    val strategy: RescueSnapshotRecord.Strategy,
+    val strategy: RescueStrategy,
 
     @SerialName(value = "triggerReason")
-    val triggerReason: RescueSnapshotRecord.TriggerReason,
+    val triggerReason: RescueTriggerReason,
 
     @Contextual @SerialName(value = "userId")
     val userId: java.util.UUID,
@@ -89,32 +92,6 @@ data class RescueSnapshotRecord (
 
 ) {
 
-    /**
-     * Values: applied,reverted
-     */
-    @Serializable
-    enum class Status(val value: kotlin.String) {
-        @SerialName(value = "applied") applied("applied"),
-        @SerialName(value = "reverted") reverted("reverted");
-    }
-    /**
-     * Values: protect_deadline,protect_recovery,minimize_changes
-     */
-    @Serializable
-    enum class Strategy(val value: kotlin.String) {
-        @SerialName(value = "protect_deadline") protect_deadline("protect_deadline"),
-        @SerialName(value = "protect_recovery") protect_recovery("protect_recovery"),
-        @SerialName(value = "minimize_changes") minimize_changes("minimize_changes");
-    }
-    /**
-     * Values: urgent_task,team_meeting_overload,wearable_fatigue
-     */
-    @Serializable
-    enum class TriggerReason(val value: kotlin.String) {
-        @SerialName(value = "urgent_task") urgent_task("urgent_task"),
-        @SerialName(value = "team_meeting_overload") team_meeting_overload("team_meeting_overload"),
-        @SerialName(value = "wearable_fatigue") wearable_fatigue("wearable_fatigue");
-    }
 
 }
 

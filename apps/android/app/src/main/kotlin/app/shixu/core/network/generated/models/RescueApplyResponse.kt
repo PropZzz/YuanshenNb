@@ -23,6 +23,7 @@
 
 package app.shixu.core.network.generated.models
 
+import app.shixu.core.network.generated.models.RescueStrategy
 import app.shixu.core.network.generated.models.ScheduleItemDTO
 
 import kotlinx.serialization.Serializable
@@ -35,17 +36,20 @@ import kotlinx.serialization.encoding.Encoder
 
 /**
  * @param appliedItems
+ * @param baselineLocalDay
  * @param baselineVersion
  * @param snapshotId
  * @param strategy
- * @param dollarSchema A URL to the JSON Schema for this object.
  */
 @Serializable
 
 data class RescueApplyResponse (
 
     @SerialName(value = "appliedItems")
-    val appliedItems: kotlin.collections.List<ScheduleItemDTO>?,
+    val appliedItems: kotlin.collections.List<ScheduleItemDTO>,
+
+    @Contextual @SerialName(value = "baselineLocalDay")
+    val baselineLocalDay: java.time.LocalDate,
 
     @SerialName(value = "baselineVersion")
     val baselineVersion: kotlin.String,
@@ -54,23 +58,10 @@ data class RescueApplyResponse (
     val snapshotId: java.util.UUID,
 
     @SerialName(value = "strategy")
-    val strategy: RescueApplyResponse.Strategy,
-
-    /* A URL to the JSON Schema for this object. */
-    @Contextual @SerialName(value = "\$schema")
-    val dollarSchema: java.net.URI? = null
+    val strategy: RescueStrategy
 
 ) {
 
-    /**
-     * Values: protect_deadline,protect_recovery,minimize_changes
-     */
-    @Serializable
-    enum class Strategy(val value: kotlin.String) {
-        @SerialName(value = "protect_deadline") protect_deadline("protect_deadline"),
-        @SerialName(value = "protect_recovery") protect_recovery("protect_recovery"),
-        @SerialName(value = "minimize_changes") minimize_changes("minimize_changes");
-    }
 
 }
 

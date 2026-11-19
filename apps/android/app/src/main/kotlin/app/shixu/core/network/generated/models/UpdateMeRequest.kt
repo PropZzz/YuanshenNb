@@ -23,6 +23,7 @@
 
 package app.shixu.core.network.generated.models
 
+import app.shixu.core.network.generated.models.ThemeMode
 
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerialName
@@ -33,7 +34,6 @@ import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 
 /**
- * @param dollarSchema A URL to the JSON Schema for this object.
  * @param displayName
  * @param themeMode
  * @param timezone
@@ -42,30 +42,17 @@ import kotlinx.serialization.encoding.Encoder
 
 data class UpdateMeRequest (
 
-    /* A URL to the JSON Schema for this object. */
-    @Contextual @SerialName(value = "\$schema")
-    val dollarSchema: java.net.URI? = null,
-
     @SerialName(value = "displayName")
     val displayName: kotlin.String? = null,
 
     @SerialName(value = "themeMode")
-    val themeMode: UpdateMeRequest.ThemeMode? = null,
+    val themeMode: ThemeMode? = null,
 
     @SerialName(value = "timezone")
     val timezone: kotlin.String? = null
 
 ) {
 
-    /**
-     * Values: system,light,dark
-     */
-    @Serializable
-    enum class ThemeMode(val value: kotlin.String) {
-        @SerialName(value = "system") system("system"),
-        @SerialName(value = "light") light("light"),
-        @SerialName(value = "dark") dark("dark");
-    }
 
 }
 

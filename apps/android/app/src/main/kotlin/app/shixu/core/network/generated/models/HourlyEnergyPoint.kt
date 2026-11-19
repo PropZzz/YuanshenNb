@@ -23,6 +23,7 @@
 
 package app.shixu.core.network.generated.models
 
+import app.shixu.core.network.generated.models.EnergyTier
 
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerialName
@@ -48,20 +49,10 @@ data class HourlyEnergyPoint (
     val score: kotlin.Long,
 
     @SerialName(value = "tier")
-    val tier: HourlyEnergyPoint.Tier
+    val tier: EnergyTier
 
 ) {
 
-    /**
-     * Values: peak,steady,strained,depleted
-     */
-    @Serializable
-    enum class Tier(val value: kotlin.String) {
-        @SerialName(value = "peak") peak("peak"),
-        @SerialName(value = "steady") steady("steady"),
-        @SerialName(value = "strained") strained("strained"),
-        @SerialName(value = "depleted") depleted("depleted");
-    }
 
 }
 

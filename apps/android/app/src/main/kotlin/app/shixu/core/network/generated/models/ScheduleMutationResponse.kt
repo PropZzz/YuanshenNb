@@ -30,23 +30,23 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Contextual
 
 /**
+ * @param baselineLocalDay baselineVersion 对应的用户本地锚定日期 (YYYY-MM-DD)
  * @param baselineVersion
  * @param item
- * @param dollarSchema A URL to the JSON Schema for this object.
  */
 @Serializable
 
 data class ScheduleMutationResponse (
 
+    /* baselineVersion 对应的用户本地锚定日期 (YYYY-MM-DD) */
+    @Contextual @SerialName(value = "baselineLocalDay")
+    val baselineLocalDay: java.time.LocalDate,
+
     @SerialName(value = "baselineVersion")
     val baselineVersion: kotlin.String,
 
     @SerialName(value = "item")
-    val item: ScheduleItemDTO,
-
-    /* A URL to the JSON Schema for this object. */
-    @Contextual @SerialName(value = "\$schema")
-    val dollarSchema: java.net.URI? = null
+    val item: ScheduleItemDTO
 
 ) {
 

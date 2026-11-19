@@ -23,13 +23,13 @@ WHERE user_id = ANY(sqlc.arg(user_ids)::uuid[])
 ORDER BY user_id, start_at;
 
 -- name: FindScheduleConflictsExcludingIDs :many
--- 救援撤销校验：检查待还原区间是否与快照之外新出现的锁定日程或会议重叠
+-- 救援撤销校验：检查待还原区间是否与快照之外新出现的锁定日程或会议重叠（COALESCE 防空/nil 切片引发 SQL UNKNOWN）
 SELECT id, user_id, title, category, flexibility, start_at, end_at
 FROM schedule_items
 WHERE user_id = sqlc.arg(user_id)
   AND status <> 'cancelled'
   AND (flexibility = 'hard_locked' OR category = 'meeting')
-  AND NOT (id = ANY(sqlc.arg(excluded_ids)::uuid[]))
+  AND NOT (id = ANY(COALESCE(sqlc.arg(excluded_ids)::uuid[], '{}'::uuid[])))
   AND time_range && tstzrange(sqlc.arg(start_at)::timestamptz, sqlc.arg(end_at)::timestamptz, '[)')
 ORDER BY start_at;
 
@@ -71,13 +71,14 @@ ON CONFLICT (user_id, source_type, metric_type, external_id) DO NOTHING
 RETURNING id;
 
 -- name: ListRecentBiometricsForEnergy :many
--- 拉取过去 14 天用于生理基线与当日精力计算的样本
+-- 拉取 [since_at, until_at] 窗口内（典型 14 天）的生理样本，避免查询历史日时误读未来样本
 SELECT
     id, user_id, source_type, metric_type,
     recorded_at, end_at, numeric_value, unit, metadata, external_id
 FROM biometric_samples
 WHERE user_id = sqlc.arg(user_id)
   AND recorded_at >= sqlc.arg(since_at)::timestamptz
+  AND recorded_at <= sqlc.arg(until_at)::timestamptz
 ORDER BY recorded_at DESC;
 
 -- name: InsertEnergySnapshot :one
@@ -147,7 +148,7 @@ WHERE id = sqlc.arg(snapshot_id)
 UPDATE schedule_items
 SET status = 'cancelled',
     updated_at = NOW()
-WHERE meeting_proposal_id = sqlc.arg(proposal_id)
+WHERE meeting_proposal_id = sqlc.arg(proposal_id)::uuid
   AND user_id = sqlc.arg(user_id)
   AND status <> 'cancelled';
 
@@ -156,5 +157,5 @@ WHERE meeting_proposal_id = sqlc.arg(proposal_id)
 UPDATE schedule_items
 SET status = 'cancelled',
     updated_at = NOW()
-WHERE meeting_proposal_id = sqlc.arg(proposal_id)
+WHERE meeting_proposal_id = sqlc.arg(proposal_id)::uuid
   AND status <> 'cancelled';

@@ -2,7 +2,9 @@ package api
 
 import (
 	"context"
+	"fmt"
 	"net/http"
+	"slices"
 	"time"
 
 	"github.com/danielgtaylor/huma/v2"
@@ -126,7 +128,8 @@ type RescueOptionsOutput struct {
 }
 
 type RescueApplyInput struct {
-	Body RescueApplyRequest
+	IdempotencyKey string `header:"Idempotency-Key" doc:"可选请求幂等键（防弱网重复应用救援方案）"`
+	Body           RescueApplyRequest
 }
 
 type RescueApplyOutput struct {
@@ -188,7 +191,38 @@ type WorkspaceAvailabilityInput struct {
 	ID        uuid.UUID   `path:"id" format:"uuid"`
 	From      time.Time   `query:"from" required:"true" format:"date-time"`
 	To        time.Time   `query:"to" required:"true" format:"date-time"`
-	MemberIDs []uuid.UUID `query:"memberIds" doc:"可选过滤工作区成员子集"`
+	MemberIDs []UUIDParam `query:"memberIds" doc:"可选过滤工作区成员子集"`
+}
+
+// Resolve 校验逗号分隔的 memberIds 均为合法 UUID。
+func (in *WorkspaceAvailabilityInput) Resolve(huma.Context) []error {
+	var errs []error
+	for i, raw := range in.MemberIDs {
+		if _, err := uuid.Parse(string(raw)); err != nil {
+			errs = append(errs, &huma.ErrorDetail{
+				Location: fmt.Sprintf("query.memberIds[%d]", i),
+				Message:  "must be a valid UUID",
+				Value:    string(raw),
+			})
+		}
+	}
+	return errs
+}
+
+// ParsedMemberIDs 返回已解析的 UUID 切片（供业务 Handler 消费）。
+func (in *WorkspaceAvailabilityInput) ParsedMemberIDs() ([]uuid.UUID, error) {
+	if len(in.MemberIDs) == 0 {
+		return nil, nil
+	}
+	ids := make([]uuid.UUID, len(in.MemberIDs))
+	for i, raw := range in.MemberIDs {
+		id, err := uuid.Parse(string(raw))
+		if err != nil {
+			return nil, fmt.Errorf("invalid memberIds[%d]: %w", i, err)
+		}
+		ids[i] = id
+	}
+	return ids, nil
 }
 
 type WorkspaceAvailabilityOutput struct {
@@ -216,12 +250,12 @@ type ConfirmMeetingOutput struct {
 }
 
 type ListWorkspaceMeetingsInput struct {
-	ID     uuid.UUID `path:"id" format:"uuid"`
-	Status string    `query:"status" enum:"draft,confirmed,cancelled"`
-	From   time.Time `query:"from" format:"date-time"`
-	To     time.Time `query:"to" format:"date-time"`
-	Limit  int       `query:"limit" minimum:"1" maximum:"50" default:"20"`
-	Cursor string    `query:"cursor"`
+	ID     uuid.UUID             `path:"id" format:"uuid"`
+	Status MeetingProposalStatus `query:"status"`
+	From   time.Time             `query:"from" format:"date-time"`
+	To     time.Time             `query:"to" format:"date-time"`
+	Limit  int                   `query:"limit" minimum:"1" maximum:"50" default:"20"`
+	Cursor string                `query:"cursor"`
 }
 
 type ListWorkspaceMeetingsOutput struct {
@@ -248,10 +282,13 @@ type CancelMeetingOutput struct {
 	Body CancelMeetingResponse
 }
 
-// Handlers 汇聚 P1 各业务模块暴露给 Huma 路由层的全部处理方法。
-// 当传入 nil（例如仅运行 export-openapi 导出 OpenAPI 契约时），路由层自动回退到 501 契约占位处理器。
-type Handlers interface {
+// ── 按限界上下文拆分的领域处理器接口（ISP：支持各模块独立开发、注入与单测） ──
+
+type SystemHandlers interface {
 	GetHealth(ctx context.Context, in *struct{}) (*HealthOutput, error)
+}
+
+type AuthHandlers interface {
 	RegisterUser(ctx context.Context, in *RegisterInput) (*AuthTokensOutput, error)
 	LoginUser(ctx context.Context, in *LoginInput) (*AuthTokensOutput, error)
 	RefreshTokens(ctx context.Context, in *RefreshInput) (*AuthTokensOutput, error)
@@ -259,13 +296,20 @@ type Handlers interface {
 	GetCurrentUser(ctx context.Context, in *struct{}) (*UserProfileOutput, error)
 	UpdateCurrentUser(ctx context.Context, in *UpdateMeInput) (*UserProfileOutput, error)
 	IssueWsTicket(ctx context.Context, in *struct{}) (*WsTicketOutput, error)
+}
 
+type BiometricsHandlers interface {
 	IngestBiometricSamplesBatch(ctx context.Context, in *BiometricBatchInput) (*BiometricBatchOutput, error)
 	SeedBiometricReplay(ctx context.Context, in *ReplaySeedInput) (*ReplaySeedOutput, error)
+}
+
+type EnergyHandlers interface {
 	GetTodayEnergy(ctx context.Context, in *EnergyTodayInput) (*EnergyTodayOutput, error)
 	GetEnergyProfile(ctx context.Context, in *struct{}) (*EnergyProfileOutput, error)
 	UpdateEnergyProfile(ctx context.Context, in *UpdateEnergyProfileInput) (*EnergyProfileOutput, error)
+}
 
+type ScheduleHandlers interface {
 	ListScheduleItems(ctx context.Context, in *ListScheduleItemsInput) (*ListScheduleItemsOutput, error)
 	CreateScheduleItem(ctx context.Context, in *CreateScheduleItemInput) (*ScheduleMutationOutput, error)
 	UpdateScheduleItem(ctx context.Context, in *UpdateScheduleItemInput) (*ScheduleMutationOutput, error)
@@ -274,7 +318,9 @@ type Handlers interface {
 	ApplyRescueOption(ctx context.Context, in *RescueApplyInput) (*RescueApplyOutput, error)
 	UndoRescueSnapshot(ctx context.Context, in *RescueUndoInput) (*RescueUndoOutput, error)
 	ListRescueHistory(ctx context.Context, in *RescueHistoryInput) (*RescueHistoryOutput, error)
+}
 
+type WorkspacesHandlers interface {
 	CreateWorkspace(ctx context.Context, in *CreateWorkspaceInput) (*WorkspaceOutput, error)
 	ListWorkspaces(ctx context.Context, in *struct{}) (*WorkspaceListOutput, error)
 	JoinWorkspace(ctx context.Context, in *JoinWorkspaceInput) (*WorkspaceOutput, error)
@@ -288,27 +334,78 @@ type Handlers interface {
 	CancelWorkspaceMeeting(ctx context.Context, in *CancelMeetingInput) (*CancelMeetingOutput, error)
 }
 
-func bind[I any, O any](h Handlers, getter func(Handlers) func(context.Context, *I) (*O, error)) func(context.Context, *I) (*O, error) {
-	if h == nil {
-		return func(context.Context, *I) (*O, error) {
-			return nil, huma.Error501NotImplemented("openapi export stub only")
-		}
-	}
-	if fn := getter(h); fn != nil {
-		return fn
-	}
+// RouteHandlers 聚合各领域模块的处理器实现，未实现的领域模块置为 nil 即可。
+type RouteHandlers struct {
+	System     SystemHandlers
+	Auth       AuthHandlers
+	Biometrics BiometricsHandlers
+	Energy     EnergyHandlers
+	Schedule   ScheduleHandlers
+	Workspaces WorkspacesHandlers
+}
+
+// RouteOptions 控制认证中间件挂载与契约导出模式。
+type RouteOptions struct {
+	// AuthMiddleware 作用于所有受保护路由组（含 /auth/logout, /auth/me, /auth/ws-ticket 及全部业务接口）。
+	AuthMiddleware func(ctx huma.Context, next func(huma.Context))
+	// AllowUnimplementedStubs 仅限 export-openapi 或契约测试启用；运行期为 false，严禁暴露 501 占位路由。
+	AllowUnimplementedStubs bool
+}
+
+func stubHandler[I any, O any]() func(context.Context, *I) (*O, error) {
 	return func(context.Context, *I) (*O, error) {
-		return nil, huma.Error501NotImplemented("handler not implemented")
+		return nil, huma.Error501NotImplemented("openapi export stub only")
 	}
 }
 
-// RegisterContractRoutes 将全部 32 个 REST 端点注册至 Huma API。
-func RegisterContractRoutes(api huma.API, h Handlers) {
-	ConfigureHumaErrors()
-	bearer := []map[string][]string{{"BearerAuth": {}}}
-	refreshSecurity := []map[string][]string{{"RefreshTokenCookie": {}}, {}}
+func pick[T any, I any, O any](impl T, isNil bool, fn func(T) func(context.Context, *I) (*O, error)) func(context.Context, *I) (*O, error) {
+	if isNil {
+		return stubHandler[I, O]()
+	}
+	return fn(impl)
+}
 
-	// ── System & Auth ──
+// RegisterContractRoutes 将公开与受保护 REST 端点按领域模块注册至 Huma API。
+func RegisterContractRoutes(humaAPI huma.API, h RouteHandlers, opts RouteOptions) {
+	ConfigureHumaErrors()
+
+	publicGroup := huma.NewGroup(humaAPI)
+	protectedGroup := huma.NewGroup(humaAPI)
+	if opts.AuthMiddleware != nil {
+		protectedGroup.UseMiddleware(opts.AuthMiddleware)
+	}
+	protectedGroup.UseSimpleModifier(func(o *huma.Operation) {
+		if len(o.Security) == 0 {
+			o.Security = []map[string][]string{{"BearerAuth": {}}}
+		}
+		if !slices.Contains(o.Errors, http.StatusUnauthorized) {
+			o.Errors = append(o.Errors, http.StatusUnauthorized)
+		}
+	})
+
+	if h.System != nil || opts.AllowUnimplementedStubs {
+		registerSystemRoutes(publicGroup, h.System)
+	}
+	if h.Auth != nil || opts.AllowUnimplementedStubs {
+		registerAuthPublicRoutes(publicGroup, h.Auth)
+		registerAuthProtectedRoutes(protectedGroup, h.Auth)
+	}
+	if h.Biometrics != nil || opts.AllowUnimplementedStubs {
+		registerBiometricsRoutes(protectedGroup, h.Biometrics)
+	}
+	if h.Energy != nil || opts.AllowUnimplementedStubs {
+		registerEnergyRoutes(protectedGroup, h.Energy)
+	}
+	if h.Schedule != nil || opts.AllowUnimplementedStubs {
+		registerScheduleRoutes(protectedGroup, h.Schedule)
+	}
+	if h.Workspaces != nil || opts.AllowUnimplementedStubs {
+		registerWorkspacesRoutes(protectedGroup, h.Workspaces)
+	}
+}
+
+func registerSystemRoutes(api huma.API, h SystemHandlers) {
+	isNil := h == nil
 	huma.Register(api, huma.Operation{
 		OperationID: "getHealth",
 		Method:      http.MethodGet,
@@ -316,7 +413,14 @@ func RegisterContractRoutes(api huma.API, h Handlers) {
 		Summary:     "数据库与服务连通性探针",
 		Tags:        []string{"System"},
 		Errors:      []int{http.StatusServiceUnavailable},
-	}, bind(h, func(x Handlers) func(context.Context, *struct{}) (*HealthOutput, error) { return x.GetHealth }))
+	}, pick(h, isNil, func(x SystemHandlers) func(context.Context, *struct{}) (*HealthOutput, error) {
+		return x.GetHealth
+	}))
+}
+
+func registerAuthPublicRoutes(api huma.API, h AuthHandlers) {
+	isNil := h == nil
+	refreshSecurity := []map[string][]string{{"RefreshTokenCookie": {}}, {}}
 
 	huma.Register(api, huma.Operation{
 		OperationID:   "registerUser",
@@ -326,7 +430,9 @@ func RegisterContractRoutes(api huma.API, h Handlers) {
 		Tags:          []string{"Auth"},
 		DefaultStatus: http.StatusCreated,
 		Errors:        []int{http.StatusConflict, http.StatusUnprocessableEntity},
-	}, bind(h, func(x Handlers) func(context.Context, *RegisterInput) (*AuthTokensOutput, error) { return x.RegisterUser }))
+	}, pick(h, isNil, func(x AuthHandlers) func(context.Context, *RegisterInput) (*AuthTokensOutput, error) {
+		return x.RegisterUser
+	}))
 
 	huma.Register(api, huma.Operation{
 		OperationID: "loginUser",
@@ -335,7 +441,9 @@ func RegisterContractRoutes(api huma.API, h Handlers) {
 		Summary:     "Argon2id 密码校验登录并签发令牌族",
 		Tags:        []string{"Auth"},
 		Errors:      []int{http.StatusUnauthorized, http.StatusUnprocessableEntity},
-	}, bind(h, func(x Handlers) func(context.Context, *LoginInput) (*AuthTokensOutput, error) { return x.LoginUser }))
+	}, pick(h, isNil, func(x AuthHandlers) func(context.Context, *LoginInput) (*AuthTokensOutput, error) {
+		return x.LoginUser
+	}))
 
 	huma.Register(api, huma.Operation{
 		OperationID: "refreshTokens",
@@ -344,8 +452,14 @@ func RegisterContractRoutes(api huma.API, h Handlers) {
 		Summary:     "轮换 Refresh Token（支持 JSON Body 或 HttpOnly Cookie，含重放盗用检测）",
 		Tags:        []string{"Auth"},
 		Security:    refreshSecurity,
-		Errors:      []int{http.StatusUnauthorized},
-	}, bind(h, func(x Handlers) func(context.Context, *RefreshInput) (*AuthTokensOutput, error) { return x.RefreshTokens }))
+		Errors:      []int{http.StatusUnauthorized, http.StatusUnprocessableEntity},
+	}, pick(h, isNil, func(x AuthHandlers) func(context.Context, *RefreshInput) (*AuthTokensOutput, error) {
+		return x.RefreshTokens
+	}))
+}
+
+func registerAuthProtectedRoutes(api huma.API, h AuthHandlers) {
+	isNil := h == nil
 
 	huma.Register(api, huma.Operation{
 		OperationID:   "logoutUser",
@@ -353,9 +467,11 @@ func RegisterContractRoutes(api huma.API, h Handlers) {
 		Path:          "/api/v1/auth/logout",
 		Summary:       "吊销当前设备 Refresh Token 并清除 Cookie",
 		Tags:          []string{"Auth"},
-		Security:      bearer,
 		DefaultStatus: http.StatusNoContent,
-	}, bind(h, func(x Handlers) func(context.Context, *LogoutInput) (*LogoutOutput, error) { return x.LogoutUser }))
+		Errors:        []int{http.StatusUnauthorized, http.StatusUnprocessableEntity},
+	}, pick(h, isNil, func(x AuthHandlers) func(context.Context, *LogoutInput) (*LogoutOutput, error) {
+		return x.LogoutUser
+	}))
 
 	huma.Register(api, huma.Operation{
 		OperationID: "getCurrentUser",
@@ -363,8 +479,10 @@ func RegisterContractRoutes(api huma.API, h Handlers) {
 		Path:        "/api/v1/auth/me",
 		Summary:     "获取当前登录用户档案",
 		Tags:        []string{"Auth"},
-		Security:    bearer,
-	}, bind(h, func(x Handlers) func(context.Context, *struct{}) (*UserProfileOutput, error) { return x.GetCurrentUser }))
+		Errors:      []int{http.StatusUnauthorized},
+	}, pick(h, isNil, func(x AuthHandlers) func(context.Context, *struct{}) (*UserProfileOutput, error) {
+		return x.GetCurrentUser
+	}))
 
 	huma.Register(api, huma.Operation{
 		OperationID: "updateCurrentUser",
@@ -372,8 +490,10 @@ func RegisterContractRoutes(api huma.API, h Handlers) {
 		Path:        "/api/v1/auth/me",
 		Summary:     "更新用户昵称、时区或外观主题偏好",
 		Tags:        []string{"Auth"},
-		Security:    bearer,
-	}, bind(h, func(x Handlers) func(context.Context, *UpdateMeInput) (*UserProfileOutput, error) { return x.UpdateCurrentUser }))
+		Errors:      []int{http.StatusUnauthorized, http.StatusUnprocessableEntity},
+	}, pick(h, isNil, func(x AuthHandlers) func(context.Context, *UpdateMeInput) (*UserProfileOutput, error) {
+		return x.UpdateCurrentUser
+	}))
 
 	huma.Register(api, huma.Operation{
 		OperationID: "issueWsTicket",
@@ -381,18 +501,23 @@ func RegisterContractRoutes(api huma.API, h Handlers) {
 		Path:        "/api/v1/auth/ws-ticket",
 		Summary:     "签发 30 秒一次性 WebSocket 握手票据",
 		Tags:        []string{"Auth"},
-		Security:    bearer,
-	}, bind(h, func(x Handlers) func(context.Context, *struct{}) (*WsTicketOutput, error) { return x.IssueWsTicket }))
+		Errors:      []int{http.StatusUnauthorized},
+	}, pick(h, isNil, func(x AuthHandlers) func(context.Context, *struct{}) (*WsTicketOutput, error) {
+		return x.IssueWsTicket
+	}))
+}
 
-	// ── Biometrics & Energy ──
+func registerBiometricsRoutes(api huma.API, h BiometricsHandlers) {
+	isNil := h == nil
+
 	huma.Register(api, huma.Operation{
 		OperationID: "ingestBiometricSamplesBatch",
 		Method:      http.MethodPost,
 		Path:        "/api/v1/biometrics/samples/batch",
 		Summary:     "批量上报穿戴生理样本（按 externalId 幂等去重并触发精力重算）",
 		Tags:        []string{"Biometrics"},
-		Security:    bearer,
-	}, bind(h, func(x Handlers) func(context.Context, *BiometricBatchInput) (*BiometricBatchOutput, error) {
+		Errors:      []int{http.StatusUnauthorized, http.StatusUnprocessableEntity},
+	}, pick(h, isNil, func(x BiometricsHandlers) func(context.Context, *BiometricBatchInput) (*BiometricBatchOutput, error) {
 		return x.IngestBiometricSamplesBatch
 	}))
 
@@ -402,19 +527,25 @@ func RegisterContractRoutes(api huma.API, h Handlers) {
 		Path:        "/api/v1/biometrics/replay-seed",
 		Summary:     "显式注入 replay_demo 测试回放样本",
 		Tags:        []string{"Biometrics"},
-		Security:    bearer,
-	}, bind(h, func(x Handlers) func(context.Context, *ReplaySeedInput) (*ReplaySeedOutput, error) {
+		Errors:      []int{http.StatusUnauthorized, http.StatusUnprocessableEntity},
+	}, pick(h, isNil, func(x BiometricsHandlers) func(context.Context, *ReplaySeedInput) (*ReplaySeedOutput, error) {
 		return x.SeedBiometricReplay
 	}))
+}
+
+func registerEnergyRoutes(api huma.API, h EnergyHandlers) {
+	isNil := h == nil
 
 	huma.Register(api, huma.Operation{
 		OperationID: "getTodayEnergy",
 		Method:      http.MethodGet,
 		Path:        "/api/v1/energy/today",
-		Summary:     "获取指定日期的实时精力电量、四因子拆解、24h 节律曲线、保护盾与穿戴源诊断",
+		Summary:     "获取指定日期的实时精力电量、四因子拆解、本地自然日节律曲线、保护盾与穿戴源诊断",
 		Tags:        []string{"Energy"},
-		Security:    bearer,
-	}, bind(h, func(x Handlers) func(context.Context, *EnergyTodayInput) (*EnergyTodayOutput, error) { return x.GetTodayEnergy }))
+		Errors:      []int{http.StatusUnauthorized, http.StatusUnprocessableEntity},
+	}, pick(h, isNil, func(x EnergyHandlers) func(context.Context, *EnergyTodayInput) (*EnergyTodayOutput, error) {
+		return x.GetTodayEnergy
+	}))
 
 	huma.Register(api, huma.Operation{
 		OperationID: "getEnergyProfile",
@@ -422,8 +553,8 @@ func RegisterContractRoutes(api huma.API, h Handlers) {
 		Path:        "/api/v1/energy/profile",
 		Summary:     "获取个人工作时间窗、昼夜节律类型、偏好心流窗口与 14 日生理基线",
 		Tags:        []string{"Energy"},
-		Security:    bearer,
-	}, bind(h, func(x Handlers) func(context.Context, *struct{}) (*EnergyProfileOutput, error) {
+		Errors:      []int{http.StatusUnauthorized},
+	}, pick(h, isNil, func(x EnergyHandlers) func(context.Context, *struct{}) (*EnergyProfileOutput, error) {
 		return x.GetEnergyProfile
 	}))
 
@@ -433,20 +564,23 @@ func RegisterContractRoutes(api huma.API, h Handlers) {
 		Path:        "/api/v1/energy/profile",
 		Summary:     "更新个人工作时间窗、昼夜节律类型、心流保护窗与最小恢复缓冲",
 		Tags:        []string{"Energy"},
-		Security:    bearer,
-	}, bind(h, func(x Handlers) func(context.Context, *UpdateEnergyProfileInput) (*EnergyProfileOutput, error) {
+		Errors:      []int{http.StatusUnauthorized, http.StatusUnprocessableEntity},
+	}, pick(h, isNil, func(x EnergyHandlers) func(context.Context, *UpdateEnergyProfileInput) (*EnergyProfileOutput, error) {
 		return x.UpdateEnergyProfile
 	}))
+}
 
-	// ── Schedule & Rescue ──
+func registerScheduleRoutes(api huma.API, h ScheduleHandlers) {
+	isNil := h == nil
+
 	huma.Register(api, huma.Operation{
 		OperationID: "listScheduleItems",
 		Method:      http.MethodGet,
 		Path:        "/api/v1/schedule/items",
 		Summary:     "按 UTC 时间区间拉取个人日程与 48h 乐观锁基线版本（最大跨度 62 天）",
 		Tags:        []string{"Schedule"},
-		Security:    bearer,
-	}, bind(h, func(x Handlers) func(context.Context, *ListScheduleItemsInput) (*ListScheduleItemsOutput, error) {
+		Errors:      []int{http.StatusUnauthorized, http.StatusUnprocessableEntity},
+	}, pick(h, isNil, func(x ScheduleHandlers) func(context.Context, *ListScheduleItemsInput) (*ListScheduleItemsOutput, error) {
 		return x.ListScheduleItems
 	}))
 
@@ -456,9 +590,9 @@ func RegisterContractRoutes(api huma.API, h Handlers) {
 		Path:          "/api/v1/schedule/items",
 		Summary:       "新建个人日程时间块（含 GiST 硬锁定冲突检测）",
 		Tags:          []string{"Schedule"},
-		Security:      bearer,
 		DefaultStatus: http.StatusCreated,
-	}, bind(h, func(x Handlers) func(context.Context, *CreateScheduleItemInput) (*ScheduleMutationOutput, error) {
+		Errors:        []int{http.StatusUnauthorized, http.StatusConflict, http.StatusUnprocessableEntity},
+	}, pick(h, isNil, func(x ScheduleHandlers) func(context.Context, *CreateScheduleItemInput) (*ScheduleMutationOutput, error) {
 		return x.CreateScheduleItem
 	}))
 
@@ -468,8 +602,8 @@ func RegisterContractRoutes(api huma.API, h Handlers) {
 		Path:        "/api/v1/schedule/items/{id}",
 		Summary:     "更新个人日程",
 		Tags:        []string{"Schedule"},
-		Security:    bearer,
-	}, bind(h, func(x Handlers) func(context.Context, *UpdateScheduleItemInput) (*ScheduleMutationOutput, error) {
+		Errors:      []int{http.StatusUnauthorized, http.StatusNotFound, http.StatusConflict, http.StatusUnprocessableEntity},
+	}, pick(h, isNil, func(x ScheduleHandlers) func(context.Context, *UpdateScheduleItemInput) (*ScheduleMutationOutput, error) {
 		return x.UpdateScheduleItem
 	}))
 
@@ -479,9 +613,9 @@ func RegisterContractRoutes(api huma.API, h Handlers) {
 		Path:          "/api/v1/schedule/items/{id}",
 		Summary:       "取消/软删除个人日程（置 status='cancelled'）",
 		Tags:          []string{"Schedule"},
-		Security:      bearer,
 		DefaultStatus: http.StatusNoContent,
-	}, bind(h, func(x Handlers) func(context.Context, *ScheduleItemIDInput) (*struct{}, error) {
+		Errors:        []int{http.StatusUnauthorized, http.StatusNotFound, http.StatusConflict},
+	}, pick(h, isNil, func(x ScheduleHandlers) func(context.Context, *ScheduleItemIDInput) (*struct{}, error) {
 		return x.DeleteScheduleItem
 	}))
 
@@ -489,10 +623,10 @@ func RegisterContractRoutes(api huma.API, h Handlers) {
 		OperationID: "previewRescueOptions",
 		Method:      http.MethodPost,
 		Path:        "/api/v1/schedule/rescue/options",
-		Summary:     "预览突发插单或疲劳过载的三套日程救援方案（纯函数计算，不写库）",
+		Summary:     "预览突发插单或疲劳过载的日程救援方案（纯函数计算，不写库）",
 		Tags:        []string{"Schedule"},
-		Security:    bearer,
-	}, bind(h, func(x Handlers) func(context.Context, *RescueOptionsInput) (*RescueOptionsOutput, error) {
+		Errors:      []int{http.StatusUnauthorized, http.StatusUnprocessableEntity},
+	}, pick(h, isNil, func(x ScheduleHandlers) func(context.Context, *RescueOptionsInput) (*RescueOptionsOutput, error) {
 		return x.PreviewRescueOptions
 	}))
 
@@ -502,8 +636,8 @@ func RegisterContractRoutes(api huma.API, h Handlers) {
 		Path:        "/api/v1/schedule/rescue/apply",
 		Summary:     "确认采纳某套救援策略（单事务校验 48h baselineVersion、服务端确定性重算落库）",
 		Tags:        []string{"Schedule"},
-		Security:    bearer,
-	}, bind(h, func(x Handlers) func(context.Context, *RescueApplyInput) (*RescueApplyOutput, error) {
+		Errors:      []int{http.StatusUnauthorized, http.StatusConflict, http.StatusUnprocessableEntity},
+	}, pick(h, isNil, func(x ScheduleHandlers) func(context.Context, *RescueApplyInput) (*RescueApplyOutput, error) {
 		return x.ApplyRescueOption
 	}))
 
@@ -513,8 +647,8 @@ func RegisterContractRoutes(api huma.API, h Handlers) {
 		Path:        "/api/v1/schedule/rescue/undo",
 		Summary:     "原子撤销已应用的救援快照（校验无新增锁定会议冲突后按 before_items 还原）",
 		Tags:        []string{"Schedule"},
-		Security:    bearer,
-	}, bind(h, func(x Handlers) func(context.Context, *RescueUndoInput) (*RescueUndoOutput, error) {
+		Errors:      []int{http.StatusUnauthorized, http.StatusNotFound, http.StatusConflict, http.StatusUnprocessableEntity},
+	}, pick(h, isNil, func(x ScheduleHandlers) func(context.Context, *RescueUndoInput) (*RescueUndoOutput, error) {
 		return x.UndoRescueSnapshot
 	}))
 
@@ -524,21 +658,24 @@ func RegisterContractRoutes(api huma.API, h Handlers) {
 		Path:        "/api/v1/schedule/rescue/history",
 		Summary:     "分页查询近期日程救援采纳与撤销历史",
 		Tags:        []string{"Schedule"},
-		Security:    bearer,
-	}, bind(h, func(x Handlers) func(context.Context, *RescueHistoryInput) (*RescueHistoryOutput, error) {
+		Errors:      []int{http.StatusUnauthorized, http.StatusUnprocessableEntity},
+	}, pick(h, isNil, func(x ScheduleHandlers) func(context.Context, *RescueHistoryInput) (*RescueHistoryOutput, error) {
 		return x.ListRescueHistory
 	}))
+}
 
-	// ── Workspaces & Collaborative Meetings ──
+func registerWorkspacesRoutes(api huma.API, h WorkspacesHandlers) {
+	isNil := h == nil
+
 	huma.Register(api, huma.Operation{
 		OperationID:   "createWorkspace",
 		Method:        http.MethodPost,
 		Path:          "/api/v1/workspaces",
 		Summary:       "创建团队工作区并将创建者设为 owner",
 		Tags:          []string{"Workspaces"},
-		Security:      bearer,
 		DefaultStatus: http.StatusCreated,
-	}, bind(h, func(x Handlers) func(context.Context, *CreateWorkspaceInput) (*WorkspaceOutput, error) {
+		Errors:        []int{http.StatusUnauthorized, http.StatusUnprocessableEntity},
+	}, pick(h, isNil, func(x WorkspacesHandlers) func(context.Context, *CreateWorkspaceInput) (*WorkspaceOutput, error) {
 		return x.CreateWorkspace
 	}))
 
@@ -548,8 +685,10 @@ func RegisterContractRoutes(api huma.API, h Handlers) {
 		Path:        "/api/v1/workspaces",
 		Summary:     "列出当前用户已加入的全部团队工作区",
 		Tags:        []string{"Workspaces"},
-		Security:    bearer,
-	}, bind(h, func(x Handlers) func(context.Context, *struct{}) (*WorkspaceListOutput, error) { return x.ListWorkspaces }))
+		Errors:      []int{http.StatusUnauthorized},
+	}, pick(h, isNil, func(x WorkspacesHandlers) func(context.Context, *struct{}) (*WorkspaceListOutput, error) {
+		return x.ListWorkspaces
+	}))
 
 	huma.Register(api, huma.Operation{
 		OperationID: "joinWorkspace",
@@ -557,8 +696,8 @@ func RegisterContractRoutes(api huma.API, h Handlers) {
 		Path:        "/api/v1/workspaces/join",
 		Summary:     "通过邀请码加入团队工作区",
 		Tags:        []string{"Workspaces"},
-		Security:    bearer,
-	}, bind(h, func(x Handlers) func(context.Context, *JoinWorkspaceInput) (*WorkspaceOutput, error) {
+		Errors:      []int{http.StatusUnauthorized, http.StatusNotFound, http.StatusConflict, http.StatusUnprocessableEntity},
+	}, pick(h, isNil, func(x WorkspacesHandlers) func(context.Context, *JoinWorkspaceInput) (*WorkspaceOutput, error) {
 		return x.JoinWorkspace
 	}))
 
@@ -568,8 +707,8 @@ func RegisterContractRoutes(api huma.API, h Handlers) {
 		Path:        "/api/v1/workspaces/{id}/me",
 		Summary:     "修改当前用户在该团队工作区的隐私脱敏投影级别",
 		Tags:        []string{"Workspaces"},
-		Security:    bearer,
-	}, bind(h, func(x Handlers) func(context.Context, *UpdateWorkspacePrivacyInput) (*WorkspaceMemberOutput, error) {
+		Errors:      []int{http.StatusUnauthorized, http.StatusForbidden, http.StatusUnprocessableEntity},
+	}, pick(h, isNil, func(x WorkspacesHandlers) func(context.Context, *UpdateWorkspacePrivacyInput) (*WorkspaceMemberOutput, error) {
 		return x.UpdateWorkspacePrivacy
 	}))
 
@@ -579,8 +718,8 @@ func RegisterContractRoutes(api huma.API, h Handlers) {
 		Path:        "/api/v1/workspaces/{id}/members",
 		Summary:     "获取团队工作区成员名册",
 		Tags:        []string{"Workspaces"},
-		Security:    bearer,
-	}, bind(h, func(x Handlers) func(context.Context, *WorkspaceIDInput) (*WorkspaceMembersOutput, error) {
+		Errors:      []int{http.StatusUnauthorized, http.StatusForbidden},
+	}, pick(h, isNil, func(x WorkspacesHandlers) func(context.Context, *WorkspaceIDInput) (*WorkspaceMembersOutput, error) {
 		return x.ListWorkspaceMembers
 	}))
 
@@ -590,8 +729,8 @@ func RegisterContractRoutes(api huma.API, h Handlers) {
 		Path:        "/api/v1/workspaces/{id}/availability",
 		Summary:     "获取经服务端严格隐私脱敏后的团队成员状态网格与整点精力档位（最大跨度 14 天）",
 		Tags:        []string{"Workspaces"},
-		Security:    bearer,
-	}, bind(h, func(x Handlers) func(context.Context, *WorkspaceAvailabilityInput) (*WorkspaceAvailabilityOutput, error) {
+		Errors:      []int{http.StatusUnauthorized, http.StatusForbidden, http.StatusUnprocessableEntity},
+	}, pick(h, isNil, func(x WorkspacesHandlers) func(context.Context, *WorkspaceAvailabilityInput) (*WorkspaceAvailabilityOutput, error) {
 		return x.GetWorkspaceAvailability
 	}))
 
@@ -599,10 +738,10 @@ func RegisterContractRoutes(api huma.API, h Handlers) {
 		OperationID: "recommendWorkspaceMeetings",
 		Method:      http.MethodPost,
 		Path:        "/api/v1/workspaces/{id}/meetings/recommend",
-		Summary:     "求解团队协同排会 Top 3 黄金窗口（最大搜索跨度 14 天）",
+		Summary:     "求解团队协同排会黄金窗口（最大搜索跨度 14 天）",
 		Tags:        []string{"Workspaces"},
-		Security:    bearer,
-	}, bind(h, func(x Handlers) func(context.Context, *RecommendMeetingInput) (*RecommendMeetingOutput, error) {
+		Errors:      []int{http.StatusUnauthorized, http.StatusForbidden, http.StatusUnprocessableEntity},
+	}, pick(h, isNil, func(x WorkspacesHandlers) func(context.Context, *RecommendMeetingInput) (*RecommendMeetingOutput, error) {
 		return x.RecommendWorkspaceMeetings
 	}))
 
@@ -612,9 +751,9 @@ func RegisterContractRoutes(api huma.API, h Handlers) {
 		Path:          "/api/v1/workspaces/{id}/meetings/confirm",
 		Summary:       "单事务按序加锁确认团队会议并同步落库全员 schedule_items",
 		Tags:          []string{"Workspaces"},
-		Security:      bearer,
 		DefaultStatus: http.StatusCreated,
-	}, bind(h, func(x Handlers) func(context.Context, *ConfirmMeetingInput) (*ConfirmMeetingOutput, error) {
+		Errors:        []int{http.StatusUnauthorized, http.StatusForbidden, http.StatusNotFound, http.StatusConflict, http.StatusUnprocessableEntity},
+	}, pick(h, isNil, func(x WorkspacesHandlers) func(context.Context, *ConfirmMeetingInput) (*ConfirmMeetingOutput, error) {
 		return x.ConfirmWorkspaceMeeting
 	}))
 
@@ -624,8 +763,8 @@ func RegisterContractRoutes(api huma.API, h Handlers) {
 		Path:        "/api/v1/workspaces/{id}/meetings",
 		Summary:     "查询团队工作区的会议提案列表及各参会人回执状态",
 		Tags:        []string{"Workspaces"},
-		Security:    bearer,
-	}, bind(h, func(x Handlers) func(context.Context, *ListWorkspaceMeetingsInput) (*ListWorkspaceMeetingsOutput, error) {
+		Errors:      []int{http.StatusUnauthorized, http.StatusForbidden, http.StatusUnprocessableEntity},
+	}, pick(h, isNil, func(x WorkspacesHandlers) func(context.Context, *ListWorkspaceMeetingsInput) (*ListWorkspaceMeetingsOutput, error) {
 		return x.ListWorkspaceMeetings
 	}))
 
@@ -635,8 +774,8 @@ func RegisterContractRoutes(api huma.API, h Handlers) {
 		Path:        "/api/v1/workspaces/{id}/meetings/{proposalId}/respond",
 		Summary:     "参会成员提交会议回执（accepted / declined）",
 		Tags:        []string{"Workspaces"},
-		Security:    bearer,
-	}, bind(h, func(x Handlers) func(context.Context, *RespondMeetingInput) (*RespondMeetingOutput, error) {
+		Errors:      []int{http.StatusUnauthorized, http.StatusForbidden, http.StatusNotFound, http.StatusConflict, http.StatusUnprocessableEntity},
+	}, pick(h, isNil, func(x WorkspacesHandlers) func(context.Context, *RespondMeetingInput) (*RespondMeetingOutput, error) {
 		return x.RespondWorkspaceMeeting
 	}))
 
@@ -646,8 +785,8 @@ func RegisterContractRoutes(api huma.API, h Handlers) {
 		Path:        "/api/v1/workspaces/{id}/meetings/{proposalId}/cancel",
 		Summary:     "组织者或管理员取消团队会议",
 		Tags:        []string{"Workspaces"},
-		Security:    bearer,
-	}, bind(h, func(x Handlers) func(context.Context, *CancelMeetingInput) (*CancelMeetingOutput, error) {
+		Errors:      []int{http.StatusUnauthorized, http.StatusForbidden, http.StatusNotFound, http.StatusConflict, http.StatusUnprocessableEntity},
+	}, pick(h, isNil, func(x WorkspacesHandlers) func(context.Context, *CancelMeetingInput) (*CancelMeetingOutput, error) {
 		return x.CancelWorkspaceMeeting
 	}))
 }

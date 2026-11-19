@@ -23,6 +23,7 @@
 
 package app.shixu.core.network.generated.models
 
+import app.shixu.core.network.generated.models.CognitiveLoad
 
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerialName
@@ -44,7 +45,7 @@ import kotlinx.serialization.encoding.Encoder
 data class UrgentTaskDTO (
 
     @SerialName(value = "cognitiveLoad")
-    val cognitiveLoad: UrgentTaskDTO.CognitiveLoad,
+    val cognitiveLoad: CognitiveLoad,
 
     @Contextual @SerialName(value = "deadlineAt")
     val deadlineAt: java.time.OffsetDateTime,
@@ -60,15 +61,6 @@ data class UrgentTaskDTO (
 
 ) {
 
-    /**
-     * Values: high,medium,low
-     */
-    @Serializable
-    enum class CognitiveLoad(val value: kotlin.String) {
-        @SerialName(value = "high") high("high"),
-        @SerialName(value = "medium") medium("medium"),
-        @SerialName(value = "low") low("low");
-    }
 
 }
 

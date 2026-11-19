@@ -29,19 +29,19 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Contextual
 
 /**
- * @param location
  * @param message
+ * @param location
  * @param `value`
  */
 @Serializable
 
 data class ErrorDetailItem (
 
-    @SerialName(value = "location")
-    val location: kotlin.String,
-
     @SerialName(value = "message")
     val message: kotlin.String,
+
+    @SerialName(value = "location")
+    val location: kotlin.String? = null,
 
     @SerialName(value = "value")
     val `value`: kotlinx.serialization.json.JsonElement? = null

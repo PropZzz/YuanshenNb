@@ -23,8 +23,10 @@
 
 package app.shixu.core.network.generated.models
 
+import app.shixu.core.network.generated.models.DataFreshness
 import app.shixu.core.network.generated.models.EnergyDrivers
 import app.shixu.core.network.generated.models.EnergySourceDiagnostics
+import app.shixu.core.network.generated.models.EnergyTier
 import app.shixu.core.network.generated.models.FocusShieldWindow
 import app.shixu.core.network.generated.models.HourlyEnergyPoint
 import app.shixu.core.network.generated.models.OverloadAlert
@@ -48,18 +50,17 @@ import kotlinx.serialization.encoding.Encoder
  * @param score
  * @param tier
  * @param timezone
- * @param dollarSchema A URL to the JSON Schema for this object.
  * @param overloadAlert
  */
 @Serializable
 
-data class EnergyComputeOutput (
+data class EnergyTodayResponse (
 
     @Contextual @SerialName(value = "computedAt")
     val computedAt: java.time.OffsetDateTime,
 
     @SerialName(value = "dataFreshness")
-    val dataFreshness: EnergyComputeOutput.DataFreshness,
+    val dataFreshness: DataFreshness,
 
     @SerialName(value = "diagnostics")
     val diagnostics: EnergySourceDiagnostics,
@@ -68,10 +69,10 @@ data class EnergyComputeOutput (
     val drivers: EnergyDrivers,
 
     @SerialName(value = "focusShields")
-    val focusShields: kotlin.collections.List<FocusShieldWindow>?,
+    val focusShields: kotlin.collections.List<FocusShieldWindow>,
 
     @SerialName(value = "hourlyCurve")
-    val hourlyCurve: kotlin.collections.List<HourlyEnergyPoint>?,
+    val hourlyCurve: kotlin.collections.List<HourlyEnergyPoint>,
 
     @Contextual @SerialName(value = "localDay")
     val localDay: java.time.LocalDate,
@@ -80,40 +81,16 @@ data class EnergyComputeOutput (
     val score: kotlin.Long,
 
     @SerialName(value = "tier")
-    val tier: EnergyComputeOutput.Tier,
+    val tier: EnergyTier,
 
     @SerialName(value = "timezone")
     val timezone: kotlin.String,
-
-    /* A URL to the JSON Schema for this object. */
-    @Contextual @SerialName(value = "\$schema")
-    val dollarSchema: java.net.URI? = null,
 
     @SerialName(value = "overloadAlert")
     val overloadAlert: OverloadAlert? = null
 
 ) {
 
-    /**
-     * Values: live_wearable,recent_wearable,replay_demo,baseline_only
-     */
-    @Serializable
-    enum class DataFreshness(val value: kotlin.String) {
-        @SerialName(value = "live_wearable") live_wearable("live_wearable"),
-        @SerialName(value = "recent_wearable") recent_wearable("recent_wearable"),
-        @SerialName(value = "replay_demo") replay_demo("replay_demo"),
-        @SerialName(value = "baseline_only") baseline_only("baseline_only");
-    }
-    /**
-     * Values: peak,steady,strained,depleted
-     */
-    @Serializable
-    enum class Tier(val value: kotlin.String) {
-        @SerialName(value = "peak") peak("peak"),
-        @SerialName(value = "steady") steady("steady"),
-        @SerialName(value = "strained") strained("strained"),
-        @SerialName(value = "depleted") depleted("depleted");
-    }
 
 }
 

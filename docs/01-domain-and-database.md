@@ -45,11 +45,12 @@ erDiagram
 | 表名 | 关键字段 | 类型与约束 | 设计意图 |
 | --- | --- | --- | --- |
 | `users` | `id` | `UUID PK DEFAULT gen_random_uuid()` | 全局唯一用户主键；同时作为并发排会与日程救援的行级互斥锚点 |
-| | `email` | `TEXT UNIQUE NOT NULL` | 登录账号（入库前统一转小写去空格） |
+| | `email` | `TEXT UNIQUE NOT NULL CHECK (email = lower(btrim(email)))` | 登录账号（入库前统一转小写去空格，DB 层兜底强制小写无首尾空白） |
 | | `display_name` | `TEXT NOT NULL` | 展示昵称（1–64 字符） |
 | | `password_hash` | `TEXT NOT NULL` | `Argon2id` PHC 字符串格式 |
-| | `timezone` | `TEXT NOT NULL DEFAULT 'Asia/Shanghai'` | IANA 时区名，用于解释用户本地工作时段与 24h 节律起点 |
+| | `timezone` | `TEXT NOT NULL DEFAULT 'Asia/Shanghai'` | IANA 时区名，用于解释用户本地工作时段与本地自然日节律起点 |
 | | `theme_mode` | `TEXT CHECK IN ('system','light','dark')` | 双端同步外观偏好 |
+| | `updated_at` | `TIMESTAMPTZ NOT NULL DEFAULT NOW()` | 由数据库 `BEFORE UPDATE` 触发器 `set_updated_at()` 自动维护（`users`、`energy_profiles`、`workspaces`、`meeting_proposals`、`schedule_items` 均同） |
 | `refresh_tokens` | `id`, `user_id` | `UUID PK`, `UUID FK -> users(id) CASCADE` | 会话凭证归属 |
 | | `token_hash` | `TEXT UNIQUE NOT NULL` | Refresh Token 原文的 SHA-256 摘要，库内不存明文 |
 | | `family_id` | `UUID NOT NULL` | 令牌家族 ID，用于轮换重放盗用检测（若旧令牌被复用则吊销整族） |
@@ -76,7 +77,7 @@ erDiagram
 | `energy_snapshots` | `local_day` | `DATE NOT NULL` | 用户当前时区下的本地日期（`YYYY-MM-DD`），配合索引 `idx_energy_snapshots_user_day (user_id, local_day, computed_at DESC)` 支持按天极速查询 |
 | | `score`, `tier` | `INTEGER [0,100]`, `CHECK IN ('peak','steady','strained','depleted')` | 实时精力分与对应档位 |
 | | `data_freshness` | `CHECK IN ('live_wearable','recent_wearable','replay_demo','baseline_only')` | 前端必须据实展示的数据新鲜度与来源标识 |
-| | `hourly_curve`, `drivers` | `JSONB NOT NULL` | 24h 逐小时带 UTC 时间戳预测曲线（`[{hourStartAt, score, tier}]`）及各因子贡献拆解 |
+| | | `hourly_curve`, `drivers` | `JSONB NOT NULL` | 用户本地自然日所有整点带 UTC 时间戳预测曲线（`[{hourStartAt, score, tier}]`，常规 24 点，DST 切换日 23/25 点）及各因子贡献拆解 |
 | | `focus_shields` | `JSONB NOT NULL DEFAULT '[]'::jsonb` | 自动识别或推荐的深度专注保护盾时间段列表 |
 | | `overload_alert` | `JSONB` | 疲劳过载预警结构（未触发时为 `NULL`） |
 | | `diagnostics` | `JSONB NOT NULL DEFAULT '{}'::jsonb` | 穿戴同步与基线诊断元数据（`lastSyncedAt`、`primarySource`、`baselineReadyDays`、`hrvBaselineMs`、`rhrBaselineBpm`） |
@@ -108,10 +109,11 @@ erDiagram
 | | `flexibility` | `CHECK IN ('hard_locked','flexible','focus_shield')` | `hard_locked` 不可移动；`flexible` 允许重排；`focus_shield` 个人深度专注保护块 |
 | | `status` | `CHECK IN ('planned','in_progress','completed','cancelled')` | 执行生命周期（严格固定 4 个枚举值） |
 | | `start_at`, `end_at` | `TIMESTAMPTZ NOT NULL` (`CHECK end_at > start_at`) | 标准 UTC 起止时间戳 |
-| | `duration_minutes` | `INTEGER GENERATED ALWAYS AS (...) STORED` | 数据库自动生成的整型分钟数，零换算误差 |
+| | `duration_minutes` | `INTEGER GENERATED ALWAYS AS (...) STORED NOT NULL` | 数据库自动生成的整型分钟数，零换算误差 |
 | | `time_range` | `TSTZRANGE GENERATED ALWAYS AS (tstzrange(start_at, end_at, '[)')) STORED` | 半开区间 `[start, end)`，相邻会议 `10:00-11:00` 与 `11:00-12:00` **不算冲突** |
 | `rescue_snapshots` | `local_day` | `DATE NOT NULL` | 救援针对的用户本地日期 |
 | | `baseline_version`, `option_hash` | `TEXT NOT NULL`, `TEXT NOT NULL` | 采纳救援时的 48h 日程基线摘要与所选方案确定性哈希，用于乐观锁审计与防篡改追溯 |
+| | `idempotency_key` | `TEXT` | 可选请求幂等键（部分唯一索引 `uq_rescue_snapshots_idempotency (user_id, idempotency_key) WHERE idempotency_key IS NOT NULL`） |
 | | `strategy` | `CHECK IN ('protect_deadline','protect_recovery','minimize_changes')` | 用户选定的救援权衡策略 |
 | | `trigger_reason` | `CHECK IN ('urgent_task','team_meeting_overload','wearable_fatigue')` | 强约束枚举：记录触发重排的根因 |
 | | `before_items`, `after_items` | `JSONB NOT NULL` | 救援前后相关日程完整快照，用于原子撤销与复盘审计 |

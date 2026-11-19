@@ -46,7 +46,7 @@ import kotlinx.serialization.Contextual
 data class GoldenWindowRecommendation (
 
     @SerialName(value = "affectedMembers")
-    val affectedMembers: kotlin.collections.List<MemberWindowImpact>?,
+    val affectedMembers: kotlin.collections.List<MemberWindowImpact>,
 
     @SerialName(value = "breakdown")
     val breakdown: ScoreBreakdown,
@@ -55,7 +55,7 @@ data class GoldenWindowRecommendation (
     val endAt: java.time.OffsetDateTime,
 
     @SerialName(value = "explanationTags")
-    val explanationTags: kotlin.collections.List<ExplanationTag>?,
+    val explanationTags: kotlin.collections.List<ExplanationTag>,
 
     @SerialName(value = "rank")
     val rank: kotlin.Long,

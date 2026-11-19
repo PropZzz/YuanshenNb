@@ -23,6 +23,7 @@
 
 package app.shixu.core.network.generated.models
 
+import app.shixu.core.network.generated.models.AvailabilitySlotKind
 
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerialName
@@ -46,7 +47,7 @@ data class AvailabilitySlot (
     val endAt: java.time.OffsetDateTime,
 
     @SerialName(value = "kind")
-    val kind: AvailabilitySlot.Kind,
+    val kind: AvailabilitySlotKind,
 
     @Contextual @SerialName(value = "startAt")
     val startAt: java.time.OffsetDateTime,
@@ -56,15 +57,6 @@ data class AvailabilitySlot (
 
 ) {
 
-    /**
-     * Values: busy,focus_shield,soft_busy
-     */
-    @Serializable
-    enum class Kind(val value: kotlin.String) {
-        @SerialName(value = "busy") busy("busy"),
-        @SerialName(value = "focus_shield") focus_shield("focus_shield"),
-        @SerialName(value = "soft_busy") soft_busy("soft_busy");
-    }
 
 }
 

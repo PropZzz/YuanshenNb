@@ -23,6 +23,7 @@
 
 package app.shixu.core.network.generated.models
 
+import app.shixu.core.network.generated.models.RescueTriggerReason
 import app.shixu.core.network.generated.models.UrgentTaskDTO
 
 import kotlinx.serialization.Serializable
@@ -36,7 +37,6 @@ import kotlinx.serialization.encoding.Encoder
 /**
  * @param day
  * @param triggerReason
- * @param dollarSchema A URL to the JSON Schema for this object.
  * @param urgentTask
  */
 @Serializable
@@ -47,26 +47,13 @@ data class RescueOptionsRequest (
     val day: java.time.LocalDate,
 
     @SerialName(value = "triggerReason")
-    val triggerReason: RescueOptionsRequest.TriggerReason,
-
-    /* A URL to the JSON Schema for this object. */
-    @Contextual @SerialName(value = "\$schema")
-    val dollarSchema: java.net.URI? = null,
+    val triggerReason: RescueTriggerReason,
 
     @SerialName(value = "urgentTask")
     val urgentTask: UrgentTaskDTO? = null
 
 ) {
 
-    /**
-     * Values: urgent_task,team_meeting_overload,wearable_fatigue
-     */
-    @Serializable
-    enum class TriggerReason(val value: kotlin.String) {
-        @SerialName(value = "urgent_task") urgent_task("urgent_task"),
-        @SerialName(value = "team_meeting_overload") team_meeting_overload("team_meeting_overload"),
-        @SerialName(value = "wearable_fatigue") wearable_fatigue("wearable_fatigue");
-    }
 
 }
 

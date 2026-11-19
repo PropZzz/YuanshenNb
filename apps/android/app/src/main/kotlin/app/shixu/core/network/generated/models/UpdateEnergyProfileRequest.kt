@@ -23,6 +23,7 @@
 
 package app.shixu.core.network.generated.models
 
+import app.shixu.core.network.generated.models.Chronotype
 import app.shixu.core.network.generated.models.DailyMinuteWindow
 
 import kotlinx.serialization.Serializable
@@ -39,42 +40,28 @@ import kotlinx.serialization.encoding.Encoder
  * @param preferredFocusWindows
  * @param workEndMinute
  * @param workStartMinute
- * @param dollarSchema A URL to the JSON Schema for this object.
  */
 @Serializable
 
 data class UpdateEnergyProfileRequest (
 
     @SerialName(value = "chronotype")
-    val chronotype: UpdateEnergyProfileRequest.Chronotype,
+    val chronotype: Chronotype,
 
     @SerialName(value = "minRecoveryBufferMin")
     val minRecoveryBufferMin: kotlin.Long,
 
     @SerialName(value = "preferredFocusWindows")
-    val preferredFocusWindows: kotlin.collections.List<DailyMinuteWindow>?,
+    val preferredFocusWindows: kotlin.collections.List<DailyMinuteWindow>,
 
     @SerialName(value = "workEndMinute")
     val workEndMinute: kotlin.Long,
 
     @SerialName(value = "workStartMinute")
-    val workStartMinute: kotlin.Long,
-
-    /* A URL to the JSON Schema for this object. */
-    @Contextual @SerialName(value = "\$schema")
-    val dollarSchema: java.net.URI? = null
+    val workStartMinute: kotlin.Long
 
 ) {
 
-    /**
-     * Values: morning_lark,balanced,night_owl
-     */
-    @Serializable
-    enum class Chronotype(val value: kotlin.String) {
-        @SerialName(value = "morning_lark") morning_lark("morning_lark"),
-        @SerialName(value = "balanced") balanced("balanced"),
-        @SerialName(value = "night_owl") night_owl("night_owl");
-    }
 
 }
 

@@ -23,6 +23,9 @@
 
 package app.shixu.core.network.generated.models
 
+import app.shixu.core.network.generated.models.MetricType
+import app.shixu.core.network.generated.models.SleepStage
+import app.shixu.core.network.generated.models.SourceType
 
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerialName
@@ -41,6 +44,7 @@ import kotlinx.serialization.encoding.Encoder
  * @param unit
  * @param endAt
  * @param metadata
+ * @param sleepStage metricType=sleep_stage 时的强类型睡眠分期
  */
 @Serializable
 
@@ -51,7 +55,7 @@ data class BiometricSampleDTO (
     val externalId: kotlin.String,
 
     @SerialName(value = "metricType")
-    val metricType: BiometricSampleDTO.MetricType,
+    val metricType: MetricType,
 
     @SerialName(value = "numericValue")
     val numericValue: kotlin.Double,
@@ -60,7 +64,7 @@ data class BiometricSampleDTO (
     val recordedAt: java.time.OffsetDateTime,
 
     @SerialName(value = "sourceType")
-    val sourceType: BiometricSampleDTO.SourceType,
+    val sourceType: SourceType,
 
     @SerialName(value = "unit")
     val unit: kotlin.String,
@@ -69,31 +73,14 @@ data class BiometricSampleDTO (
     val endAt: java.time.OffsetDateTime? = null,
 
     @SerialName(value = "metadata")
-    val metadata: kotlin.collections.Map<kotlin.String, kotlinx.serialization.json.JsonElement?>? = null
+    val metadata: kotlin.collections.Map<kotlin.String, kotlinx.serialization.json.JsonElement?>? = null,
+
+    /* metricType=sleep_stage 时的强类型睡眠分期 */
+    @SerialName(value = "sleepStage")
+    val sleepStage: SleepStage? = null
 
 ) {
 
-    /**
-     * Values: heart_rate,hrv_rmssd,resting_hr,sleep_session,sleep_stage,active_calories
-     */
-    @Serializable
-    enum class MetricType(val value: kotlin.String) {
-        @SerialName(value = "heart_rate") heart_rate("heart_rate"),
-        @SerialName(value = "hrv_rmssd") hrv_rmssd("hrv_rmssd"),
-        @SerialName(value = "resting_hr") resting_hr("resting_hr"),
-        @SerialName(value = "sleep_session") sleep_session("sleep_session"),
-        @SerialName(value = "sleep_stage") sleep_stage("sleep_stage"),
-        @SerialName(value = "active_calories") active_calories("active_calories");
-    }
-    /**
-     * Values: health_connect,ble_gatt,replay_demo
-     */
-    @Serializable
-    enum class SourceType(val value: kotlin.String) {
-        @SerialName(value = "health_connect") health_connect("health_connect"),
-        @SerialName(value = "ble_gatt") ble_gatt("ble_gatt"),
-        @SerialName(value = "replay_demo") replay_demo("replay_demo");
-    }
 
 }
 

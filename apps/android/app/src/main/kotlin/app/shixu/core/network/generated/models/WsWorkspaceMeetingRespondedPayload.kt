@@ -23,6 +23,7 @@
 
 package app.shixu.core.network.generated.models
 
+import app.shixu.core.network.generated.models.MeetingDecisionStatus
 
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerialName
@@ -54,7 +55,7 @@ data class WsWorkspaceMeetingRespondedPayload (
     val respondedAt: java.time.OffsetDateTime,
 
     @SerialName(value = "responseStatus")
-    val responseStatus: WsWorkspaceMeetingRespondedPayload.ResponseStatus,
+    val responseStatus: MeetingDecisionStatus,
 
     @Contextual @SerialName(value = "userId")
     val userId: java.util.UUID,
@@ -64,14 +65,6 @@ data class WsWorkspaceMeetingRespondedPayload (
 
 ) {
 
-    /**
-     * Values: accepted,declined
-     */
-    @Serializable
-    enum class ResponseStatus(val value: kotlin.String) {
-        @SerialName(value = "accepted") accepted("accepted"),
-        @SerialName(value = "declined") declined("declined");
-    }
 
 }
 

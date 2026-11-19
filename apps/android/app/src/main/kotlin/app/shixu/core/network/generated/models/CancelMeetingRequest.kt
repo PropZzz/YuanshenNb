@@ -29,16 +29,11 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Contextual
 
 /**
- * @param dollarSchema A URL to the JSON Schema for this object.
  * @param reason
  */
 @Serializable
 
 data class CancelMeetingRequest (
-
-    /* A URL to the JSON Schema for this object. */
-    @Contextual @SerialName(value = "\$schema")
-    val dollarSchema: java.net.URI? = null,
 
     @SerialName(value = "reason")
     val reason: kotlin.String? = null

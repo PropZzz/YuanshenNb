@@ -1,5 +1,12 @@
 ﻿$ErrorActionPreference = "Stop"
 
+if ($env:JAVA_HOME) {
+    $javaBin = Join-Path $env:JAVA_HOME "bin"
+    if (Test-Path $javaBin) {
+        $env:PATH = "$javaBin;$env:PATH"
+    }
+}
+
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $androidDir = Resolve-Path (Join-Path $scriptDir "..")
 $repoRoot = Resolve-Path (Join-Path $androidDir "..\..")
@@ -10,9 +17,20 @@ $tempWorkDir = Join-Path ([System.IO.Path]::GetTempPath()) ("shixu-openapi-kotli
 $tempOutDir = Join-Path $tempWorkDir "out"
 New-Item -ItemType Directory -Force -Path $tempWorkDir | Out-Null
 
+$openApiToolsConfig = @'
+{
+  "$schema": "https://raw.githubusercontent.com/OpenAPITools/openapi-generator-cli/master/apps/generator-cli/src/config.schema.json",
+  "spaces": 2,
+  "generator-cli": {
+    "version": "7.27.0"
+  }
+}
+'@
+[System.IO.File]::WriteAllText((Join-Path $tempWorkDir "openapitools.json"), $openApiToolsConfig, [System.Text.UTF8Encoding]::new($false))
+
 try {
     Push-Location $tempWorkDir
-    & npx --yes @openapitools/openapi-generator-cli generate `
+    & npx --yes @openapitools/openapi-generator-cli@2.42.2 generate `
         -i $openApiSpec `
         -g kotlin `
         --library jvm-retrofit2 `
@@ -37,18 +55,38 @@ try {
         }
     }
 
-    # OpenAPI Generator 可能在 JsonElement / Map<..., JsonElement> 属性前保留 @Contextual，移除之以使用 kotlinx.serialization 原生序列化器
+    # OpenAPI Generator 可能在 JsonElement 或顶层 @Serializable enum 属性前生成多余的 @Contextual，
+    # 移除之以确保使用 kotlinx.serialization 原生/静态序列化器（保留 OffsetDateTime/LocalDate/UUID/URI 的 @Contextual）。
     $modelsDir = Join-Path $targetGenDir "models"
     if (Test-Path $modelsDir) {
-        Get-ChildItem -Path $modelsDir -Filter "*.kt" | ForEach-Object {
-            $raw = Get-Content -Path $_.FullName -Raw -Encoding UTF8
+        $enumNames = New-Object 'System.Collections.Generic.HashSet[string]'
+        $modelFiles = Get-ChildItem -Path $modelsDir -Filter "*.kt"
+        foreach ($file in $modelFiles) {
+            $raw = Get-Content -Path $file.FullName -Raw -Encoding UTF8
+            $matches = [System.Text.RegularExpressions.Regex]::Matches($raw, '(?m)^\s*enum\s+class\s+([A-Za-z0-9_]+)\b')
+            foreach ($m in $matches) {
+                [void]$enumNames.Add($m.Groups[1].Value)
+            }
+        }
+
+        $enumRegex = $null
+        if ($enumNames.Count -gt 0) {
+            $escaped = ($enumNames | Sort-Object | ForEach-Object { [System.Text.RegularExpressions.Regex]::Escape($_) }) -join "|"
+            $enumRegex = '@Contextual\s+(@SerialName\([^)]*\)\s*(?:\r?\n\s*)?(?:val|var)\s+[A-Za-z0-9_]+\s*:\s*(?:(?:' + $escaped + ')(?:\?|\b)|kotlin\.collections\.List<(?:' + $escaped + ')>))'
+        }
+
+        foreach ($file in $modelFiles) {
+            $raw = Get-Content -Path $file.FullName -Raw -Encoding UTF8
             $updated = [System.Text.RegularExpressions.Regex]::Replace(
                 $raw,
                 '@Contextual\s+(@SerialName\([^)]*\)\s*(?:\r?\n\s*)?(?:val|var)\s+[^\r\n]*JsonElement)',
                 '$1'
             )
+            if ($enumRegex) {
+                $updated = [System.Text.RegularExpressions.Regex]::Replace($updated, $enumRegex, '$1')
+            }
             if ($updated -ne $raw) {
-                [System.IO.File]::WriteAllText($_.FullName, $updated, [System.Text.UTF8Encoding]::new($false))
+                [System.IO.File]::WriteAllText($file.FullName, $updated, [System.Text.UTF8Encoding]::new($false))
             }
         }
     }

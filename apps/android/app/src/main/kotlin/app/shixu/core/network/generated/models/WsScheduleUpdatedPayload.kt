@@ -23,6 +23,7 @@
 
 package app.shixu.core.network.generated.models
 
+import app.shixu.core.network.generated.models.ScheduleUpdateReason
 
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerialName
@@ -35,6 +36,7 @@ import kotlinx.serialization.encoding.Encoder
 /**
  * @param affectedFrom
  * @param affectedTo
+ * @param baselineLocalDay
  * @param baselineVersion
  * @param itemIds
  * @param reason
@@ -50,32 +52,23 @@ data class WsScheduleUpdatedPayload (
     @Contextual @SerialName(value = "affectedTo")
     val affectedTo: java.time.OffsetDateTime,
 
+    @Contextual @SerialName(value = "baselineLocalDay")
+    val baselineLocalDay: java.time.LocalDate,
+
     @SerialName(value = "baselineVersion")
     val baselineVersion: kotlin.String,
 
     @SerialName(value = "itemIds")
-    val itemIds: kotlin.collections.List<kotlin.String>?,
+    val itemIds: kotlin.collections.List<kotlin.String>,
 
     @SerialName(value = "reason")
-    val reason: WsScheduleUpdatedPayload.Reason,
+    val reason: ScheduleUpdateReason,
 
     @Contextual @SerialName(value = "userId")
     val userId: java.util.UUID
 
 ) {
 
-    /**
-     * Values: item_created,item_updated,item_cancelled,rescue_applied,rescue_reverted,team_meeting_synced
-     */
-    @Serializable
-    enum class Reason(val value: kotlin.String) {
-        @SerialName(value = "item_created") item_created("item_created"),
-        @SerialName(value = "item_updated") item_updated("item_updated"),
-        @SerialName(value = "item_cancelled") item_cancelled("item_cancelled"),
-        @SerialName(value = "rescue_applied") rescue_applied("rescue_applied"),
-        @SerialName(value = "rescue_reverted") rescue_reverted("rescue_reverted"),
-        @SerialName(value = "team_meeting_synced") team_meeting_synced("team_meeting_synced");
-    }
 
 }
 

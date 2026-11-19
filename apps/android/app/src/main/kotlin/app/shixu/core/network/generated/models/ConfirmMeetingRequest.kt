@@ -23,6 +23,8 @@
 
 package app.shixu.core.network.generated.models
 
+import app.shixu.core.network.generated.models.CognitiveLoad
+import app.shixu.core.network.generated.models.MeetingRecommendationMeta
 
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerialName
@@ -34,12 +36,10 @@ import kotlinx.serialization.encoding.Encoder
 
 /**
  * @param cognitiveLoad
- * @param durationMinutes
  * @param endAt
  * @param participantIds
  * @param startAt
  * @param title
- * @param dollarSchema A URL to the JSON Schema for this object.
  * @param description
  * @param optionalIds
  * @param proposalId
@@ -50,26 +50,19 @@ import kotlinx.serialization.encoding.Encoder
 data class ConfirmMeetingRequest (
 
     @SerialName(value = "cognitiveLoad")
-    val cognitiveLoad: ConfirmMeetingRequest.CognitiveLoad,
-
-    @SerialName(value = "durationMinutes")
-    val durationMinutes: kotlin.Long,
+    val cognitiveLoad: CognitiveLoad,
 
     @Contextual @SerialName(value = "endAt")
     val endAt: java.time.OffsetDateTime,
 
     @SerialName(value = "participantIds")
-    val participantIds: kotlin.collections.List<kotlin.String>?,
+    val participantIds: kotlin.collections.List<kotlin.String>,
 
     @Contextual @SerialName(value = "startAt")
     val startAt: java.time.OffsetDateTime,
 
     @SerialName(value = "title")
     val title: kotlin.String,
-
-    /* A URL to the JSON Schema for this object. */
-    @Contextual @SerialName(value = "\$schema")
-    val dollarSchema: java.net.URI? = null,
 
     @SerialName(value = "description")
     val description: kotlin.String? = null,
@@ -81,19 +74,10 @@ data class ConfirmMeetingRequest (
     val proposalId: java.util.UUID? = null,
 
     @SerialName(value = "recommendationMeta")
-    val recommendationMeta: kotlin.collections.Map<kotlin.String, kotlinx.serialization.json.JsonElement?>? = null
+    val recommendationMeta: MeetingRecommendationMeta? = null
 
 ) {
 
-    /**
-     * Values: high,medium,low
-     */
-    @Serializable
-    enum class CognitiveLoad(val value: kotlin.String) {
-        @SerialName(value = "high") high("high"),
-        @SerialName(value = "medium") medium("medium"),
-        @SerialName(value = "low") low("low");
-    }
 
 }
 

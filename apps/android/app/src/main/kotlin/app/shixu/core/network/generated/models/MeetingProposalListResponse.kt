@@ -31,7 +31,6 @@ import kotlinx.serialization.Contextual
 
 /**
  * @param meetings
- * @param dollarSchema A URL to the JSON Schema for this object.
  * @param nextCursor
  */
 @Serializable
@@ -39,11 +38,7 @@ import kotlinx.serialization.Contextual
 data class MeetingProposalListResponse (
 
     @SerialName(value = "meetings")
-    val meetings: kotlin.collections.List<MeetingProposalDTO>?,
-
-    /* A URL to the JSON Schema for this object. */
-    @Contextual @SerialName(value = "\$schema")
-    val dollarSchema: java.net.URI? = null,
+    val meetings: kotlin.collections.List<MeetingProposalDTO>,
 
     @SerialName(value = "nextCursor")
     val nextCursor: kotlin.String? = null

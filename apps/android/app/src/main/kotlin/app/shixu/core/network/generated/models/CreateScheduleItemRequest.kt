@@ -23,6 +23,9 @@
 
 package app.shixu.core.network.generated.models
 
+import app.shixu.core.network.generated.models.CognitiveLoad
+import app.shixu.core.network.generated.models.Flexibility
+import app.shixu.core.network.generated.models.ScheduleCategory
 
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerialName
@@ -39,7 +42,6 @@ import kotlinx.serialization.encoding.Encoder
  * @param flexibility
  * @param startAt
  * @param title
- * @param dollarSchema A URL to the JSON Schema for this object.
  * @param allowOverlap
  * @param deadlineAt
  * @param notes
@@ -50,26 +52,22 @@ import kotlinx.serialization.encoding.Encoder
 data class CreateScheduleItemRequest (
 
     @SerialName(value = "category")
-    val category: CreateScheduleItemRequest.Category,
+    val category: ScheduleCategory,
 
     @SerialName(value = "cognitiveLoad")
-    val cognitiveLoad: CreateScheduleItemRequest.CognitiveLoad,
+    val cognitiveLoad: CognitiveLoad,
 
     @Contextual @SerialName(value = "endAt")
     val endAt: java.time.OffsetDateTime,
 
     @SerialName(value = "flexibility")
-    val flexibility: CreateScheduleItemRequest.Flexibility,
+    val flexibility: Flexibility,
 
     @Contextual @SerialName(value = "startAt")
     val startAt: java.time.OffsetDateTime,
 
     @SerialName(value = "title")
     val title: kotlin.String,
-
-    /* A URL to the JSON Schema for this object. */
-    @Contextual @SerialName(value = "\$schema")
-    val dollarSchema: java.net.URI? = null,
 
     @SerialName(value = "allowOverlap")
     val allowOverlap: kotlin.Boolean? = false,
@@ -85,35 +83,6 @@ data class CreateScheduleItemRequest (
 
 ) {
 
-    /**
-     * Values: deep_work,meeting,recovery,routine,urgent
-     */
-    @Serializable
-    enum class Category(val value: kotlin.String) {
-        @SerialName(value = "deep_work") deep_work("deep_work"),
-        @SerialName(value = "meeting") meeting("meeting"),
-        @SerialName(value = "recovery") recovery("recovery"),
-        @SerialName(value = "routine") routine("routine"),
-        @SerialName(value = "urgent") urgent("urgent");
-    }
-    /**
-     * Values: high,medium,low
-     */
-    @Serializable
-    enum class CognitiveLoad(val value: kotlin.String) {
-        @SerialName(value = "high") high("high"),
-        @SerialName(value = "medium") medium("medium"),
-        @SerialName(value = "low") low("low");
-    }
-    /**
-     * Values: hard_locked,flexible,focus_shield
-     */
-    @Serializable
-    enum class Flexibility(val value: kotlin.String) {
-        @SerialName(value = "hard_locked") hard_locked("hard_locked"),
-        @SerialName(value = "flexible") flexible("flexible"),
-        @SerialName(value = "focus_shield") focus_shield("focus_shield");
-    }
 
 }
 

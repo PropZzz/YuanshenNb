@@ -32,7 +32,6 @@ import kotlinx.serialization.Contextual
 /**
  * @param createdScheduleCount
  * @param proposal
- * @param dollarSchema A URL to the JSON Schema for this object.
  */
 @Serializable
 
@@ -42,11 +41,7 @@ data class ConfirmMeetingResponse (
     val createdScheduleCount: kotlin.Long,
 
     @SerialName(value = "proposal")
-    val proposal: MeetingProposalDTO,
-
-    /* A URL to the JSON Schema for this object. */
-    @Contextual @SerialName(value = "\$schema")
-    val dollarSchema: java.net.URI? = null
+    val proposal: MeetingProposalDTO
 
 ) {
 

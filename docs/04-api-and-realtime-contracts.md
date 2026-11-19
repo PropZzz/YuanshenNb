@@ -9,7 +9,7 @@
 
 ## 1. 契约先行开发流程（Contract-First）
 
-1. **强类型 Go 结构体唯一真源**：服务端在 [services/server/internal/api/contracts.go](../services/server/internal/api/contracts.go) 中使用 `Huma v2` 标签（`json`、`path`、`query`、`header`、`doc`、`enum`、`minimum`、`maximum`、`minItems`、`maxItems`）定义全部 Request / Response DTO 与 WebSocket 事件 Payload。
+1. **强类型 Go 结构体唯一真源**：服务端在 [services/server/internal/api/contracts.go](../services/server/internal/api/contracts.go)、[enums.go](../services/server/internal/api/enums.go)、[errors.go](../services/server/internal/api/errors.go)、[ws.go](../services/server/internal/api/ws.go) 与 [routes.go](../services/server/internal/api/routes.go) 中使用 `Huma v2` 定义全部 Request / Response DTO、共享 `$ref` 枚举组件与 WebSocket 事件 Payload（已关闭 Request/Response `$schema` 注入与可空数组 `DefaultArrayNullable = false`）。
    - 所有物理时间戳统一为 `RFC 3339 / ISO-8601` UTC 字符串（例：`2026-11-18T13:00:00Z`）；
    - 所有本地日历日期统一为 `YYYY-MM-DD` 字符串（例：`2026-11-18`）；
    - 所有时长统一为整型分钟数 `durationMinutes`，**严禁**出现像素高度或前端颜色整数。
@@ -31,7 +31,7 @@
 
 | # | 方法与路径 | 鉴权 | 核心请求字段 (Query / Body) | 核心响应字段 | 语义与关键状态码 |
 | --- | --- | --- | --- | --- | --- |
-| 1 | `GET /health` | 公开 | — | `ok`, `version`, `dbStatus`, `serverTime` | 数据库连通性探针；异常返回 `503 SERVICE_UNAVAILABLE` |
+| 1 | `GET /health` | 公开 | — | `ok`, `version`, `dbStatus`, `serverTime` | 数据库连通性探针；异常返回 `503 ProblemDetail (SERVICE_UNAVAILABLE)` |
 | 2 | `POST /auth/register` | 公开 | `email`, `displayName`, `password(>=8)`, `timezone?`, `deviceName?` | `accessToken`, `expiresInSeconds`, `refreshToken`, `user` + `Set-Cookie` | 创建账号并初始化默认 `energy_profiles`；邮箱已存在返 `409 EMAIL_ALREADY_EXISTS` |
 | 3 | `POST /auth/login` | 公开 | `email`, `password`, `deviceName?` | `accessToken`, `expiresInSeconds`, `refreshToken`, `user` + `Set-Cookie` | Argon2id 校验，创建新令牌族 (`family_id`)；凭证错误返 `401 INVALID_CREDENTIALS` |
 | 4 | `POST /auth/refresh` | 公开 | `refreshToken?` (可选 Body) 或 `Cookie: rc_refresh_token`, `deviceName?` | `accessToken`, `expiresInSeconds`, `refreshToken`, `user` + `Set-Cookie` | **令牌轮换**：旧令牌立即作废并签发同族新令牌；检测到已轮换令牌被重放则吊销整族并返 `401 TOKEN_REUSE_DETECTED` |
@@ -56,9 +56,9 @@
 
 | # | 方法与路径 | 鉴权 | 核心请求字段 (Query / Body) | 核心响应字段 | 语义与关键状态码 |
 | --- | --- | --- | --- | --- | --- |
-| 9 | `POST /biometrics/samples/batch` | Bearer | `samples[1..500]`: `{sourceType, metricType, recordedAt, endAt?, numericValue, unit, externalId, metadata?}` | `acceptedCount`, `deduplicatedCount`, `latestEnergy` | **强制 `externalId` 必填**；单批 `1..500` 条；按唯一索引幂等去重；越界伪影返 `422 INVALID_BIOMETRIC_SAMPLE`；入库后实时返回 `latestEnergy` |
+| 9 | `POST /biometrics/samples/batch` | Bearer | `samples[1..500]`: `{sourceType, metricType, recordedAt, endAt?, numericValue, unit, sleepStage?, externalId, metadata?}` | `acceptedCount`, `deduplicatedCount`, `latestEnergy` | **强制 `externalId` 必填**；单批 `1..500` 条；按唯一索引幂等去重；越界伪影返 `422 INVALID_BIOMETRIC_SAMPLE`；入库后实时返回 `latestEnergy` |
 | 10 | `POST /biometrics/replay-seed` | Bearer | `scenario` (`'well_rested'\|'sleep_deprived'\|'high_stress'`), `day` (`YYYY-MM-DD`) | `scenario`, `day`, `seededCount`, `latestEnergy` | 显式注入 `sourceType='replay_demo'` 的测试回放样本并实时返回重算后的 `latestEnergy` |
-| 11 | `GET /energy/today` | Bearer | Query: `day?` (`YYYY-MM-DD`, 默认用户本地今日) | `localDay`, `timezone`, `computedAt`, `score`, `tier`, `dataFreshness`, `drivers`, `hourlyCurve[]`, `focusShields[]`, `overloadAlert?`, `diagnostics` | 返回当日精力电量、四因子贡献拆解、24h 带 UTC 时间戳预测曲线、专注保护盾、过载预警与穿戴基线诊断 |
+| 11 | `GET /energy/today` | Bearer | Query: `day?` (`YYYY-MM-DD`, 默认用户本地今日) | `localDay`, `timezone`, `computedAt`, `score`, `tier`, `dataFreshness`, `drivers`, `hourlyCurve[]`, `focusShields[]`, `overloadAlert?`, `diagnostics` | 返回当日精力电量、四因子贡献拆解、本地自然日带 UTC 时间戳预测曲线（常规 24 点，DST 切换日 23/25 点）、专注保护盾、过载预警与穿戴基线诊断 |
 | 12 | `GET /energy/profile` | Bearer | — | `userId`, `workStartMinute`, `workEndMinute`, `chronotype`, `preferredFocusWindows[]`, `minRecoveryBufferMin`, `hrvBaselineMs?`, `rhrBaselineBpm?`, `updatedAt` | 获取当前用户的节律配置与 14 日滑动生理基线 |
 | 13 | `PUT /energy/profile` | Bearer | `workStartMinute`, `workEndMinute`, `chronotype`, `preferredFocusWindows[]`, `minRecoveryBufferMin` | 更新后的 `EnergyProfile` | 校验 `workEndMinute > workStartMinute` 及专注窗边界（越界返 `422 INVALID_WORK_HOURS`），保存后同步触发当日精力重算 |
 
@@ -118,13 +118,13 @@
 
 | # | 方法与路径 | 鉴权 | 核心请求字段 (Query / Path / Body) | 核心响应字段 | 语义与关键状态码 |
 | --- | --- | --- | --- | --- | --- |
-| 14 | `GET /schedule/items` | Bearer | Query: `from` (RFC3339), `to` (RFC3339), `includeCancelled?` (bool) | `items[]`, `baselineVersion` | **强制校验 `to - from <= 62 days`**（超限返 `422 RANGE_TOO_LARGE`）；返回时间窗内日程与乐观锁基线版本 |
-| 15 | `POST /schedule/items` | Bearer | `title`, `notes?`, `category`, `cognitiveLoad`, `flexibility`, `startAt`, `endAt`, `deadlineAt?`, `reminderMinutes?`, `allowOverlap?` | `item`, `baselineVersion` | `endAt <= startAt` 返 `422 INVALID_TIME_RANGE`；若与未取消的 `hard_locked` 或已确认 `meeting` 重叠且 `allowOverlap != true`，返 `409 CONFLICT_SCHEDULE_OVERLAP` |
-| 16 | `PATCH /schedule/items/{id}` | Bearer | Path: `id`; Body: `title?`, `notes?`, `category?`, `cognitiveLoad?`, `flexibility?`, `status?`, `startAt?`, `endAt?`, `deadlineAt?`, `reminderMinutes?`, `allowOverlap?` | `item`, `baselineVersion` | `status` 仅允许 `'planned'\|'in_progress'\|'completed'\|'cancelled'`；团队关联会议仅可改 `notes`/`reminderMinutes` 或标 `'completed'`（改时间或取消返 `409 MEETING_MANAGED_BY_PROPOSAL`） |
+| 14 | `GET /schedule/items` | Bearer | Query: `from` (RFC3339), `to` (RFC3339), `includeCancelled?` (bool) | `items[]`, `baselineLocalDay`, `baselineVersion` | **强制校验 `to - from <= 62 days`**（超限返 `422 RANGE_TOO_LARGE`）；返回时间窗内日程、乐观锁锚定日与 48h 基线版本 |
+| 15 | `POST /schedule/items` | Bearer | `title`, `notes?`, `category`, `cognitiveLoad`, `flexibility`, `startAt`, `endAt`, `deadlineAt?`, `reminderMinutes?`, `allowOverlap?` | `item`, `baselineLocalDay`, `baselineVersion` | `endAt <= startAt` 返 `422 INVALID_TIME_RANGE`；若与未取消的 `hard_locked` 或已确认 `meeting` 重叠且 `allowOverlap != true`，返 `409 CONFLICT_SCHEDULE_OVERLAP` |
+| 16 | `PATCH /schedule/items/{id}` | Bearer | Path: `id`; Body: `title?`, `notes?`, `category?`, `cognitiveLoad?`, `flexibility?`, `status?`, `startAt?`, `endAt?`, `deadlineAt?` (可传 `null`), `clearDeadline?`, `reminderMinutes?`, `allowOverlap?` | `item`, `baselineLocalDay`, `baselineVersion` | `status` 仅允许 `'planned'\|'in_progress'\|'completed'\|'cancelled'`；传 `deadlineAt: null` 或 `clearDeadline: true` 可清除截止时间；团队关联会议仅可改 `notes`/`reminderMinutes` 或标 `'completed'`（改时间或取消返 `409 MEETING_MANAGED_BY_PROPOSAL`） |
 | 17 | `DELETE /schedule/items/{id}` | Bearer | Path: `id` | `204 No Content` | 软删除置 `status = 'cancelled'`（释放 GiST 区间）；团队关联会议直接删返 `409 MEETING_MANAGED_BY_PROPOSAL` |
-| 18 | `POST /schedule/rescue/options` | Bearer | `day` (`YYYY-MM-DD`), `triggerReason`, `urgentTask?`: `{title, notes?, durationMinutes, cognitiveLoad, deadlineAt}` | `day`, `baselineVersion`, `options[3]` | 纯函数预演不写库；`deadlineAt <= now` 返 `422 DEADLINE_IN_PAST`；产出三套固定策略对比与 `optionHash` |
-| 19 | `POST /schedule/rescue/apply` | Bearer | `day`, `baselineVersion`, `strategy`, `triggerReason`, `urgentTask?`, `expectedOptionHash?` | `snapshotId`, `strategy`, `baselineVersion`, `appliedItems[]` | **禁止客户端传 `afterItems[]`**；单事务锁 `users` 行、校验 48h `baselineVersion`（过期返 `409 STALE_BASELINE_VERSION`）、服务端确定性重算并落库日程与 `rescue_snapshots` |
-| 20 | `POST /schedule/rescue/undo` | Bearer | `snapshotId` | `snapshotId`, `status` (`'reverted'`), `baselineVersion`, `restoredItems[]` | 单事务校验 `status == 'applied'`（已撤销返 `409 ALREADY_REVERTED`）且还原 `before_items` 不与新增 `hard_locked / meeting` 冲突（冲突返 `409 SNAPSHOT_RESTORE_CONFLICT`） |
+| 18 | `POST /schedule/rescue/options` | Bearer | `day` (`YYYY-MM-DD`), `triggerReason`, `urgentTask?`: `{title, notes?, durationMinutes, cognitiveLoad, deadlineAt}` | `day`, `baselineVersion`, `options[]` (默认 3 套, `minItems: 1`) | 纯函数预演不写库；`deadlineAt <= now` 返 `422 DEADLINE_IN_PAST`；产出对比方案与 `optionHash` |
+| 19 | `POST /schedule/rescue/apply` | Bearer | Header: `Idempotency-Key?`; Body: `day`, `baselineVersion`, `strategy`, `triggerReason`, `urgentTask?`, `expectedOptionHash?` | `snapshotId`, `strategy`, `baselineLocalDay`, `baselineVersion`, `appliedItems[]` | **禁止客户端传 `afterItems[]`**；单事务锁 `users` 行、校验 48h `baselineVersion`（过期返 `409 STALE_BASELINE_VERSION`）、服务端确定性重算并落库日程与 `rescue_snapshots` |
+| 20 | `POST /schedule/rescue/undo` | Bearer | `snapshotId` | `snapshotId`, `status` (`'reverted'`), `baselineLocalDay`, `baselineVersion`, `restoredItems[]` | 单事务校验 `status == 'applied'`（已撤销返 `409 ALREADY_REVERTED`）且还原 `before_items` 不与新增 `hard_locked / meeting` 冲突（冲突返 `409 SNAPSHOT_RESTORE_CONFLICT`） |
 | 21 | `GET /schedule/rescue/history` | Bearer | Query: `limit?` (`1..50`, 默认 `20`), `cursor?` | `snapshots[]`, `nextCursor?` | 分页查看近期救援采纳与撤销历史记录 |
 
 #### 个人日程与救援契约细则
@@ -166,8 +166,8 @@
 | 25 | `PATCH /workspaces/{id}/me` | Bearer | Path: `id`; Body: `privacyLevel` (`'busy_only'\|'energy_tier'\|'full_title'`) | `WorkspaceMember`（含 `workspaceId`, `userId`, `displayName`, `role`, `timezone`, `privacyLevel`, `joinedAt`） | 修改个人在该团队公开的隐私投影级别，触发 `workspace.availability_changed` |
 | 26 | `GET /workspaces/{id}/members` | Bearer | Path: `id` | `workspaceId`, `members[]`: `{userId, displayName, role, timezone, privacyLevel, joinedAt}` | **工作区成员名册**：供排会选人组件独立加载；非成员返 `403 FORBIDDEN_NOT_WORKSPACE_MEMBER` |
 | 27 | `GET /workspaces/{id}/availability` | Bearer | Path: `id`; Query: `from` (RFC3339), `to` (RFC3339), `memberIds?` | `workspaceId`, `from`, `to`, `members[]`: `{userId, displayName, timezone, privacyLevel, workStartMinute, workEndMinute, slots[], energyBuckets[]?}` | **强制校验 `to - from <= 14 days`**（超限返 `422 RANGE_TOO_LARGE`）；**严格脱敏投影**：绝不含精力 `score` 或生理原值 |
-| 28 | `POST /workspaces/{id}/meetings/recommend` | Bearer | Path: `id`; Body: `title`, `description?`, `durationMinutes` (`15..480`), `cognitiveLoad`, `participantIds[]`, `optionalIds[]?`, `searchFrom`, `searchTo`, `respectFocusShields?` | `recommendations[0..3]`, `blockingDiagnostics[]` | **强制校验 `searchTo - searchFrom <= 14 days`**；求解 Top 3 黄金协同窗口，返回结构化 `explanationTags: Array<{code, tone, label}>` |
-| 29 | `POST /workspaces/{id}/meetings/confirm` | Bearer | Path: `id`; Header: `Idempotency-Key?`; Body: `proposalId?`, `title`, `description?`, `durationMinutes`, `cognitiveLoad`, `participantIds[]`, `optionalIds[]?`, `startAt`, `endAt`, `recommendationMeta?` | `proposal`, `createdScheduleCount` | **单事务按 UUID 字典序锁全体参会人 `users` 行**，二次校验无 `hard_locked / meeting` 冲突（冲突返 `409 CONFLICT_MEMBER_BUSY`），原子落库提案与全员 `schedule_items` |
+| 28 | `POST /workspaces/{id}/meetings/recommend` | Bearer | Path: `id`; Body: `title`, `description?`, `durationMinutes` (`15..480`), `cognitiveLoad`, `participantIds[]`, `optionalIds[]?`, `searchFrom`, `searchTo`, `respectFocusShields?`, `maxResults?` (`1..10`, 默认 `3`) | `recommendations[]`, `blockingDiagnostics[]` | **强制校验 `searchTo - searchFrom <= 14 days`**；求解黄金协同窗口，返回结构化 `explanationTags: Array<{code, tone, label}>` |
+| 29 | `POST /workspaces/{id}/meetings/confirm` | Bearer | Path: `id`; Header: `Idempotency-Key?`; Body: `proposalId?`, `title`, `description?`, `cognitiveLoad`, `participantIds[]`, `optionalIds[]?`, `startAt`, `endAt`, `recommendationMeta?` (`MeetingRecommendationMeta`) | `proposal`, `createdScheduleCount` | **单事务按 UUID 字典序锁全体参会人 `users` 行**，二次校验无 `hard_locked / meeting` 冲突（冲突返 `409 CONFLICT_MEMBER_BUSY`），原子落库提案与全员 `schedule_items`（时长由 `startAt`/`endAt` 推导，不再传冗余 `durationMinutes`） |
 | 30 | `GET /workspaces/{id}/meetings` | Bearer | Path: `id`; Query: `status?` (`'draft'\|'confirmed'\|'cancelled'`), `from?`, `to?`, `limit?` (`1..50`), `cursor?` | `meetings[]`（含 `participants[]: {userId, displayName, required, responseStatus}`）, `nextCursor?` | 查询团队会议提案列表及每位参会人的回执状态 |
 | 31 | `POST /workspaces/{id}/meetings/{proposalId}/respond` | Bearer | Path: `id`, `proposalId`; Body: `responseStatus` (`'accepted'\|'declined'`) | `proposalId`, `userId`, `responseStatus`, `scheduleStatus`, `updatedAt` | 受邀参会人回执；当为 `'declined'` 时，**同事务将该用户对应的 `schedule_items.status` 置为 `'cancelled'`**（释放 GiST 忙碌区间） |
 | 32 | `POST /workspaces/{id}/meetings/{proposalId}/cancel` | Bearer | Path: `id`, `proposalId`; Body: `reason?` | `proposalId`, `status` (`'cancelled'`), `cancelledScheduleCount`, `updatedAt` | **仅会议 `organizer` 或工作区 `owner/admin` 可调用**（否则返 `403 FORBIDDEN_INSUFFICIENT_ROLE`）；同事务将提案与关联的全员 `schedule_items.status` 置为 `'cancelled'` |
@@ -225,6 +225,7 @@
 | `401` | `INVALID_REFRESH_TOKEN` | Refresh Token 不存在、已过期或已主动注销 | 立即清空本地会话态，跳转至登录页（**禁止当作空业务列表渲染**） |
 | `401` | `TOKEN_REUSE_DETECTED` | 检测到已轮换的旧 Refresh Token 被重放（整族已被吊销） | 立即清空本地凭证，弹窗提示“检测到会话异常，请重新登录”并跳转登录页 |
 | `401` | `INVALID_WS_TICKET` | WebSocket 握手 `ticket` 不存在、已过期（>30s）或已被消费 | 重新调用 `POST /auth/ws-ticket` 获取新票据后再发起重连 |
+| `403` | `FORBIDDEN` | 通用权限不足兜底错误 | 提示无权执行当前操作 |
 | `403` | `FORBIDDEN_NOT_WORKSPACE_MEMBER` | 访问未加入的 `workspaceId` 资源 | 提示“您不是该团队工作区成员”并跳回工作区列表 |
 | `403` | `FORBIDDEN_INSUFFICIENT_ROLE` | 非会议 `organizer` 且非工作区 `owner/admin` 尝试取消会议 | 禁用取消按钮并提示“仅会议发起人或工作区管理员可取消会议” |
 | `403` | `FORBIDDEN_NOT_MEETING_PARTICIPANT` | 非该会议提案的受邀参会人调用 `/respond` | 提示“您不在该会议受邀名单中” |
@@ -232,6 +233,8 @@
 | `404` | `INVITE_CODE_NOT_FOUND` | 团队工作区邀请码无效或已失效 | 在加入团队输入框下方标红提示“邀请码无效，请核对后重试” |
 | `404` | `MEETING_PROPOSAL_NOT_FOUND` | 指定的 `proposalId` 在该工作区下不存在 | 提示会议提案不存在，刷新团队会议列表 |
 | `404` | `SNAPSHOT_NOT_FOUND` | 指定的救援快照 `snapshotId` 不存在 | 提示救援快照不存在，刷新救援历史列表 |
+| `405` | `METHOD_NOT_ALLOWED` | 请求 HTTP 方法不被该路径支持 | 检查请求方法与客户端生成代码版本 |
+| `409` | `CONFLICT` | 通用资源状态冲突兜底错误 | 刷新最新资源状态后重试 |
 | `409` | `EMAIL_ALREADY_EXISTS` | 注册邮箱已被占用 | 在注册页邮箱字段标红提示“该邮箱已注册，请直接登录” |
 | `409` | `ALREADY_WORKSPACE_MEMBER` | 用户已在该工作区中，重复调用 `/workspaces/join` | 直接引导跳转进入该工作区视图 |
 | `409` | `CONFLICT_SCHEDULE_OVERLAP` | 新建/修改个人日程与既有 `hard_locked` 或 `meeting` 重叠（且 `allowOverlap != true`） | 高亮展示冲突的日程时段与标题，询问用户是否改期或开启强制重叠 |
@@ -248,6 +251,8 @@
 | `422` | `INVALID_BIOMETRIC_SAMPLE` | 穿戴样本物理值越界（如 HR < 30 或 > 220、HRV > 250ms） | Android 端从 `pending_biometrics` 队列剔除该异常坏点并记录本地诊断日志，避免死循环重传 |
 | `422` | `INVALID_WORK_HOURS` | `workEndMinute <= workStartMinute` 或 `preferredFocusWindows` 越界 | 在节律设置表单标红提示工作时段与心流窗口区间错误 |
 | `422` | `PARTICIPANT_NOT_IN_WORKSPACE` | 排会请求的 `participantIds` 或 `optionalIds` 含有非当前工作区成员 | 刷新工作区成员列表（`GET /workspaces/{id}/members`）并提示移除非成员 |
+| `429` | `TOO_MANY_REQUESTS` | 触发限流保护 | 退避后重试并提示用户稍后再试 |
+| `500` | `INTERNAL_SERVER_ERROR` | 未捕获服务端异常 | 展示通用错误提示并上报诊断请求 ID |
 | `503` | `SERVICE_UNAVAILABLE` | 数据库连接池不可用或服务停机维护 | 展示非阻塞连接中断横幅，Android 端转入 Room 离线缓冲模式 |
 
 ---
@@ -270,6 +275,7 @@
 
 ```json
 {
+  "version": 1,
   "eventId": "01933e6a-8c3b-7000-8000-000000000001",
   "type": "schedule.updated",
   "occurredAt": "2026-11-18T14:30:00Z",
@@ -283,7 +289,7 @@
 | --- | --- | --- | --- | --- |
 | 1 | `energy.updated` | 穿戴样本批量入库、测试回放注入、修改 `EnergyProfile` 或日程变动引起精力重算完成 | 当前用户全部在线端（Web + Android） | `{ userId: UUID, localDay: 'YYYY-MM-DD', score: int, tier: EnergyTier, dataFreshness: DataFreshness, computedAt: RFC3339 }` |
 | 2 | `energy.overload_alert` | 精力重算触发穿戴疲劳 (`wearable_fatigue`) 或会议连续过载 (`team_meeting_overload`) 阈值 | 当前用户全部在线端（Web + Android） | `{ userId: UUID, localDay: 'YYYY-MM-DD', triggerReason: RescueTriggerReason, severity: 'warning' \| 'critical', currentScore: int, tier: EnergyTier, message: string, recommendedStrategy: RescueStrategy }` |
-| 3 | `schedule.updated` | 个人日程增删改、救援方案采纳 (`rescue_applied`)、救援撤销 (`rescue_reverted`)、团队会议确认/拒绝/取消引起个人日程表变更 | 当前用户全部在线端（驱动 Web 刷新日历，驱动 Android 秒级刷新 Room 缓存并重排本地闹钟） | `{ userId: UUID, baselineVersion: string, reason: 'item_created' \| 'item_updated' \| 'item_cancelled' \| 'rescue_applied' \| 'rescue_reverted' \| 'team_meeting_synced', affectedFrom: RFC3339, affectedTo: RFC3339, itemIds: UUID[] }` |
+| 3 | `schedule.updated` | 个人日程增删改、救援方案采纳 (`rescue_applied`)、救援撤销 (`rescue_reverted`)、团队会议确认/拒绝/取消引起个人日程表变更 | 当前用户全部在线端（驱动 Web 刷新日历，驱动 Android 秒级刷新 Room 缓存并重排本地闹钟） | `{ userId: UUID, baselineLocalDay: 'YYYY-MM-DD', baselineVersion: string, reason: 'item_created' \| 'item_updated' \| 'item_cancelled' \| 'rescue_applied' \| 'rescue_reverted' \| 'team_meeting_synced', affectedFrom: RFC3339, affectedTo: RFC3339, itemIds: UUID[] }` |
 | 4 | `workspace.meeting_confirmed` | `POST /workspaces/{id}/meetings/confirm` 事务提交成功 | 该会议全体必选与可选参会人的在线端 | `{ workspaceId: UUID, proposalId: UUID, organizerId: UUID, title: string, cognitiveLoad: CognitiveLoad, startAt: RFC3339, endAt: RFC3339, participantIds: UUID[] }` |
 | 5 | `workspace.meeting_cancelled` | `POST /workspaces/{id}/meetings/{proposalId}/cancel` 事务提交成功 | 该会议全体参会人的在线端（驱动 Android 立即注销该会议的本地提醒闹钟） | `{ workspaceId: UUID, proposalId: UUID, cancelledByUserId: UUID, title: string, startAt: RFC3339, endAt: RFC3339, reason?: string }` |
 | 6 | `workspace.meeting_responded` | `POST /workspaces/{id}/meetings/{proposalId}/respond` 参会人接受或拒绝会议 | 会议发起人及该工作区在线成员端 | `{ workspaceId: UUID, proposalId: UUID, userId: UUID, displayName: string, responseStatus: 'accepted' \| 'declined', respondedAt: RFC3339 }` |
@@ -293,11 +299,13 @@
 
 ```json
 {
+  "version": 1,
   "eventId": "01933e6a-8c3b-7000-8000-000000000002",
   "type": "schedule.updated",
   "occurredAt": "2026-11-18T14:32:10Z",
   "payload": {
     "userId": "6ba7b810-9dad-11d1-80b4-00c04fd430c8",
+    "baselineLocalDay": "2026-11-18",
     "baselineVersion": "9a8b7c6d5e4f3a2b",
     "reason": "rescue_applied",
     "affectedFrom": "2026-11-18T00:00:00Z",

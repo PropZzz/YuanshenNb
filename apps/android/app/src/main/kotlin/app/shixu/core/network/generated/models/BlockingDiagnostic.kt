@@ -41,10 +41,10 @@ import kotlinx.serialization.Contextual
 data class BlockingDiagnostic (
 
     @SerialName(value = "blockingDisplayNames")
-    val blockingDisplayNames: kotlin.collections.List<kotlin.String>?,
+    val blockingDisplayNames: kotlin.collections.List<kotlin.String>,
 
     @SerialName(value = "blockingUserIds")
-    val blockingUserIds: kotlin.collections.List<kotlin.String>?,
+    val blockingUserIds: kotlin.collections.List<kotlin.String>,
 
     @SerialName(value = "code")
     val code: kotlin.String,

@@ -11,8 +11,11 @@ import {
   Timer,
   Users,
 } from "lucide-react";
-import { apiClient } from "@/api/client";
+import { apiClient, type ApiComponents } from "@/api/client";
+import { queryKeys } from "@/api/query-keys";
 import { useAuthStore, type ThemeMode } from "@/stores/auth-store";
+
+export type DataFreshness = ApiComponents["DataFreshness"];
 
 interface NavItem {
   to: string;
@@ -35,11 +38,23 @@ const THEME_OPTIONS: { mode: ThemeMode; label: string; icon: typeof Sun }[] = [
   { mode: "system", label: "跟随系统", icon: Monitor },
 ];
 
-export function AppShell({ children }: { children: ReactNode }) {
+const FRESHNESS_LABELS: Record<DataFreshness, string> = {
+  live_wearable: "live_wearable · 实时同步",
+  recent_wearable: "recent_wearable · 今日基线",
+  replay_demo: "replay_demo · 回放测试源",
+  baseline_only: "baseline_only · 未连接穿戴",
+};
+
+interface AppShellProps {
+  children: ReactNode;
+  dataFreshness?: DataFreshness;
+}
+
+export function AppShell({ children, dataFreshness = "baseline_only" }: AppShellProps) {
   const { themeMode, setThemeMode } = useAuthStore();
 
   const healthQuery = useQuery({
-    queryKey: ["system", "health"],
+    queryKey: queryKeys.system.health,
     queryFn: async () => {
       const { data, error } = await apiClient.GET("/api/v1/health");
       if (error || !data) {
@@ -103,7 +118,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           <div className="flex items-center justify-between gap-2 text-xs">
             <span className="text-on-surface-variant">穿戴数据状态</span>
             <span className="inline-flex items-center gap-1.5 rounded-full bg-surface-container-high px-2.5 py-0.5 text-[11px] font-medium text-on-surface-variant">
-              baseline_only
+              {FRESHNESS_LABELS[dataFreshness]}
             </span>
           </div>
           <div className="flex items-center gap-1 rounded-xl bg-surface-container p-1">

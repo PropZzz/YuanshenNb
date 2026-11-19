@@ -23,6 +23,10 @@
 
 package app.shixu.core.network.generated.models
 
+import app.shixu.core.network.generated.models.EnergyTier
+import app.shixu.core.network.generated.models.OverloadSeverity
+import app.shixu.core.network.generated.models.RescueStrategy
+import app.shixu.core.network.generated.models.RescueTriggerReason
 
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerialName
@@ -56,58 +60,22 @@ data class WsEnergyOverloadAlertPayload (
     val message: kotlin.String,
 
     @SerialName(value = "recommendedStrategy")
-    val recommendedStrategy: WsEnergyOverloadAlertPayload.RecommendedStrategy,
+    val recommendedStrategy: RescueStrategy,
 
     @SerialName(value = "severity")
-    val severity: WsEnergyOverloadAlertPayload.Severity,
+    val severity: OverloadSeverity,
 
     @SerialName(value = "tier")
-    val tier: WsEnergyOverloadAlertPayload.Tier,
+    val tier: EnergyTier,
 
     @SerialName(value = "triggerReason")
-    val triggerReason: WsEnergyOverloadAlertPayload.TriggerReason,
+    val triggerReason: RescueTriggerReason,
 
     @Contextual @SerialName(value = "userId")
     val userId: java.util.UUID
 
 ) {
 
-    /**
-     * Values: protect_deadline,protect_recovery,minimize_changes
-     */
-    @Serializable
-    enum class RecommendedStrategy(val value: kotlin.String) {
-        @SerialName(value = "protect_deadline") protect_deadline("protect_deadline"),
-        @SerialName(value = "protect_recovery") protect_recovery("protect_recovery"),
-        @SerialName(value = "minimize_changes") minimize_changes("minimize_changes");
-    }
-    /**
-     * Values: warning,critical
-     */
-    @Serializable
-    enum class Severity(val value: kotlin.String) {
-        @SerialName(value = "warning") warning("warning"),
-        @SerialName(value = "critical") critical("critical");
-    }
-    /**
-     * Values: peak,steady,strained,depleted
-     */
-    @Serializable
-    enum class Tier(val value: kotlin.String) {
-        @SerialName(value = "peak") peak("peak"),
-        @SerialName(value = "steady") steady("steady"),
-        @SerialName(value = "strained") strained("strained"),
-        @SerialName(value = "depleted") depleted("depleted");
-    }
-    /**
-     * Values: urgent_task,team_meeting_overload,wearable_fatigue
-     */
-    @Serializable
-    enum class TriggerReason(val value: kotlin.String) {
-        @SerialName(value = "urgent_task") urgent_task("urgent_task"),
-        @SerialName(value = "team_meeting_overload") team_meeting_overload("team_meeting_overload"),
-        @SerialName(value = "wearable_fatigue") wearable_fatigue("wearable_fatigue");
-    }
 
 }
 

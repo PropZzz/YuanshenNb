@@ -31,7 +31,6 @@ import kotlinx.serialization.Contextual
 /**
  * @param expiresAt
  * @param ticket
- * @param dollarSchema A URL to the JSON Schema for this object.
  */
 @Serializable
 
@@ -41,11 +40,7 @@ data class WsTicketResponse (
     val expiresAt: java.time.OffsetDateTime,
 
     @SerialName(value = "ticket")
-    val ticket: kotlin.String,
-
-    /* A URL to the JSON Schema for this object. */
-    @Contextual @SerialName(value = "\$schema")
-    val dollarSchema: java.net.URI? = null
+    val ticket: kotlin.String
 
 ) {
 

@@ -1,4 +1,4 @@
-import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Navigate, Outlet, Route, Routes } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AppShell } from "@/components/shell/AppShell";
 
@@ -31,12 +31,59 @@ function ViewStarter({ route, title, description }: ViewPlaceholderProps) {
   );
 }
 
+function AuthLayout({ title, description }: { title: string; description: string }) {
+  return (
+    <div className="min-h-screen bg-surface text-on-surface flex items-center justify-center p-6">
+      <div
+        className="w-full max-w-md rounded-2xl bg-surface-container-lowest border p-7 space-y-4"
+        style={{ borderColor: "var(--rc-line)", boxShadow: "var(--rc-shadow)" }}
+      >
+        <div className="flex items-center gap-3">
+          <img src="/brand-logo.png" alt="时序智配" className="h-9 w-9 rounded-lg object-contain" />
+          <div>
+            <h1 className="font-headline text-xl font-semibold text-primary">{title}</h1>
+            <p className="text-xs text-on-surface-variant">Temporal Intelligence Scheduler V2</p>
+          </div>
+        </div>
+        <p className="text-sm text-on-surface-variant leading-relaxed">{description}</p>
+      </div>
+    </div>
+  );
+}
+
+function AppShellLayout() {
+  return (
+    <AppShell>
+      <Outlet />
+    </AppShell>
+  );
+}
+
 export function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
-        <AppShell>
-          <Routes>
+        <Routes>
+          <Route
+            path="/login"
+            element={
+              <AuthLayout
+                title="登录时序智配"
+                description="P3 独立认证流入口（无侧栏外壳）。接入 /api/v1/auth/login 与静默 Cookie 刷新后在此渲染登录表单。"
+              />
+            }
+          />
+          <Route
+            path="/register"
+            element={
+              <AuthLayout
+                title="创建账号"
+                description="P3 独立注册流入口（无侧栏外壳）。接入 /api/v1/auth/register 并初始化个人精力节律基线。"
+              />
+            }
+          />
+
+          <Route element={<AppShellLayout />}>
             <Route path="/" element={<Navigate to="/focus" replace />} />
             <Route
               path="/focus"
@@ -64,7 +111,7 @@ export function App() {
                 <ViewStarter
                   route="/team"
                   title="团队协同排会"
-                  description="P3 视图起步骨架已就绪。仅渲染经服务端脱敏投影后的成员状态与 Top 3 黄金窗口推荐。"
+                  description="P3 视图起步骨架已就绪。仅渲染经服务端脱敏投影后的成员状态与黄金窗口推荐。"
                 />
               }
             />
@@ -74,7 +121,7 @@ export function App() {
                 <ViewStarter
                   route="/energy"
                   title="穿戴精力洞察"
-                  description="P3 视图起步骨架已就绪。接入穿戴数据新鲜度徽标、24h 节律预测曲线与四因子可解释拆解。"
+                  description="P3 视图起步骨架已就绪。接入穿戴数据新鲜度徽标、本地自然日节律预测曲线与四因子可解释拆解。"
                 />
               }
             />
@@ -88,9 +135,10 @@ export function App() {
                 />
               }
             />
-            <Route path="*" element={<Navigate to="/focus" replace />} />
-          </Routes>
-        </AppShell>
+          </Route>
+
+          <Route path="*" element={<Navigate to="/focus" replace />} />
+        </Routes>
       </BrowserRouter>
     </QueryClientProvider>
   );

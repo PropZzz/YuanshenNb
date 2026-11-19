@@ -23,6 +23,7 @@
 
 package app.shixu.core.network.generated.models
 
+import app.shixu.core.network.generated.models.Chronotype
 import app.shixu.core.network.generated.models.DailyMinuteWindow
 
 import kotlinx.serialization.Serializable
@@ -41,7 +42,6 @@ import kotlinx.serialization.encoding.Encoder
  * @param userId
  * @param workEndMinute
  * @param workStartMinute
- * @param dollarSchema A URL to the JSON Schema for this object.
  * @param hrvBaselineMs
  * @param rhrBaselineBpm
  */
@@ -50,13 +50,13 @@ import kotlinx.serialization.encoding.Encoder
 data class EnergyProfileDTO (
 
     @SerialName(value = "chronotype")
-    val chronotype: EnergyProfileDTO.Chronotype,
+    val chronotype: Chronotype,
 
     @SerialName(value = "minRecoveryBufferMin")
     val minRecoveryBufferMin: kotlin.Long,
 
     @SerialName(value = "preferredFocusWindows")
-    val preferredFocusWindows: kotlin.collections.List<DailyMinuteWindow>?,
+    val preferredFocusWindows: kotlin.collections.List<DailyMinuteWindow>,
 
     @Contextual @SerialName(value = "updatedAt")
     val updatedAt: java.time.OffsetDateTime,
@@ -70,10 +70,6 @@ data class EnergyProfileDTO (
     @SerialName(value = "workStartMinute")
     val workStartMinute: kotlin.Long,
 
-    /* A URL to the JSON Schema for this object. */
-    @Contextual @SerialName(value = "\$schema")
-    val dollarSchema: java.net.URI? = null,
-
     @SerialName(value = "hrvBaselineMs")
     val hrvBaselineMs: kotlin.Double? = null,
 
@@ -82,15 +78,6 @@ data class EnergyProfileDTO (
 
 ) {
 
-    /**
-     * Values: morning_lark,balanced,night_owl
-     */
-    @Serializable
-    enum class Chronotype(val value: kotlin.String) {
-        @SerialName(value = "morning_lark") morning_lark("morning_lark"),
-        @SerialName(value = "balanced") balanced("balanced"),
-        @SerialName(value = "night_owl") night_owl("night_owl");
-    }
 
 }
 

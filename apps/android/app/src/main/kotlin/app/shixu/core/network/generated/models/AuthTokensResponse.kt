@@ -34,7 +34,6 @@ import kotlinx.serialization.Contextual
  * @param expiresInSeconds
  * @param refreshToken Android 存入 EncryptedDataStore；Web 同时通过 HttpOnly Cookie rc_refresh_token 下发
  * @param user
- * @param dollarSchema A URL to the JSON Schema for this object.
  */
 @Serializable
 
@@ -51,11 +50,7 @@ data class AuthTokensResponse (
     val refreshToken: kotlin.String,
 
     @SerialName(value = "user")
-    val user: UserProfile,
-
-    /* A URL to the JSON Schema for this object. */
-    @Contextual @SerialName(value = "\$schema")
-    val dollarSchema: java.net.URI? = null
+    val user: UserProfile
 
 ) {
 

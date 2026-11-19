@@ -23,6 +23,7 @@
 
 package app.shixu.core.network.generated.models
 
+import app.shixu.core.network.generated.models.PrivacyLevel
 
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerialName
@@ -34,7 +35,6 @@ import kotlinx.serialization.encoding.Encoder
 
 /**
  * @param name
- * @param dollarSchema A URL to the JSON Schema for this object.
  * @param description
  * @param privacyLevel
  */
@@ -45,27 +45,14 @@ data class CreateWorkspaceRequest (
     @SerialName(value = "name")
     val name: kotlin.String,
 
-    /* A URL to the JSON Schema for this object. */
-    @Contextual @SerialName(value = "\$schema")
-    val dollarSchema: java.net.URI? = null,
-
     @SerialName(value = "description")
     val description: kotlin.String? = null,
 
     @SerialName(value = "privacyLevel")
-    val privacyLevel: CreateWorkspaceRequest.PrivacyLevel? = null
+    val privacyLevel: PrivacyLevel? = null
 
 ) {
 
-    /**
-     * Values: busy_only,energy_tier,full_title
-     */
-    @Serializable
-    enum class PrivacyLevel(val value: kotlin.String) {
-        @SerialName(value = "busy_only") busy_only("busy_only"),
-        @SerialName(value = "energy_tier") energy_tier("energy_tier"),
-        @SerialName(value = "full_title") full_title("full_title");
-    }
 
 }
 
