@@ -53,7 +53,7 @@
 
 ## 快速开始
 
-> 仓库已完成 V2 架构文档、PostgreSQL 16 迁移、OpenAPI 3.1 契约及 Go / Web / Android 三端起步骨架建设；四人可按 [工具链与版本清单](docs/07-security-testing-and-delivery.md#4-开发环境与工具链版本清单按角色分工) 直接开工。
+> 仓库已完成 V2 架构文档、PostgreSQL 16 迁移、OpenAPI 3.1 契约及 Go / Web / Android 三端起步骨架建设；四人可按 [四人协作分工与工具链清单](docs/08-team-division-and-workflow.md#6-开发环境与工具链版本清单按角色分工) 直接开工。
 
 1. **复制环境配置并启动 PostgreSQL 16**（P1 服务端需要）：
    ```powershell
@@ -67,6 +67,7 @@
    - **Android 端 (`apps/android`)**：用 Android Studio 打开 `apps/android/` 或执行 `.\gradlew.bat testDebugUnitTest lintDebug`
 3. **查阅详细设计文档与接口规范**：
    - 文档总览与导航：[docs/README.md](docs/README.md)
+   - 四人分工与协作流程：[docs/08-team-division-and-workflow.md](docs/08-team-division-and-workflow.md)
    - 数据库设计迁移：[services/server/migrations/0001_init.sql](services/server/migrations/0001_init.sql)
    - AI 代理工程约束：[AGENT.md](AGENT.md)
 4. **模块说明入口**：

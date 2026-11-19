@@ -51,7 +51,8 @@ V2 彻底放弃 V1 的多模块大杂烩路线，只围绕**一条高价值、�
 | **04** | [04-api-and-realtime-contracts.md](04-api-and-realtime-contracts.md) | `/api/v1` 全量 REST 端点契约、请求/响应 Schema、RFC 9457 统一错误码、WebSocket 实时推送协议、OpenAPI 生成流水线 |
 | **05** | [05-client-web-and-android.md](05-client-web-and-android.md) | Web React 模块架构（缓存策略/时间轴布局/5 视图流转）与 Android Compose 模块架构（Clean Architecture/WorkManager/BLE 状态机） |
 | **06** | [06-design-system-v2.md](06-design-system-v2.md) | 承接自 V1 “时间地图” 的浅/深色色彩令牌、字体排版、壳层响应式规范、页面精简映射与组件交互规范 |
-| **07** | [07-security-testing-and-delivery.md](07-security-testing-and-delivery.md) | Argon2id + Refresh Token 轮换安全模型、隐私威胁防护、Go/Web/Android 测试金字塔与验收门禁、四人分工矩阵 |
+| **07** | [07-security-testing-and-delivery.md](07-security-testing-and-delivery.md) | Argon2id + Refresh Token 轮换安全模型、隐私威胁防护、Go/Web/Android 测试金字塔与验收门禁 |
+| **08** | [08-team-division-and-workflow.md](08-team-division-and-workflow.md) | 四人团队分工矩阵（P1 服务端基座 / P2 算法与验收 / P3 Web / P4 Android）、物理接口锁、并行里程碑与开发环境清单 |
 
 ---
 

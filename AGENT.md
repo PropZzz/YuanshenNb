@@ -26,7 +26,8 @@
 | REST API、RFC 9457 错误、WebSocket 推送 | [docs/04-api-and-realtime-contracts.md](docs/04-api-and-realtime-contracts.md) |
 | Web / Android 模块划分、缓存、离线同步 | [docs/05-client-web-and-android.md](docs/05-client-web-and-android.md) |
 | Web & Android 视觉规范、色彩、响应式布局 | [docs/06-design-system-v2.md](docs/06-design-system-v2.md)、[tokens.css](apps/web/src/styles/tokens.css) |
-| 认证安全、隐私防线、测试门禁与协作分工 | [docs/07-security-testing-and-delivery.md](docs/07-security-testing-and-delivery.md) |
+| 认证安全、隐私防线与自动化测试门禁 | [docs/07-security-testing-and-delivery.md](docs/07-security-testing-and-delivery.md) |
+| 四人职责分工、目录写入边界与工具链 | [docs/08-team-division-and-workflow.md](docs/08-team-division-and-workflow.md) |
 
 ---
 
