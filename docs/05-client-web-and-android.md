@@ -32,11 +32,17 @@ apps/web/src/
 ```
 
 ### 2. 状态分层与缓存一致性
-- **服务端状态全归 TanStack Query**：按结构化 Query Key 管理，禁止把后端数据复制到 Zustand：
-  - `['energy', 'today', day]`
-  - `['schedule', 'items', from, to]`
-  - `['workspaces']`、`['workspace', workspaceId, 'availability', from, to]`
-- **WS 事件精准失效**：收到 `workspace.meeting_confirmed` 时调用 `queryClient.invalidateQueries({ queryKey: ['schedule'] })` 与 `['workspace', id, 'availability']`；收到 `energy.updated` 时直接刷新 `['energy', 'today']`，实现手机穿戴刚同步完、桌面端秒级响应。
+- **服务端状态全归 TanStack Query**：按结构化 Query Key 管理，禁止把后端数据复制到 Zustand（Zustand 仅保留内存态 `accessToken`、`user` 档案与主题状态；Web Refresh Token 交由 `HttpOnly` Cookie 自动托管，`openapi-fetch` 必须启用 `credentials: 'include'` 并实现单飞 `401 -> /auth/refresh` 队列）：
+  - `['energy', 'today', day]`、`['energy', 'profile']`
+  - `['schedule', 'items', from, to]`、`['schedule', 'rescue', 'history']`
+  - `['workspaces']`
+  - `['workspace', workspaceId, 'members']`、`['workspace', workspaceId, 'availability', from, to]`、`['workspace', workspaceId, 'meetings']`
+- **WS 事件精准失效**：
+  - `energy.updated`：失效 `['energy', 'today']`（实现手机穿戴刚同步完、桌面端秒级响应）；
+  - `energy.overload_alert`：触发非阻断式“精力保护救援建议”提示条；
+  - `schedule.updated`：失效 `['schedule', 'items']` 与 `['schedule', 'rescue', 'history']`；
+  - `workspace.meeting_confirmed` / `workspace.meeting_cancelled` / `workspace.meeting_responded`：失效 `['schedule', 'items']`、`['workspace', id, 'meetings']` 与 `['workspace', id, 'availability']`；
+  - `workspace.availability_changed`：静默失效 `['workspace', id, 'availability']`。
 
 ### 3. 时间地图（Time-Map）渲染规范
 - **全本地时区投影**：后端返回 UTC `startAt`/`endAt`，前端借助 `Intl.DateTimeFormat` / `date-fns-tz` 按用户选定时区投影到网格分钟偏移，**严禁按像素高度反向持久化时长**。
@@ -69,14 +75,15 @@ apps/android/
 ### 2. 穿戴设备后台采集与容错机制
 1. **Health Connect 同步 Worker (`HealthSyncWorker` via WorkManager)**：
    - 触发条件：周期性每 15 分钟（`PeriodicWorkRequest`）+ App 启动/回到前台立即触发一次 `OneTimeWorkRequest`。
-   - 失败退避：无网络或服务端 5xx 时，已读取样本先序列化落入 Room `pending_biometrics` 表，等待网络恢复后按每批 $\le 500$ 条补传；依赖服务端 `external_id` 唯一索引防止重复写入。
+   - 失败退避与**强幂等入队**：入库 Room `pending_biometrics` 前**必须先生成确定性 `externalId`**（`Record.metadata.id` 或 `hc:{recordUid}:{subType}:{recordedAtEpochSec}`）；无网络或服务端 5xx 时暂存 Room，等待网络恢复后按每批 $\le 500$ 条补传；若收到 `422 INVALID_BIOMETRIC_SAMPLE`，按 `errors[].location` 剔除坏点避免死循环重传。
    - 权限降级：用户在系统设置撤销部分 Health Connect 权限时，不崩溃，在 `/energy` 顶部明确提示缺失的权限项并引导一键重授。
 2. **BLE GATT 心率直连管理 (`BleHeartRateManager`)**：
    - 运行在独立协程作用域，维护清晰状态机：`Disconnected -> Scanning -> Connecting -> Streaming(hrBpm, latestRmssd)`。
-   - 每 60 秒将去噪后的有效 RR 间期窗口计算为 `hrv_rmssd` 与平均 `heart_rate` 推入上传队列；蓝牙断开时自动进入指数重连或提示切换回 Health Connect。
-3. **系统级本地通知渠道（Android 特色核心体验）**：
-   - **过载保护通知**：接收到 WS/轮询返回的 `overload_alert` 时弹出高优先级通知，点击直达“精力救援确认页”。
-   - **黄金协同会议通知**：收到新确认的团队会议时自动更新本地提醒闹钟（`AlarmManager` / `WorkManager` 提前 `reminderMinutes` 触发）。
+   - 每 60 秒将去噪后的有效 RR 间期窗口计算为 `hrv_rmssd` 与平均 `heart_rate`，生成确定性 `externalId = ble:{deviceHash}:{metricType}:{recordedAtEpochSec}` 推入上传队列；蓝牙断开时自动进入指数重连或提示切换回 Health Connect。
+3. **系统级本地通知与双端日程同步联动**：
+   - **认证令牌管理**：从 `POST /auth/login`、`POST /auth/refresh` JSON Body 读取 `refreshToken` 加密写入 `EncryptedDataStore`；OkHttp `Authenticator` 在遇到 `401 UNAUTHORIZED` 时使用互斥锁单飞调用 `/auth/refresh`。
+   - **过载保护通知**：接收到 WS `energy.overload_alert` 时弹出高优先级通知，点击直达“精力救援确认页”。
+   - **黄金协同会议与跨端日程闹钟联动**：收到 WS `schedule.updated`、`workspace.meeting_confirmed` 或 `workspace.meeting_cancelled` 时，立即拉取 `GET /schedule/items` 更新 Room 今日快照，并同步注册或取消 `AlarmManager` 本地提前提醒闹钟（`reminderMinutes`）。
 
 ---
 

@@ -53,17 +53,23 @@
 
 ## 快速开始
 
-> 当前项目处于 V2 架构落地准备期（仓库已备齐数据库迁移脚本、视觉令牌与全套设计文档）。
+> 仓库已完成 V2 架构文档、PostgreSQL 16 迁移、OpenAPI 3.1 契约及 Go / Web / Android 三端起步骨架建设；四人可按 [工具链与版本清单](docs/07-security-testing-and-delivery.md#4-开发环境与工具链版本清单按角色分工) 直接开工。
 
-1. **启动本地 PostgreSQL 16 数据库**：
+1. **复制环境配置并启动 PostgreSQL 16**（P1 服务端需要）：
    ```powershell
+   Copy-Item .env.example .env
    docker compose up -d
    ```
-2. **查阅详细设计文档与接口规范**：
+   > 若本地使用绿色版 PostgreSQL 16（Windows 无 Docker），启动方式见 [services/server/README.md](services/server/README.md)。
+2. **三端最小起步命令**：
+   - **Go 服务端 (`services/server`)**：`goose -dir migrations postgres "$env:DATABASE_URL" up` → `go run ./cmd/api`（或 `go test ./...`）
+   - **Web 工作台 (`apps/web`)**：`npm install && npm run gen:api && npm run dev`
+   - **Android 端 (`apps/android`)**：用 Android Studio 打开 `apps/android/` 或执行 `.\gradlew.bat testDebugUnitTest lintDebug`
+3. **查阅详细设计文档与接口规范**：
    - 文档总览与导航：[docs/README.md](docs/README.md)
    - 数据库设计迁移：[services/server/migrations/0001_init.sql](services/server/migrations/0001_init.sql)
    - AI 代理工程约束：[AGENT.md](AGENT.md)
-3. **模块说明入口**：
+4. **模块说明入口**：
    - Go 服务端：[services/server/README.md](services/server/README.md)
    - React Web 工作台：[apps/web/README.md](apps/web/README.md)
    - Android 客户端：[apps/android/README.md](apps/android/README.md)

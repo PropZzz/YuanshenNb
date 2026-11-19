@@ -1,0 +1,5277 @@
+{
+  "components": {
+    "schemas": {
+      "AuthTokensResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "http://localhost:8080/schemas/AuthTokensResponse.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "accessToken": {
+            "type": "string"
+          },
+          "expiresInSeconds": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "refreshToken": {
+            "description": "Android 存入 EncryptedDataStore；Web 同时通过 HttpOnly Cookie rc_refresh_token 下发",
+            "type": "string"
+          },
+          "user": {
+            "$ref": "#/components/schemas/UserProfile"
+          }
+        },
+        "required": [
+          "accessToken",
+          "refreshToken",
+          "expiresInSeconds",
+          "user"
+        ],
+        "type": "object"
+      },
+      "AvailabilitySlot": {
+        "additionalProperties": false,
+        "properties": {
+          "endAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "busy",
+              "focus_shield",
+              "soft_busy"
+            ],
+            "type": "string"
+          },
+          "startAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "startAt",
+          "endAt",
+          "kind"
+        ],
+        "type": "object"
+      },
+      "BiometricBatchRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "http://localhost:8080/schemas/BiometricBatchRequest.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "samples": {
+            "items": {
+              "$ref": "#/components/schemas/BiometricSampleDTO"
+            },
+            "maxItems": 500,
+            "minItems": 1,
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "samples"
+        ],
+        "type": "object"
+      },
+      "BiometricBatchResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "http://localhost:8080/schemas/BiometricBatchResponse.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "acceptedCount": {
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "deduplicatedCount": {
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "latestEnergy": {
+            "$ref": "#/components/schemas/EnergyComputeOutput"
+          }
+        },
+        "required": [
+          "acceptedCount",
+          "deduplicatedCount",
+          "latestEnergy"
+        ],
+        "type": "object"
+      },
+      "BiometricSampleDTO": {
+        "additionalProperties": false,
+        "properties": {
+          "endAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "externalId": {
+            "description": "确定性幂等唯一键",
+            "minLength": 1,
+            "type": "string"
+          },
+          "metadata": {
+            "additionalProperties": {},
+            "type": "object"
+          },
+          "metricType": {
+            "enum": [
+              "heart_rate",
+              "hrv_rmssd",
+              "resting_hr",
+              "sleep_session",
+              "sleep_stage",
+              "active_calories"
+            ],
+            "type": "string"
+          },
+          "numericValue": {
+            "format": "double",
+            "type": "number"
+          },
+          "recordedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "sourceType": {
+            "enum": [
+              "health_connect",
+              "ble_gatt",
+              "replay_demo"
+            ],
+            "type": "string"
+          },
+          "unit": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "sourceType",
+          "metricType",
+          "recordedAt",
+          "numericValue",
+          "unit",
+          "externalId"
+        ],
+        "type": "object"
+      },
+      "BlockingDiagnostic": {
+        "additionalProperties": false,
+        "properties": {
+          "blockingDisplayNames": {
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "blockingUserIds": {
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "code": {
+            "type": "string"
+          },
+          "day": {
+            "format": "date",
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "suggestedAction": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "message",
+          "blockingUserIds",
+          "blockingDisplayNames",
+          "suggestedAction"
+        ],
+        "type": "object"
+      },
+      "CancelMeetingRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "http://localhost:8080/schemas/CancelMeetingRequest.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "reason": {
+            "maxLength": 280,
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "CancelMeetingResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "http://localhost:8080/schemas/CancelMeetingResponse.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "cancelledScheduleCount": {
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "proposalId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "cancelled"
+            ],
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "proposalId",
+          "status",
+          "cancelledScheduleCount",
+          "updatedAt"
+        ],
+        "type": "object"
+      },
+      "ConfirmMeetingRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "http://localhost:8080/schemas/ConfirmMeetingRequest.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "cognitiveLoad": {
+            "enum": [
+              "high",
+              "medium",
+              "low"
+            ],
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "durationMinutes": {
+            "format": "int64",
+            "maximum": 480,
+            "minimum": 15,
+            "type": "integer"
+          },
+          "endAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "optionalIds": {
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "participantIds": {
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1,
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "proposalId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "recommendationMeta": {
+            "additionalProperties": {},
+            "type": "object"
+          },
+          "startAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "title": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "durationMinutes",
+          "cognitiveLoad",
+          "participantIds",
+          "startAt",
+          "endAt"
+        ],
+        "type": "object"
+      },
+      "ConfirmMeetingResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "http://localhost:8080/schemas/ConfirmMeetingResponse.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "createdScheduleCount": {
+            "format": "int64",
+            "minimum": 1,
+            "type": "integer"
+          },
+          "proposal": {
+            "$ref": "#/components/schemas/MeetingProposalDTO"
+          }
+        },
+        "required": [
+          "proposal",
+          "createdScheduleCount"
+        ],
+        "type": "object"
+      },
+      "CreateScheduleItemRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "http://localhost:8080/schemas/CreateScheduleItemRequest.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "allowOverlap": {
+            "default": false,
+            "type": "boolean"
+          },
+          "category": {
+            "enum": [
+              "deep_work",
+              "meeting",
+              "recovery",
+              "routine",
+              "urgent"
+            ],
+            "type": "string"
+          },
+          "cognitiveLoad": {
+            "enum": [
+              "high",
+              "medium",
+              "low"
+            ],
+            "type": "string"
+          },
+          "deadlineAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "endAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "flexibility": {
+            "enum": [
+              "hard_locked",
+              "flexible",
+              "focus_shield"
+            ],
+            "type": "string"
+          },
+          "notes": {
+            "type": "string"
+          },
+          "reminderMinutes": {
+            "default": 10,
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "startAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "title": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "category",
+          "cognitiveLoad",
+          "flexibility",
+          "startAt",
+          "endAt"
+        ],
+        "type": "object"
+      },
+      "CreateWorkspaceRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "http://localhost:8080/schemas/CreateWorkspaceRequest.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 64,
+            "minLength": 1,
+            "type": "string"
+          },
+          "privacyLevel": {
+            "enum": [
+              "busy_only",
+              "energy_tier",
+              "full_title"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "type": "object"
+      },
+      "DailyMinuteWindow": {
+        "additionalProperties": false,
+        "properties": {
+          "endMinute": {
+            "format": "int64",
+            "maximum": 1440,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "startMinute": {
+            "format": "int64",
+            "maximum": 1439,
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "startMinute",
+          "endMinute"
+        ],
+        "type": "object"
+      },
+      "EnergyComputeOutput": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "http://localhost:8080/schemas/EnergyComputeOutput.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "computedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "dataFreshness": {
+            "enum": [
+              "live_wearable",
+              "recent_wearable",
+              "replay_demo",
+              "baseline_only"
+            ],
+            "type": "string"
+          },
+          "diagnostics": {
+            "$ref": "#/components/schemas/EnergySourceDiagnostics"
+          },
+          "drivers": {
+            "$ref": "#/components/schemas/EnergyDrivers"
+          },
+          "focusShields": {
+            "items": {
+              "$ref": "#/components/schemas/FocusShieldWindow"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "hourlyCurve": {
+            "items": {
+              "$ref": "#/components/schemas/HourlyEnergyPoint"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "localDay": {
+            "format": "date",
+            "type": "string"
+          },
+          "overloadAlert": {
+            "$ref": "#/components/schemas/OverloadAlert"
+          },
+          "score": {
+            "format": "int64",
+            "maximum": 100,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "tier": {
+            "enum": [
+              "peak",
+              "steady",
+              "strained",
+              "depleted"
+            ],
+            "type": "string"
+          },
+          "timezone": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "localDay",
+          "timezone",
+          "computedAt",
+          "score",
+          "tier",
+          "dataFreshness",
+          "drivers",
+          "hourlyCurve",
+          "focusShields",
+          "diagnostics"
+        ],
+        "type": "object"
+      },
+      "EnergyDrivers": {
+        "additionalProperties": false,
+        "properties": {
+          "autonomicDeltaScore": {
+            "format": "double",
+            "type": "number"
+          },
+          "circadianScore": {
+            "format": "double",
+            "type": "number"
+          },
+          "cognitiveLoadDrainScore": {
+            "format": "double",
+            "type": "number"
+          },
+          "recentHrvRmssdMs": {
+            "format": "double",
+            "type": "number"
+          },
+          "recentRestingHrBpm": {
+            "format": "double",
+            "type": "number"
+          },
+          "recoveryBufferBonusScore": {
+            "format": "double",
+            "type": "number"
+          },
+          "sleepDurationMinutes": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "sleepRecoveryScore": {
+            "format": "double",
+            "type": "number"
+          },
+          "summary": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "sleepRecoveryScore",
+          "autonomicDeltaScore",
+          "circadianScore",
+          "cognitiveLoadDrainScore",
+          "recoveryBufferBonusScore",
+          "summary"
+        ],
+        "type": "object"
+      },
+      "EnergyProfileDTO": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "http://localhost:8080/schemas/EnergyProfileDTO.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "chronotype": {
+            "enum": [
+              "morning_lark",
+              "balanced",
+              "night_owl"
+            ],
+            "type": "string"
+          },
+          "hrvBaselineMs": {
+            "format": "double",
+            "type": "number"
+          },
+          "minRecoveryBufferMin": {
+            "format": "int64",
+            "maximum": 60,
+            "minimum": 5,
+            "type": "integer"
+          },
+          "preferredFocusWindows": {
+            "items": {
+              "$ref": "#/components/schemas/DailyMinuteWindow"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "rhrBaselineBpm": {
+            "format": "double",
+            "type": "number"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "userId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "workEndMinute": {
+            "format": "int64",
+            "maximum": 1440,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "workStartMinute": {
+            "format": "int64",
+            "maximum": 1439,
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "userId",
+          "workStartMinute",
+          "workEndMinute",
+          "chronotype",
+          "preferredFocusWindows",
+          "minRecoveryBufferMin",
+          "updatedAt"
+        ],
+        "type": "object"
+      },
+      "EnergySourceDiagnostics": {
+        "additionalProperties": false,
+        "properties": {
+          "baselineReadyDays": {
+            "format": "int64",
+            "maximum": 14,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "hrvBaselineMs": {
+            "format": "double",
+            "type": "number"
+          },
+          "lastSyncedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "primarySource": {
+            "enum": [
+              "health_connect",
+              "ble_gatt",
+              "replay_demo"
+            ],
+            "type": "string"
+          },
+          "rhrBaselineBpm": {
+            "format": "double",
+            "type": "number"
+          }
+        },
+        "required": [
+          "baselineReadyDays"
+        ],
+        "type": "object"
+      },
+      "ErrorDetailItem": {
+        "additionalProperties": false,
+        "properties": {
+          "location": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "value": {}
+        },
+        "required": [
+          "location",
+          "message"
+        ],
+        "type": "object"
+      },
+      "ExplanationTag": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "tone": {
+            "enum": [
+              "positive",
+              "warning",
+              "neutral"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "tone",
+          "label"
+        ],
+        "type": "object"
+      },
+      "FocusShieldWindow": {
+        "additionalProperties": false,
+        "properties": {
+          "avgScore": {
+            "format": "int64",
+            "maximum": 100,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "endAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "source": {
+            "enum": [
+              "preferred_window",
+              "auto_peak"
+            ],
+            "type": "string"
+          },
+          "startAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "startAt",
+          "endAt",
+          "avgScore",
+          "source"
+        ],
+        "type": "object"
+      },
+      "GoldenWindowRecommendation": {
+        "additionalProperties": false,
+        "properties": {
+          "affectedMembers": {
+            "items": {
+              "$ref": "#/components/schemas/MemberWindowImpact"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "breakdown": {
+            "$ref": "#/components/schemas/ScoreBreakdown"
+          },
+          "endAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "explanationTags": {
+            "items": {
+              "$ref": "#/components/schemas/ExplanationTag"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "rank": {
+            "format": "int64",
+            "maximum": 3,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "score": {
+            "format": "int64",
+            "maximum": 100,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "startAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "summary": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "rank",
+          "startAt",
+          "endAt",
+          "score",
+          "breakdown",
+          "affectedMembers",
+          "explanationTags",
+          "summary"
+        ],
+        "type": "object"
+      },
+      "HealthResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "http://localhost:8080/schemas/HealthResponse.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "dbStatus": {
+            "enum": [
+              "up",
+              "down"
+            ],
+            "type": "string"
+          },
+          "ok": {
+            "type": "boolean"
+          },
+          "serverTime": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "ok",
+          "version",
+          "dbStatus",
+          "serverTime"
+        ],
+        "type": "object"
+      },
+      "HourlyEnergyPoint": {
+        "additionalProperties": false,
+        "properties": {
+          "hourStartAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "score": {
+            "format": "int64",
+            "maximum": 100,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "tier": {
+            "enum": [
+              "peak",
+              "steady",
+              "strained",
+              "depleted"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "hourStartAt",
+          "score",
+          "tier"
+        ],
+        "type": "object"
+      },
+      "JoinWorkspaceRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "http://localhost:8080/schemas/JoinWorkspaceRequest.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "inviteCode": {
+            "maxLength": 32,
+            "minLength": 4,
+            "type": "string"
+          },
+          "privacyLevel": {
+            "enum": [
+              "busy_only",
+              "energy_tier",
+              "full_title"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "inviteCode"
+        ],
+        "type": "object"
+      },
+      "LoginRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "http://localhost:8080/schemas/LoginRequest.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "deviceName": {
+            "maxLength": 120,
+            "type": "string"
+          },
+          "email": {
+            "format": "email",
+            "type": "string"
+          },
+          "password": {
+            "maxLength": 128,
+            "minLength": 8,
+            "type": "string"
+          }
+        },
+        "required": [
+          "email",
+          "password"
+        ],
+        "type": "object"
+      },
+      "LogoutRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "http://localhost:8080/schemas/LogoutRequest.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "refreshToken": {
+            "description": "Android 端必传；Web 端可省略并自动回退读取 HttpOnly Cookie",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "MeetingParticipantView": {
+        "additionalProperties": false,
+        "properties": {
+          "displayName": {
+            "type": "string"
+          },
+          "required": {
+            "type": "boolean"
+          },
+          "responseStatus": {
+            "enum": [
+              "pending",
+              "accepted",
+              "declined"
+            ],
+            "type": "string"
+          },
+          "userId": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "userId",
+          "displayName",
+          "required",
+          "responseStatus"
+        ],
+        "type": "object"
+      },
+      "MeetingProposalDTO": {
+        "additionalProperties": false,
+        "properties": {
+          "cognitiveLoad": {
+            "enum": [
+              "high",
+              "medium",
+              "low"
+            ],
+            "type": "string"
+          },
+          "confirmedEndAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "confirmedStartAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "durationMinutes": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "organizerId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "participants": {
+            "items": {
+              "$ref": "#/components/schemas/MeetingParticipantView"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "recommendationMeta": {
+            "additionalProperties": {},
+            "type": "object"
+          },
+          "status": {
+            "enum": [
+              "draft",
+              "confirmed",
+              "cancelled"
+            ],
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "workspaceId": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "workspaceId",
+          "organizerId",
+          "title",
+          "description",
+          "durationMinutes",
+          "cognitiveLoad",
+          "status",
+          "participants",
+          "recommendationMeta",
+          "createdAt",
+          "updatedAt"
+        ],
+        "type": "object"
+      },
+      "MeetingProposalListResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "http://localhost:8080/schemas/MeetingProposalListResponse.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "meetings": {
+            "items": {
+              "$ref": "#/components/schemas/MeetingProposalDTO"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "nextCursor": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "meetings"
+        ],
+        "type": "object"
+      },
+      "MeetingSolverOutput": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "http://localhost:8080/schemas/MeetingSolverOutput.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "blockingDiagnostics": {
+            "items": {
+              "$ref": "#/components/schemas/BlockingDiagnostic"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "recommendations": {
+            "items": {
+              "$ref": "#/components/schemas/GoldenWindowRecommendation"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "recommendations",
+          "blockingDiagnostics"
+        ],
+        "type": "object"
+      },
+      "MemberAvailabilityView": {
+        "additionalProperties": false,
+        "properties": {
+          "displayName": {
+            "type": "string"
+          },
+          "energyBuckets": {
+            "items": {
+              "$ref": "#/components/schemas/PrivacyEnergyBucket"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "privacyLevel": {
+            "enum": [
+              "busy_only",
+              "energy_tier",
+              "full_title"
+            ],
+            "type": "string"
+          },
+          "slots": {
+            "items": {
+              "$ref": "#/components/schemas/AvailabilitySlot"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "timezone": {
+            "type": "string"
+          },
+          "userId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "workEndMinute": {
+            "format": "int64",
+            "maximum": 1440,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "workStartMinute": {
+            "format": "int64",
+            "maximum": 1439,
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "userId",
+          "displayName",
+          "timezone",
+          "privacyLevel",
+          "workStartMinute",
+          "workEndMinute",
+          "slots"
+        ],
+        "type": "object"
+      },
+      "MemberWindowImpact": {
+        "additionalProperties": false,
+        "properties": {
+          "breaksFocusShield": {
+            "type": "boolean"
+          },
+          "causesContinuousOverload": {
+            "type": "boolean"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "energyTier": {
+            "enum": [
+              "peak",
+              "steady",
+              "strained",
+              "depleted"
+            ],
+            "type": "string"
+          },
+          "required": {
+            "type": "boolean"
+          },
+          "userId": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "userId",
+          "displayName",
+          "required",
+          "breaksFocusShield",
+          "causesContinuousOverload"
+        ],
+        "type": "object"
+      },
+      "OverloadAlert": {
+        "additionalProperties": false,
+        "properties": {
+          "currentScore": {
+            "format": "int64",
+            "maximum": 100,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "message": {
+            "type": "string"
+          },
+          "recommendedStrategy": {
+            "enum": [
+              "protect_deadline",
+              "protect_recovery",
+              "minimize_changes"
+            ],
+            "type": "string"
+          },
+          "severity": {
+            "enum": [
+              "warning",
+              "critical"
+            ],
+            "type": "string"
+          },
+          "tier": {
+            "enum": [
+              "peak",
+              "steady",
+              "strained",
+              "depleted"
+            ],
+            "type": "string"
+          },
+          "triggerReason": {
+            "enum": [
+              "urgent_task",
+              "team_meeting_overload",
+              "wearable_fatigue"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "triggerReason",
+          "severity",
+          "currentScore",
+          "tier",
+          "message",
+          "recommendedStrategy"
+        ],
+        "type": "object"
+      },
+      "PrivacyEnergyBucket": {
+        "additionalProperties": false,
+        "properties": {
+          "hourStartAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "tier": {
+            "enum": [
+              "peak",
+              "steady",
+              "strained",
+              "depleted"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "hourStartAt",
+          "tier"
+        ],
+        "type": "object"
+      },
+      "ProblemDetail": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "http://localhost:8080/schemas/ProblemDetail.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "code": {
+            "enum": [
+              "BAD_REQUEST",
+              "UNAUTHORIZED",
+              "INVALID_CREDENTIALS",
+              "INVALID_REFRESH_TOKEN",
+              "TOKEN_REUSE_DETECTED",
+              "INVALID_WS_TICKET",
+              "FORBIDDEN_NOT_WORKSPACE_MEMBER",
+              "FORBIDDEN_INSUFFICIENT_ROLE",
+              "FORBIDDEN_NOT_MEETING_PARTICIPANT",
+              "NOT_FOUND",
+              "INVITE_CODE_NOT_FOUND",
+              "MEETING_PROPOSAL_NOT_FOUND",
+              "SNAPSHOT_NOT_FOUND",
+              "EMAIL_ALREADY_EXISTS",
+              "ALREADY_WORKSPACE_MEMBER",
+              "CONFLICT_SCHEDULE_OVERLAP",
+              "CONFLICT_MEMBER_BUSY",
+              "MEETING_MANAGED_BY_PROPOSAL",
+              "MEETING_ALREADY_CANCELLED",
+              "STALE_BASELINE_VERSION",
+              "ALREADY_REVERTED",
+              "SNAPSHOT_RESTORE_CONFLICT",
+              "VALIDATION_FAILED",
+              "RANGE_TOO_LARGE",
+              "INVALID_TIME_RANGE",
+              "DEADLINE_IN_PAST",
+              "INVALID_BIOMETRIC_SAMPLE",
+              "INVALID_WORK_HOURS",
+              "PARTICIPANT_NOT_IN_WORKSPACE",
+              "SERVICE_UNAVAILABLE"
+            ],
+            "type": "string"
+          },
+          "detail": {
+            "type": "string"
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/ErrorDetailItem"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "status": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "title": {
+            "type": "string"
+          },
+          "type": {
+            "format": "uri",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "title",
+          "status",
+          "detail",
+          "code"
+        ],
+        "type": "object"
+      },
+      "RecommendMeetingRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "http://localhost:8080/schemas/RecommendMeetingRequest.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "cognitiveLoad": {
+            "enum": [
+              "high",
+              "medium",
+              "low"
+            ],
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "durationMinutes": {
+            "format": "int64",
+            "maximum": 480,
+            "minimum": 15,
+            "type": "integer"
+          },
+          "optionalIds": {
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "participantIds": {
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1,
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "respectFocusShields": {
+            "default": true,
+            "type": "boolean"
+          },
+          "searchFrom": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "searchTo": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "title": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "durationMinutes",
+          "cognitiveLoad",
+          "participantIds",
+          "searchFrom",
+          "searchTo"
+        ],
+        "type": "object"
+      },
+      "RefreshTokenRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "http://localhost:8080/schemas/RefreshTokenRequest.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "deviceName": {
+            "maxLength": 120,
+            "type": "string"
+          },
+          "refreshToken": {
+            "description": "Android 端必传；Web 端可省略并自动回退读取 HttpOnly Cookie",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "RegisterRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "http://localhost:8080/schemas/RegisterRequest.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "deviceName": {
+            "maxLength": 120,
+            "type": "string"
+          },
+          "displayName": {
+            "maxLength": 64,
+            "minLength": 1,
+            "type": "string"
+          },
+          "email": {
+            "format": "email",
+            "type": "string"
+          },
+          "password": {
+            "maxLength": 128,
+            "minLength": 8,
+            "type": "string"
+          },
+          "timezone": {
+            "default": "Asia/Shanghai",
+            "type": "string"
+          }
+        },
+        "required": [
+          "email",
+          "displayName",
+          "password"
+        ],
+        "type": "object"
+      },
+      "ReplaySeedRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "http://localhost:8080/schemas/ReplaySeedRequest.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "day": {
+            "description": "本地日期 YYYY-MM-DD（默认今日）",
+            "format": "date",
+            "type": "string"
+          },
+          "scenario": {
+            "enum": [
+              "well_rested",
+              "sleep_deprived",
+              "high_stress"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "scenario"
+        ],
+        "type": "object"
+      },
+      "ReplaySeedResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "http://localhost:8080/schemas/ReplaySeedResponse.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "day": {
+            "format": "date",
+            "type": "string"
+          },
+          "latestEnergy": {
+            "$ref": "#/components/schemas/EnergyComputeOutput"
+          },
+          "scenario": {
+            "enum": [
+              "well_rested",
+              "sleep_deprived",
+              "high_stress"
+            ],
+            "type": "string"
+          },
+          "seededCount": {
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "scenario",
+          "day",
+          "seededCount",
+          "latestEnergy"
+        ],
+        "type": "object"
+      },
+      "RescueApplyRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "http://localhost:8080/schemas/RescueApplyRequest.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "baselineVersion": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "day": {
+            "format": "date",
+            "type": "string"
+          },
+          "expectedOptionHash": {
+            "type": "string"
+          },
+          "strategy": {
+            "enum": [
+              "protect_deadline",
+              "protect_recovery",
+              "minimize_changes"
+            ],
+            "type": "string"
+          },
+          "triggerReason": {
+            "enum": [
+              "urgent_task",
+              "team_meeting_overload",
+              "wearable_fatigue"
+            ],
+            "type": "string"
+          },
+          "urgentTask": {
+            "$ref": "#/components/schemas/UrgentTaskDTO"
+          }
+        },
+        "required": [
+          "day",
+          "baselineVersion",
+          "strategy",
+          "triggerReason"
+        ],
+        "type": "object"
+      },
+      "RescueApplyResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "http://localhost:8080/schemas/RescueApplyResponse.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "appliedItems": {
+            "items": {
+              "$ref": "#/components/schemas/ScheduleItemDTO"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "baselineVersion": {
+            "type": "string"
+          },
+          "snapshotId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "strategy": {
+            "enum": [
+              "protect_deadline",
+              "protect_recovery",
+              "minimize_changes"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "snapshotId",
+          "strategy",
+          "baselineVersion",
+          "appliedItems"
+        ],
+        "type": "object"
+      },
+      "RescueDiffItem": {
+        "additionalProperties": false,
+        "properties": {
+          "afterEndAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "afterStartAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "beforeEndAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "beforeStartAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "category": {
+            "enum": [
+              "deep_work",
+              "meeting",
+              "recovery",
+              "routine",
+              "urgent"
+            ],
+            "type": "string"
+          },
+          "cognitiveLoad": {
+            "enum": [
+              "high",
+              "medium",
+              "low"
+            ],
+            "type": "string"
+          },
+          "flexibility": {
+            "enum": [
+              "hard_locked",
+              "flexible",
+              "focus_shield"
+            ],
+            "type": "string"
+          },
+          "itemId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "op": {
+            "enum": [
+              "create",
+              "move",
+              "defer",
+              "unchanged"
+            ],
+            "type": "string"
+          },
+          "reasonCode": {
+            "type": "string"
+          },
+          "reasonLabel": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "op",
+          "title",
+          "category",
+          "cognitiveLoad",
+          "flexibility",
+          "afterStartAt",
+          "afterEndAt",
+          "reasonCode",
+          "reasonLabel"
+        ],
+        "type": "object"
+      },
+      "RescueHistoryResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "http://localhost:8080/schemas/RescueHistoryResponse.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "nextCursor": {
+            "type": "string"
+          },
+          "snapshots": {
+            "items": {
+              "$ref": "#/components/schemas/RescueSnapshotRecord"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "snapshots"
+        ],
+        "type": "object"
+      },
+      "RescueOptionPlan": {
+        "additionalProperties": false,
+        "properties": {
+          "deferredCount": {
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "diffItems": {
+            "items": {
+              "$ref": "#/components/schemas/RescueDiffItem"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "feasible": {
+            "type": "boolean"
+          },
+          "movedCount": {
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "optionHash": {
+            "type": "string"
+          },
+          "overdueRiskCount": {
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "recoveryMinutes": {
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "strategy": {
+            "enum": [
+              "protect_deadline",
+              "protect_recovery",
+              "minimize_changes"
+            ],
+            "type": "string"
+          },
+          "summary": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "strategy",
+          "optionHash",
+          "feasible",
+          "movedCount",
+          "deferredCount",
+          "recoveryMinutes",
+          "overdueRiskCount",
+          "summary",
+          "diffItems"
+        ],
+        "type": "object"
+      },
+      "RescueOptionsRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "http://localhost:8080/schemas/RescueOptionsRequest.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "day": {
+            "format": "date",
+            "type": "string"
+          },
+          "triggerReason": {
+            "enum": [
+              "urgent_task",
+              "team_meeting_overload",
+              "wearable_fatigue"
+            ],
+            "type": "string"
+          },
+          "urgentTask": {
+            "$ref": "#/components/schemas/UrgentTaskDTO"
+          }
+        },
+        "required": [
+          "day",
+          "triggerReason"
+        ],
+        "type": "object"
+      },
+      "RescueOptionsResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "http://localhost:8080/schemas/RescueOptionsResponse.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "baselineVersion": {
+            "type": "string"
+          },
+          "day": {
+            "format": "date",
+            "type": "string"
+          },
+          "options": {
+            "items": {
+              "$ref": "#/components/schemas/RescueOptionPlan"
+            },
+            "maxItems": 3,
+            "minItems": 3,
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "day",
+          "baselineVersion",
+          "options"
+        ],
+        "type": "object"
+      },
+      "RescueSnapshotRecord": {
+        "additionalProperties": false,
+        "properties": {
+          "afterItems": {
+            "items": {
+              "$ref": "#/components/schemas/ScheduleItemSnapshot"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "appliedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "baselineVersion": {
+            "type": "string"
+          },
+          "beforeItems": {
+            "items": {
+              "$ref": "#/components/schemas/ScheduleItemSnapshot"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "localDay": {
+            "format": "date",
+            "type": "string"
+          },
+          "optionHash": {
+            "type": "string"
+          },
+          "revertedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "applied",
+              "reverted"
+            ],
+            "type": "string"
+          },
+          "strategy": {
+            "enum": [
+              "protect_deadline",
+              "protect_recovery",
+              "minimize_changes"
+            ],
+            "type": "string"
+          },
+          "triggerReason": {
+            "enum": [
+              "urgent_task",
+              "team_meeting_overload",
+              "wearable_fatigue"
+            ],
+            "type": "string"
+          },
+          "userId": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "userId",
+          "localDay",
+          "strategy",
+          "triggerReason",
+          "baselineVersion",
+          "optionHash",
+          "status",
+          "beforeItems",
+          "afterItems",
+          "appliedAt"
+        ],
+        "type": "object"
+      },
+      "RescueUndoRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "http://localhost:8080/schemas/RescueUndoRequest.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "snapshotId": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "snapshotId"
+        ],
+        "type": "object"
+      },
+      "RescueUndoResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "http://localhost:8080/schemas/RescueUndoResponse.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "baselineVersion": {
+            "type": "string"
+          },
+          "restoredItems": {
+            "items": {
+              "$ref": "#/components/schemas/ScheduleItemDTO"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "snapshotId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "applied",
+              "reverted"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "snapshotId",
+          "status",
+          "baselineVersion",
+          "restoredItems"
+        ],
+        "type": "object"
+      },
+      "RespondMeetingRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "http://localhost:8080/schemas/RespondMeetingRequest.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "responseStatus": {
+            "enum": [
+              "accepted",
+              "declined"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "responseStatus"
+        ],
+        "type": "object"
+      },
+      "RespondMeetingResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "http://localhost:8080/schemas/RespondMeetingResponse.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "proposalId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "responseStatus": {
+            "enum": [
+              "accepted",
+              "declined"
+            ],
+            "type": "string"
+          },
+          "scheduleStatus": {
+            "enum": [
+              "planned",
+              "in_progress",
+              "completed",
+              "cancelled"
+            ],
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "userId": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "proposalId",
+          "userId",
+          "responseStatus",
+          "scheduleStatus",
+          "updatedAt"
+        ],
+        "type": "object"
+      },
+      "ScheduleItemDTO": {
+        "additionalProperties": false,
+        "properties": {
+          "category": {
+            "enum": [
+              "deep_work",
+              "meeting",
+              "recovery",
+              "routine",
+              "urgent"
+            ],
+            "type": "string"
+          },
+          "cognitiveLoad": {
+            "enum": [
+              "high",
+              "medium",
+              "low"
+            ],
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "deadlineAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "durationMinutes": {
+            "format": "int64",
+            "minimum": 1,
+            "type": "integer"
+          },
+          "endAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "flexibility": {
+            "enum": [
+              "hard_locked",
+              "flexible",
+              "focus_shield"
+            ],
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "meetingProposalId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "notes": {
+            "type": "string"
+          },
+          "reminderMinutes": {
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "startAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "planned",
+              "in_progress",
+              "completed",
+              "cancelled"
+            ],
+            "type": "string"
+          },
+          "title": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "userId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "workspaceId": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "userId",
+          "title",
+          "notes",
+          "category",
+          "cognitiveLoad",
+          "flexibility",
+          "status",
+          "startAt",
+          "endAt",
+          "durationMinutes",
+          "reminderMinutes",
+          "createdAt",
+          "updatedAt"
+        ],
+        "type": "object"
+      },
+      "ScheduleItemListResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "http://localhost:8080/schemas/ScheduleItemListResponse.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "baselineVersion": {
+            "type": "string"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ScheduleItemDTO"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "items",
+          "baselineVersion"
+        ],
+        "type": "object"
+      },
+      "ScheduleItemSnapshot": {
+        "additionalProperties": false,
+        "properties": {
+          "category": {
+            "enum": [
+              "deep_work",
+              "meeting",
+              "recovery",
+              "routine",
+              "urgent"
+            ],
+            "type": "string"
+          },
+          "cognitiveLoad": {
+            "enum": [
+              "high",
+              "medium",
+              "low"
+            ],
+            "type": "string"
+          },
+          "deadlineAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "durationMinutes": {
+            "format": "int64",
+            "minimum": 1,
+            "type": "integer"
+          },
+          "endAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "flexibility": {
+            "enum": [
+              "hard_locked",
+              "flexible",
+              "focus_shield"
+            ],
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "meetingProposalId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "notes": {
+            "type": "string"
+          },
+          "reminderMinutes": {
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "startAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "planned",
+              "in_progress",
+              "completed",
+              "cancelled"
+            ],
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "userId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "workspaceId": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "userId",
+          "title",
+          "notes",
+          "category",
+          "cognitiveLoad",
+          "flexibility",
+          "status",
+          "startAt",
+          "endAt",
+          "durationMinutes",
+          "reminderMinutes",
+          "updatedAt"
+        ],
+        "type": "object"
+      },
+      "ScheduleMutationResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "http://localhost:8080/schemas/ScheduleMutationResponse.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "baselineVersion": {
+            "type": "string"
+          },
+          "item": {
+            "$ref": "#/components/schemas/ScheduleItemDTO"
+          }
+        },
+        "required": [
+          "item",
+          "baselineVersion"
+        ],
+        "type": "object"
+      },
+      "ScoreBreakdown": {
+        "additionalProperties": false,
+        "properties": {
+          "compactnessScore": {
+            "format": "int64",
+            "maximum": 100,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "earlinessScore": {
+            "format": "int64",
+            "maximum": 100,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "energyMatchScore": {
+            "format": "int64",
+            "maximum": 100,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "focusShieldScore": {
+            "format": "int64",
+            "maximum": 100,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "optionalAttendanceRatio": {
+            "format": "double",
+            "maximum": 1,
+            "minimum": 0,
+            "type": "number"
+          }
+        },
+        "required": [
+          "energyMatchScore",
+          "focusShieldScore",
+          "compactnessScore",
+          "optionalAttendanceRatio",
+          "earlinessScore"
+        ],
+        "type": "object"
+      },
+      "UpdateEnergyProfileRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "http://localhost:8080/schemas/UpdateEnergyProfileRequest.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "chronotype": {
+            "enum": [
+              "morning_lark",
+              "balanced",
+              "night_owl"
+            ],
+            "type": "string"
+          },
+          "minRecoveryBufferMin": {
+            "format": "int64",
+            "maximum": 60,
+            "minimum": 5,
+            "type": "integer"
+          },
+          "preferredFocusWindows": {
+            "items": {
+              "$ref": "#/components/schemas/DailyMinuteWindow"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "workEndMinute": {
+            "format": "int64",
+            "maximum": 1440,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "workStartMinute": {
+            "format": "int64",
+            "maximum": 1439,
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "workStartMinute",
+          "workEndMinute",
+          "chronotype",
+          "preferredFocusWindows",
+          "minRecoveryBufferMin"
+        ],
+        "type": "object"
+      },
+      "UpdateMeRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "http://localhost:8080/schemas/UpdateMeRequest.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "displayName": {
+            "maxLength": 64,
+            "minLength": 1,
+            "type": "string"
+          },
+          "themeMode": {
+            "enum": [
+              "system",
+              "light",
+              "dark"
+            ],
+            "type": "string"
+          },
+          "timezone": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "UpdateScheduleItemRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "http://localhost:8080/schemas/UpdateScheduleItemRequest.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "allowOverlap": {
+            "type": "boolean"
+          },
+          "category": {
+            "enum": [
+              "deep_work",
+              "meeting",
+              "recovery",
+              "routine",
+              "urgent"
+            ],
+            "type": "string"
+          },
+          "cognitiveLoad": {
+            "enum": [
+              "high",
+              "medium",
+              "low"
+            ],
+            "type": "string"
+          },
+          "deadlineAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "endAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "flexibility": {
+            "enum": [
+              "hard_locked",
+              "flexible",
+              "focus_shield"
+            ],
+            "type": "string"
+          },
+          "notes": {
+            "type": "string"
+          },
+          "reminderMinutes": {
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "startAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "planned",
+              "in_progress",
+              "completed",
+              "cancelled"
+            ],
+            "type": "string"
+          },
+          "title": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "UpdateWorkspaceMemberConfigRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "http://localhost:8080/schemas/UpdateWorkspaceMemberConfigRequest.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "privacyLevel": {
+            "enum": [
+              "busy_only",
+              "energy_tier",
+              "full_title"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "privacyLevel"
+        ],
+        "type": "object"
+      },
+      "UrgentTaskDTO": {
+        "additionalProperties": false,
+        "properties": {
+          "cognitiveLoad": {
+            "enum": [
+              "high",
+              "medium",
+              "low"
+            ],
+            "type": "string"
+          },
+          "deadlineAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "durationMinutes": {
+            "format": "int64",
+            "maximum": 480,
+            "minimum": 15,
+            "type": "integer"
+          },
+          "notes": {
+            "type": "string"
+          },
+          "title": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "durationMinutes",
+          "cognitiveLoad",
+          "deadlineAt"
+        ],
+        "type": "object"
+      },
+      "UserProfile": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "http://localhost:8080/schemas/UserProfile.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "displayName": {
+            "maxLength": 64,
+            "minLength": 1,
+            "type": "string"
+          },
+          "email": {
+            "format": "email",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "themeMode": {
+            "enum": [
+              "system",
+              "light",
+              "dark"
+            ],
+            "type": "string"
+          },
+          "timezone": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "displayName",
+          "timezone",
+          "themeMode",
+          "createdAt",
+          "updatedAt"
+        ],
+        "type": "object"
+      },
+      "WorkspaceAvailabilityResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "http://localhost:8080/schemas/WorkspaceAvailabilityResponse.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "from": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "members": {
+            "items": {
+              "$ref": "#/components/schemas/MemberAvailabilityView"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "to": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "workspaceId": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "workspaceId",
+          "from",
+          "to",
+          "members"
+        ],
+        "type": "object"
+      },
+      "WorkspaceDTO": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "http://localhost:8080/schemas/WorkspaceDTO.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "inviteCode": {
+            "type": "string"
+          },
+          "memberCount": {
+            "format": "int64",
+            "minimum": 1,
+            "type": "integer"
+          },
+          "myPrivacyLevel": {
+            "enum": [
+              "busy_only",
+              "energy_tier",
+              "full_title"
+            ],
+            "type": "string"
+          },
+          "myRole": {
+            "enum": [
+              "owner",
+              "admin",
+              "member"
+            ],
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 64,
+            "minLength": 1,
+            "type": "string"
+          },
+          "ownerId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "description",
+          "inviteCode",
+          "ownerId",
+          "myRole",
+          "myPrivacyLevel",
+          "memberCount",
+          "createdAt",
+          "updatedAt"
+        ],
+        "type": "object"
+      },
+      "WorkspaceListResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "http://localhost:8080/schemas/WorkspaceListResponse.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "workspaces": {
+            "items": {
+              "$ref": "#/components/schemas/WorkspaceDTO"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "workspaces"
+        ],
+        "type": "object"
+      },
+      "WorkspaceMemberDTO": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "http://localhost:8080/schemas/WorkspaceMemberDTO.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "joinedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "privacyLevel": {
+            "enum": [
+              "busy_only",
+              "energy_tier",
+              "full_title"
+            ],
+            "type": "string"
+          },
+          "role": {
+            "enum": [
+              "owner",
+              "admin",
+              "member"
+            ],
+            "type": "string"
+          },
+          "timezone": {
+            "type": "string"
+          },
+          "userId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "workspaceId": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "workspaceId",
+          "userId",
+          "displayName",
+          "role",
+          "timezone",
+          "privacyLevel",
+          "joinedAt"
+        ],
+        "type": "object"
+      },
+      "WorkspaceMemberListResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "http://localhost:8080/schemas/WorkspaceMemberListResponse.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "members": {
+            "items": {
+              "$ref": "#/components/schemas/WorkspaceMemberDTO"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "workspaceId": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "workspaceId",
+          "members"
+        ],
+        "type": "object"
+      },
+      "WsAvailabilityChangedPayload": {
+        "additionalProperties": false,
+        "properties": {
+          "affectedFrom": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "affectedTo": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "reason": {
+            "enum": [
+              "schedule_changed",
+              "privacy_changed",
+              "energy_tier_changed"
+            ],
+            "type": "string"
+          },
+          "userId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "workspaceId": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "workspaceId",
+          "userId",
+          "reason"
+        ],
+        "type": "object"
+      },
+      "WsEnergyOverloadAlertPayload": {
+        "additionalProperties": false,
+        "properties": {
+          "currentScore": {
+            "format": "int64",
+            "maximum": 100,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "localDay": {
+            "format": "date",
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "recommendedStrategy": {
+            "enum": [
+              "protect_deadline",
+              "protect_recovery",
+              "minimize_changes"
+            ],
+            "type": "string"
+          },
+          "severity": {
+            "enum": [
+              "warning",
+              "critical"
+            ],
+            "type": "string"
+          },
+          "tier": {
+            "enum": [
+              "peak",
+              "steady",
+              "strained",
+              "depleted"
+            ],
+            "type": "string"
+          },
+          "triggerReason": {
+            "enum": [
+              "urgent_task",
+              "team_meeting_overload",
+              "wearable_fatigue"
+            ],
+            "type": "string"
+          },
+          "userId": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "userId",
+          "localDay",
+          "triggerReason",
+          "severity",
+          "currentScore",
+          "tier",
+          "message",
+          "recommendedStrategy"
+        ],
+        "type": "object"
+      },
+      "WsEnergyUpdatedPayload": {
+        "additionalProperties": false,
+        "properties": {
+          "computedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "dataFreshness": {
+            "enum": [
+              "live_wearable",
+              "recent_wearable",
+              "replay_demo",
+              "baseline_only"
+            ],
+            "type": "string"
+          },
+          "localDay": {
+            "format": "date",
+            "type": "string"
+          },
+          "score": {
+            "format": "int64",
+            "maximum": 100,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "tier": {
+            "enum": [
+              "peak",
+              "steady",
+              "strained",
+              "depleted"
+            ],
+            "type": "string"
+          },
+          "userId": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "userId",
+          "localDay",
+          "score",
+          "tier",
+          "dataFreshness",
+          "computedAt"
+        ],
+        "type": "object"
+      },
+      "WsEnvelope": {
+        "additionalProperties": false,
+        "properties": {
+          "eventId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "occurredAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "payload": {
+            "additionalProperties": {},
+            "type": "object"
+          },
+          "type": {
+            "enum": [
+              "energy.updated",
+              "energy.overload_alert",
+              "schedule.updated",
+              "workspace.meeting_confirmed",
+              "workspace.meeting_cancelled",
+              "workspace.meeting_responded",
+              "workspace.availability_changed"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "eventId",
+          "type",
+          "occurredAt",
+          "payload"
+        ],
+        "type": "object"
+      },
+      "WsScheduleUpdatedPayload": {
+        "additionalProperties": false,
+        "properties": {
+          "affectedFrom": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "affectedTo": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "baselineVersion": {
+            "type": "string"
+          },
+          "itemIds": {
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "reason": {
+            "enum": [
+              "item_created",
+              "item_updated",
+              "item_cancelled",
+              "rescue_applied",
+              "rescue_reverted",
+              "team_meeting_synced"
+            ],
+            "type": "string"
+          },
+          "userId": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "userId",
+          "baselineVersion",
+          "reason",
+          "affectedFrom",
+          "affectedTo",
+          "itemIds"
+        ],
+        "type": "object"
+      },
+      "WsTicketResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "http://localhost:8080/schemas/WsTicketResponse.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "expiresAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "ticket": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "ticket",
+          "expiresAt"
+        ],
+        "type": "object"
+      },
+      "WsWorkspaceMeetingCancelledPayload": {
+        "additionalProperties": false,
+        "properties": {
+          "cancelledByUserId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "endAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "proposalId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "startAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "workspaceId": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "workspaceId",
+          "proposalId",
+          "cancelledByUserId",
+          "title",
+          "startAt",
+          "endAt"
+        ],
+        "type": "object"
+      },
+      "WsWorkspaceMeetingConfirmedPayload": {
+        "additionalProperties": false,
+        "properties": {
+          "cognitiveLoad": {
+            "enum": [
+              "high",
+              "medium",
+              "low"
+            ],
+            "type": "string"
+          },
+          "endAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "organizerId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "participantIds": {
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "proposalId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "startAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "workspaceId": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "workspaceId",
+          "proposalId",
+          "organizerId",
+          "title",
+          "cognitiveLoad",
+          "startAt",
+          "endAt",
+          "participantIds"
+        ],
+        "type": "object"
+      },
+      "WsWorkspaceMeetingRespondedPayload": {
+        "additionalProperties": false,
+        "properties": {
+          "displayName": {
+            "type": "string"
+          },
+          "proposalId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "respondedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "responseStatus": {
+            "enum": [
+              "accepted",
+              "declined"
+            ],
+            "type": "string"
+          },
+          "userId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "workspaceId": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "workspaceId",
+          "proposalId",
+          "userId",
+          "displayName",
+          "responseStatus",
+          "respondedAt"
+        ],
+        "type": "object"
+      }
+    },
+    "securitySchemes": {
+      "BearerAuth": {
+        "bearerFormat": "JWT",
+        "description": "15 分钟短效 JWT Access Token",
+        "scheme": "bearer",
+        "type": "http"
+      },
+      "RefreshTokenCookie": {
+        "description": "Web 端 HttpOnly Refresh Token Cookie（Android 端使用 JSON Body refreshToken 字段）",
+        "in": "cookie",
+        "name": "rc_refresh_token",
+        "type": "apiKey"
+      }
+    }
+  },
+  "info": {
+    "description": "基于穿戴设备生理节律感知的个人精力保护与团队协同排会中枢唯一接口契约。",
+    "title": "时序智配 (Temporal Intelligence Scheduler) V2 API",
+    "version": "2.0.0"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/api/v1/auth/login": {
+      "post": {
+        "operationId": "loginUser",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthTokensResponse"
+                }
+              }
+            },
+            "description": "OK",
+            "headers": {
+              "Set-Cookie": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Argon2id 密码校验登录并签发令牌族",
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/api/v1/auth/logout": {
+      "post": {
+        "operationId": "logoutUser",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LogoutRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "No Content",
+            "headers": {
+              "Set-Cookie": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "吊销当前设备 Refresh Token 并清除 Cookie",
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/api/v1/auth/me": {
+      "get": {
+        "operationId": "getCurrentUser",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserProfile"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "获取当前登录用户档案",
+        "tags": [
+          "Auth"
+        ]
+      },
+      "patch": {
+        "operationId": "updateCurrentUser",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateMeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserProfile"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "更新用户昵称、时区或外观主题偏好",
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/api/v1/auth/refresh": {
+      "post": {
+        "operationId": "refreshTokens",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RefreshTokenRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthTokensResponse"
+                }
+              }
+            },
+            "description": "OK",
+            "headers": {
+              "Set-Cookie": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "security": [
+          {
+            "RefreshTokenCookie": []
+          },
+          {}
+        ],
+        "summary": "轮换 Refresh Token（支持 JSON Body 或 HttpOnly Cookie，含重放盗用检测）",
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/api/v1/auth/register": {
+      "post": {
+        "operationId": "registerUser",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthTokensResponse"
+                }
+              }
+            },
+            "description": "Created",
+            "headers": {
+              "Set-Cookie": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "注册新账号并初始化默认精力节律档案",
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/api/v1/auth/ws-ticket": {
+      "post": {
+        "operationId": "issueWsTicket",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WsTicketResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "签发 30 秒一次性 WebSocket 握手票据",
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/api/v1/biometrics/replay-seed": {
+      "post": {
+        "operationId": "seedBiometricReplay",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReplaySeedRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReplaySeedResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "显式注入 replay_demo 测试回放样本",
+        "tags": [
+          "Biometrics"
+        ]
+      }
+    },
+    "/api/v1/biometrics/samples/batch": {
+      "post": {
+        "operationId": "ingestBiometricSamplesBatch",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BiometricBatchRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BiometricBatchResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "批量上报穿戴生理样本（按 externalId 幂等去重并触发精力重算）",
+        "tags": [
+          "Biometrics"
+        ]
+      }
+    },
+    "/api/v1/energy/profile": {
+      "get": {
+        "operationId": "getEnergyProfile",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnergyProfileDTO"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "获取个人工作时间窗、昼夜节律类型、偏好心流窗口与 14 日生理基线",
+        "tags": [
+          "Energy"
+        ]
+      },
+      "put": {
+        "operationId": "updateEnergyProfile",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateEnergyProfileRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnergyProfileDTO"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "更新个人工作时间窗、昼夜节律类型、心流保护窗与最小恢复缓冲",
+        "tags": [
+          "Energy"
+        ]
+      }
+    },
+    "/api/v1/energy/today": {
+      "get": {
+        "operationId": "getTodayEnergy",
+        "parameters": [
+          {
+            "description": "用户本地日期 YYYY-MM-DD（默认今日）",
+            "explode": false,
+            "in": "query",
+            "name": "day",
+            "schema": {
+              "description": "用户本地日期 YYYY-MM-DD（默认今日）",
+              "format": "date",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnergyComputeOutput"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "获取指定日期的实时精力电量、四因子拆解、24h 节律曲线、保护盾与穿戴源诊断",
+        "tags": [
+          "Energy"
+        ]
+      }
+    },
+    "/api/v1/health": {
+      "get": {
+        "operationId": "getHealth",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "503": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "数据库与服务连通性探针",
+        "tags": [
+          "System"
+        ]
+      }
+    },
+    "/api/v1/schedule/items": {
+      "get": {
+        "operationId": "listScheduleItems",
+        "parameters": [
+          {
+            "explode": false,
+            "in": "query",
+            "name": "from",
+            "required": true,
+            "schema": {
+              "format": "date-time",
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "to",
+            "required": true,
+            "schema": {
+              "format": "date-time",
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "includeCancelled",
+            "schema": {
+              "default": false,
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScheduleItemListResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "按 UTC 时间区间拉取个人日程与 48h 乐观锁基线版本（最大跨度 62 天）",
+        "tags": [
+          "Schedule"
+        ]
+      },
+      "post": {
+        "operationId": "createScheduleItem",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateScheduleItemRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScheduleMutationResponse"
+                }
+              }
+            },
+            "description": "Created"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "新建个人日程时间块（含 GiST 硬锁定冲突检测）",
+        "tags": [
+          "Schedule"
+        ]
+      }
+    },
+    "/api/v1/schedule/items/{id}": {
+      "delete": {
+        "operationId": "deleteScheduleItem",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "取消/软删除个人日程（置 status='cancelled'）",
+        "tags": [
+          "Schedule"
+        ]
+      },
+      "patch": {
+        "operationId": "updateScheduleItem",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateScheduleItemRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScheduleMutationResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "更新个人日程",
+        "tags": [
+          "Schedule"
+        ]
+      }
+    },
+    "/api/v1/schedule/rescue/apply": {
+      "post": {
+        "operationId": "applyRescueOption",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RescueApplyRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RescueApplyResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "确认采纳某套救援策略（单事务校验 48h baselineVersion、服务端确定性重算落库）",
+        "tags": [
+          "Schedule"
+        ]
+      }
+    },
+    "/api/v1/schedule/rescue/history": {
+      "get": {
+        "operationId": "listRescueHistory",
+        "parameters": [
+          {
+            "explode": false,
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "default": 20,
+              "format": "int64",
+              "maximum": 50,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "cursor",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RescueHistoryResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "分页查询近期日程救援采纳与撤销历史",
+        "tags": [
+          "Schedule"
+        ]
+      }
+    },
+    "/api/v1/schedule/rescue/options": {
+      "post": {
+        "operationId": "previewRescueOptions",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RescueOptionsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RescueOptionsResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "预览突发插单或疲劳过载的三套日程救援方案（纯函数计算，不写库）",
+        "tags": [
+          "Schedule"
+        ]
+      }
+    },
+    "/api/v1/schedule/rescue/undo": {
+      "post": {
+        "operationId": "undoRescueSnapshot",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RescueUndoRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RescueUndoResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "原子撤销已应用的救援快照（校验无新增锁定会议冲突后按 before_items 还原）",
+        "tags": [
+          "Schedule"
+        ]
+      }
+    },
+    "/api/v1/workspaces": {
+      "get": {
+        "operationId": "listWorkspaces",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceListResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "列出当前用户已加入的全部团队工作区",
+        "tags": [
+          "Workspaces"
+        ]
+      },
+      "post": {
+        "operationId": "createWorkspace",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateWorkspaceRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceDTO"
+                }
+              }
+            },
+            "description": "Created"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "创建团队工作区并将创建者设为 owner",
+        "tags": [
+          "Workspaces"
+        ]
+      }
+    },
+    "/api/v1/workspaces/join": {
+      "post": {
+        "operationId": "joinWorkspace",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/JoinWorkspaceRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceDTO"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "通过邀请码加入团队工作区",
+        "tags": [
+          "Workspaces"
+        ]
+      }
+    },
+    "/api/v1/workspaces/{id}/availability": {
+      "get": {
+        "operationId": "getWorkspaceAvailability",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "from",
+            "required": true,
+            "schema": {
+              "format": "date-time",
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "to",
+            "required": true,
+            "schema": {
+              "format": "date-time",
+              "type": "string"
+            }
+          },
+          {
+            "description": "可选过滤工作区成员子集",
+            "explode": false,
+            "in": "query",
+            "name": "memberIds",
+            "schema": {
+              "description": "可选过滤工作区成员子集",
+              "items": {
+                "type": "string"
+              },
+              "type": [
+                "array",
+                "null"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceAvailabilityResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "获取经服务端严格隐私脱敏后的团队成员状态网格与整点精力档位（最大跨度 14 天）",
+        "tags": [
+          "Workspaces"
+        ]
+      }
+    },
+    "/api/v1/workspaces/{id}/me": {
+      "patch": {
+        "operationId": "updateWorkspacePrivacy",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateWorkspaceMemberConfigRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceMemberDTO"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "修改当前用户在该团队工作区的隐私脱敏投影级别",
+        "tags": [
+          "Workspaces"
+        ]
+      }
+    },
+    "/api/v1/workspaces/{id}/meetings": {
+      "get": {
+        "operationId": "listWorkspaceMeetings",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "status",
+            "schema": {
+              "enum": [
+                "draft",
+                "confirmed",
+                "cancelled"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "from",
+            "schema": {
+              "format": "date-time",
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "to",
+            "schema": {
+              "format": "date-time",
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "default": 20,
+              "format": "int64",
+              "maximum": 50,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "cursor",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeetingProposalListResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "查询团队工作区的会议提案列表及各参会人回执状态",
+        "tags": [
+          "Workspaces"
+        ]
+      }
+    },
+    "/api/v1/workspaces/{id}/meetings/confirm": {
+      "post": {
+        "operationId": "confirmWorkspaceMeeting",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "可选请求幂等键",
+            "in": "header",
+            "name": "Idempotency-Key",
+            "schema": {
+              "description": "可选请求幂等键",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConfirmMeetingRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConfirmMeetingResponse"
+                }
+              }
+            },
+            "description": "Created"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "单事务按序加锁确认团队会议并同步落库全员 schedule_items",
+        "tags": [
+          "Workspaces"
+        ]
+      }
+    },
+    "/api/v1/workspaces/{id}/meetings/recommend": {
+      "post": {
+        "operationId": "recommendWorkspaceMeetings",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecommendMeetingRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeetingSolverOutput"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "求解团队协同排会 Top 3 黄金窗口（最大搜索跨度 14 天）",
+        "tags": [
+          "Workspaces"
+        ]
+      }
+    },
+    "/api/v1/workspaces/{id}/meetings/{proposalId}/cancel": {
+      "post": {
+        "operationId": "cancelWorkspaceMeeting",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "proposalId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CancelMeetingRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CancelMeetingResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "组织者或管理员取消团队会议",
+        "tags": [
+          "Workspaces"
+        ]
+      }
+    },
+    "/api/v1/workspaces/{id}/meetings/{proposalId}/respond": {
+      "post": {
+        "operationId": "respondWorkspaceMeeting",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "proposalId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RespondMeetingRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RespondMeetingResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "参会成员提交会议回执（accepted / declined）",
+        "tags": [
+          "Workspaces"
+        ]
+      }
+    },
+    "/api/v1/workspaces/{id}/members": {
+      "get": {
+        "operationId": "listWorkspaceMembers",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceMemberListResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "获取团队工作区成员名册",
+        "tags": [
+          "Workspaces"
+        ]
+      }
+    }
+  },
+  "servers": [
+    {
+      "description": "Local Development Server",
+      "url": "http://localhost:8080"
+    }
+  ],
+  "tags": [
+    {
+      "description": "系统健康探针",
+      "name": "System"
+    },
+    {
+      "description": "身份认证、双端自适应令牌轮换与 WebSocket 票据",
+      "name": "Auth"
+    },
+    {
+      "description": "Android Health Connect / BLE GATT / 回放样本接入",
+      "name": "Biometrics"
+    },
+    {
+      "description": "个人精力电量、24h 节律曲线、保护窗与基线档案",
+      "name": "Energy"
+    },
+    {
+      "description": "个人统一时间块 CRUD 与突发/疲劳 3 策略可撤销救援",
+      "name": "Schedule"
+    },
+    {
+      "description": "团队工作区、隐私防火墙、黄金窗口求解与会议事务协同",
+      "name": "Workspaces"
+    }
+  ]
+}

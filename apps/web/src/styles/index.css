@@ -1,0 +1,32 @@
+@import "tailwindcss";
+@import "./tokens.css";
+
+@theme inline {
+  --color-primary: var(--rc-primary);
+  --color-on-primary: var(--rc-on-primary);
+  --color-primary-container: var(--rc-primary-container);
+  --color-on-primary-container: var(--rc-on-primary-container);
+  --color-primary-fixed: var(--rc-primary-fixed);
+  --color-secondary: var(--rc-secondary);
+  --color-on-secondary: var(--rc-on-secondary);
+  --color-secondary-container: var(--rc-secondary-container);
+  --color-tertiary: var(--rc-tertiary);
+  --color-tertiary-container: var(--rc-tertiary-container);
+  --color-on-tertiary-container: var(--rc-on-tertiary-container);
+  --color-tertiary-fixed: var(--rc-tertiary-fixed);
+  --color-error: var(--rc-error);
+  --color-error-container: var(--rc-error-container);
+  --color-on-error-container: var(--rc-on-error-container);
+  --color-surface: var(--rc-surface);
+  --color-surface-container-lowest: var(--rc-surface-container-lowest);
+  --color-surface-container-low: var(--rc-surface-container-low);
+  --color-surface-container: var(--rc-surface-container);
+  --color-surface-container-high: var(--rc-surface-container-high);
+  --color-surface-container-highest: var(--rc-surface-container-highest);
+  --color-on-surface: var(--rc-on-surface);
+  --color-on-surface-variant: var(--rc-on-surface-variant);
+  --color-outline: var(--rc-outline);
+  --color-outline-variant: var(--rc-outline-variant);
+  --font-headline: var(--rc-font-headline);
+  --font-body: var(--rc-font-body);
+}

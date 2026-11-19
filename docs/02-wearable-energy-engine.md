@@ -1,6 +1,7 @@
 # 02 · 穿戴设备接入与个人精力保护引擎
 
 > **对应后端模块**：`services/server/internal/biometrics/`、`services/server/internal/engine/energy.go`  
+> **物理交接契约**：[services/server/internal/engine/contracts.go](../services/server/internal/engine/contracts.go)  
 > **对应 Android 模块**：`apps/android/core/health/`、`apps/android/core/ble/`  
 > **目标**：把异构穿戴硬件数据安全、稳定地转为可解释的个人精力电量与 24h 节律曲线，为个人保护与团队协同提供客观输入。
 
@@ -23,8 +24,9 @@
 ┌─────────────────────────────────────────────────────────────────────┐
 │                    Go 服务端入库与标准化层                           │
 │  • 物理合理性清洗（剔除 HR < 30 或 > 220、HRV > 250ms 等伪影）        │
-│  • 基于 (user_id, source_type, metric_type, external_id) 幂等去重   │
-│  • 触发用户 energy_profiles 基线更新 & energy_snapshots 异步重算     │
+│  • 强制非空 external_id + (user_id, source_type, metric_type,        │
+│    external_id) 完整唯一索引 uq_biometrics_external 100% 幂等去重    │
+│  • 触发用户 energy_profiles 基线更新 & energy_snapshots 同步重算     │
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -53,6 +55,15 @@
 ### 1.3 受控测试回放通道：`replay_demo`
 - **适用场景**：团队 Web 开发者本地联调、无可用穿戴硬件测试环境或评审试用。
 - **红线约束**：必须由用户/开发者显式触发 `POST /api/v1/biometrics/replay-seed`（可选预设场景：`well_rested` 充沛状态、`sleep_deprived` 睡眠不足、`high_stress` 连续高压），所有记录强制标记 `source_type = 'replay_demo'`，且 Web/Android 顶部状态胶囊必须清晰显示 **“回放测试源”** 字样，绝不冒充真实手环。
+
+### 1.4 三路数据源 `external_id` 确定性生成规范（100% 离线重试幂等）
+数据库 `biometric_samples.external_id` 为 `TEXT NOT NULL`，并建有非部分唯一索引 `uq_biometrics_external (user_id, source_type, metric_type, external_id)`。为保证 Android Room 离线队列在弱网超时重传、或服务端重跑回放种子时 100% 幂等去重，三路来源必须按以下确定性规范构造 `external_id`：
+
+| `source_type` | `external_id` 格式规范 | 示例 |
+| --- | --- | --- |
+| `health_connect` | 标量记录直接使用 Health Connect `Record.metadata.id`；拆分的 `sleep_stage` 子片段或 `HeartRateRecord` 内部采样点使用 `hc:{recordUid}:{subType}:{recordedAtEpochSec}` | `hc:9f8e7d6c:stage:1763420400` |
+| `ble_gatt` | `ble:{deviceHash}:{metricType}:{recordedAtEpochSec}`（其中 `deviceHash` 为蓝牙设备 MAC/标识符的 SHA-256 前 8 位 hex，`recordedAtEpochSec` 为对齐到 60 秒聚合窗口起点的 Unix 秒级时间戳） | `ble:a1b2c3d4:hrv_rmssd:1763452800` |
+| `replay_demo` | `replay:{scenario}:{day}:{metricType}:{idx}`（其中 `scenario` 为预设场景名，`day` 为 `YYYY-MM-DD`，`idx` 为确定性序号） | `replay:high_stress:2026-11-18:hrv_rmssd:0` |
 
 ---
 
@@ -85,13 +96,51 @@ $$E(t) = \operatorname{clamp}\Big(0,\; 100,\; S_{\text{sleep}} + S_{\text{autono
 - `night_owl`：上午次峰 `11:00`（+18），午后低谷 `14:30`（+8），下午/傍晚主峰 `17:30`（+28）
 
 #### 因子 D：日内认知负荷消耗 $D_{\text{load}}(t)$ 与恢复回补 $R_{\text{buffer}}(t)$
-遍历当日已开始或正在进行的 `schedule_items`（`status IN ('in_progress', 'completed', 'planned')` 且截止到时刻 $t$）：
+遍历当日已开始或计划内的 `schedule_items`（`status IN ('in_progress', 'completed', 'planned')` 且截止到时刻 $t$）：
 - 消耗速率（每小时）：
   - `cognitive_load = 'high'`（含高负荷会议）：`-9.0` 分/小时
   - `cognitive_load = 'medium'`：`-5.0` 分/小时
   - `cognitive_load = 'low'`：`-2.0` 分/小时
 - **连续无缓冲惩罚**：若连续安排超过 120 分钟 `high`/`medium` 任务而中间未穿插 `recovery` 或空闲间隙 $\ge 15$ 分钟，超出部分消耗速率放大 `1.35×`。
 - **恢复缓冲回补 $R_{\text{buffer}}(t)$**：每完整度过 1 个 $\ge 15$ 分钟的 `recovery` 块或空白休息块，回补 `+4` 至 `+8` 分（每日回补上限 `+16` 分，不能凭空突破睡眠决定的体能天花板）。
+
+### 2.2 `energy_snapshots` 重算的三类触发源
+为保证精力分数与 24h 曲线不仅反映清晨生理基线，还能实时响应日内高强度日程与节律偏好调整，服务端在以下 **3 类事件** 发生时必须触发 `EnergyEngine.ComputeSnapshot` 并持久化最新 `energy_snapshots`（同时通过 WebSocket 下发 `energy.updated`）：
+
+1. **触发源 ①：生理样本批量入库或回放种子写入**
+   - 接口：`POST /api/v1/biometrics/samples/batch`、`POST /api/v1/biometrics/replay-seed`
+   - 影响：更新近 14 日滑动生理基线（`hrv_baseline_ms`、`rhr_baseline_bpm`），重算睡眠因子 $S_{\text{sleep}}$、自主神经因子 $S_{\text{autonomic}}$ 与 `data_freshness`。
+2. **触发源 ②：个人日程变更、救援采纳/撤销或团队会议确认/回执**
+   - 接口：`POST/PATCH/DELETE /api/v1/schedule/items`、`POST /api/v1/schedule/rescue/apply`、`POST /api/v1/schedule/rescue/undo`、`POST /api/v1/workspaces/{id}/meetings/confirm`、`POST /api/v1/workspaces/{id}/meetings/{proposalId}/respond`
+   - 影响：实时改变日内认知负荷消耗因子 $D_{\text{load}}(t)$ 与恢复缓冲因子 $R_{\text{buffer}}(t)$，重新评估推荐 `focus_shields` 与 `overload_alert`。
+3. **触发源 ③：个人精力与节律档案修改**
+   - 接口：`PUT /api/v1/energy/profile`（或修改 `users.timezone`）
+   - 影响：改变昼夜节律曲线 $C_{\text{circadian}}(t)$、工作日边界（`work_start_minute` / `work_end_minute`）、自定义心流窗与最小恢复缓冲时长。
+
+### 2.3 `hourly_curve` 与 `diagnostics` 结构规范
+- **`hourly_curve`（24 个整点带 UTC 时间戳点位）**：
+  避免客户端因跨时区或夏令时产生小时下标错位，`hourly_curve` 数组中每个元素均包含显式 RFC 3339 UTC 整点起始时间戳：
+  ```json
+  [
+    {
+      "hourStartAt": "2026-11-18T01:00:00Z",
+      "score": 84,
+      "tier": "peak"
+    }
+  ]
+  ```
+- **`diagnostics`（穿戴同步与基线诊断对象）**：
+  供客户端顶部穿戴状态抽屉展示真实同步诊断信息，结构固定为：
+  ```json
+  {
+    "lastSyncedAt": "2026-11-18T00:45:12Z",
+    "primarySource": "health_connect",
+    "baselineReadyDays": 14,
+    "hrvBaselineMs": 58.4,
+    "rhrBaselineBpm": 59.0
+  }
+  ```
+  - 当无任何穿戴样本（`data_freshness = 'baseline_only'`）时，`lastSyncedAt`、`primarySource`、`hrvBaselineMs`、`rhrBaselineBpm` 为 `null`（或省略），`baselineReadyDays` 为 `0`。
 
 ---
 
@@ -109,9 +158,9 @@ $$E(t) = \operatorname{clamp}\Big(0,\; 100,\; S_{\text{sleep}} + S_{\text{autono
 ## 4. 保护窗口生成与过载预警触发条件
 
 1. **自动推荐“深度专注保护盾”（Focus Shield）**：
-   - 每日扫描未来 24 小时预测曲线，找出 $E(t) \ge 75$ 且连续 $\ge 90$ 分钟的峰值区间，结合用户 `preferred_focus_windows`，若未被会议占用，则标记为推荐保护窗口；在团队视图投影中展示为 `focus_shield` 状态。
+   - 每日扫描未来 24 小时预测曲线，找出 $E(t) \ge 75$ 且连续 $\ge 90$ 分钟的峰值区间，结合用户 `preferred_focus_windows`，若未被会议占用，则标记为推荐保护窗口并存入 `energy_snapshots.focus_shields`；在团队视图投影中展示为 `focus_shield` 状态。
 2. **穿戴疲劳过载触发救援（`wearable_fatigue`）**：
-   - 当同时满足以下任意一条时，后端向用户推送**精力保护建议**（不静默改表，弹窗给用户确认）：
+   - 当同时满足以下任意一条时，后端写入 `energy_snapshots.overload_alert` 并向用户推送**精力保护建议**（不静默改表，弹窗给用户确认）：
      - 当前精力分 $E(\text{now}) < 40$，且未来 2 小时内排有 `high` 负荷的 `flexible` 任务；
      - 连续 2 天晨间 HRV 低于个人基线 $-1.2\sigma$，且当日计划会议总时长超过 4 小时。
-   - 触发后自动调用救援引擎生成 `protect_recovery` 预演方案，建议将高负荷任务延后至下一高峰窗或插入 20 分钟 `recovery` 恢复缓冲。
+   - 触发后用户可一键打开救援对比抽屉，由救援引擎生成 `protect_recovery` 等三套预演方案，建议将高负荷任务延后至下一高峰窗或插入 20 分钟 `recovery` 恢复缓冲。

@@ -45,13 +45,17 @@ CREATE TABLE biometric_samples (
     numeric_value   DOUBLE PRECISION NOT NULL,
     unit            TEXT NOT NULL,
     metadata        JSONB NOT NULL DEFAULT '{}'::jsonb,
-    external_id     TEXT, -- Health Connect record UID，用于幂等去重
-    created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    -- 强制三路来源提供确定性幂等键：
+    -- health_connect: 系统 record UID
+    -- ble_gatt: ble:{deviceHash}:{metricType}:{recordedAtEpochSec}
+    -- replay_demo: replay:{scenario}:{day}:{metricType}:{idx}
+    external_id     TEXT NOT NULL,
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    CHECK (end_at IS NULL OR end_at >= recorded_at)
 );
 
 CREATE UNIQUE INDEX uq_biometrics_external
-    ON biometric_samples (user_id, source_type, metric_type, external_id)
-    WHERE external_id IS NOT NULL;
+    ON biometric_samples (user_id, source_type, metric_type, external_id);
 
 CREATE INDEX idx_biometrics_lookup
     ON biometric_samples (user_id, metric_type, recorded_at DESC);
@@ -65,21 +69,27 @@ CREATE TABLE energy_profiles (
     hrv_baseline_ms         DOUBLE PRECISION,
     rhr_baseline_bpm        DOUBLE PRECISION,
     min_recovery_buffer_min INTEGER NOT NULL DEFAULT 15 CHECK (min_recovery_buffer_min BETWEEN 5 AND 60),
-    updated_at              TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    updated_at              TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    CHECK (work_end_minute > work_start_minute)
 );
 
 CREATE TABLE energy_snapshots (
     id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id         UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    local_day       DATE NOT NULL, -- 用户当前时区下的本地日期 (YYYY-MM-DD)
     computed_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     score           INTEGER NOT NULL CHECK (score BETWEEN 0 AND 100),
     tier            TEXT NOT NULL CHECK (tier IN ('peak', 'steady', 'strained', 'depleted')),
     data_freshness  TEXT NOT NULL CHECK (data_freshness IN ('live_wearable', 'recent_wearable', 'replay_demo', 'baseline_only')),
-    hourly_curve    JSONB NOT NULL, -- 未来 24h 预测点位数组
-    drivers         JSONB NOT NULL DEFAULT '{}'::jsonb -- 可解释因子（睡眠分、HRV 偏差、会议耗能等）
+    hourly_curve    JSONB NOT NULL, -- 未来 24h 预测点位数组 [{hourStartAt, score, tier}]
+    drivers         JSONB NOT NULL DEFAULT '{}'::jsonb, -- 可解释因子（睡眠分、HRV 偏差、会议耗能等）
+    focus_shields   JSONB NOT NULL DEFAULT '[]'::jsonb, -- 推荐保护窗口列表
+    overload_alert  JSONB, -- 触发疲劳过载预警时的结构体（无预警时为 NULL）
+    diagnostics     JSONB NOT NULL DEFAULT '{}'::jsonb -- 同步诊断元数据（lastSyncedAt, primarySource, baselineReadyDays 等）
 );
 
 CREATE INDEX idx_energy_snapshots_user ON energy_snapshots (user_id, computed_at DESC);
+CREATE INDEX idx_energy_snapshots_user_day ON energy_snapshots (user_id, local_day, computed_at DESC);
 
 -- 3. 团队工作区与隐私共享边界
 CREATE TABLE workspaces (
@@ -117,10 +127,20 @@ CREATE TABLE meeting_proposals (
     status              TEXT NOT NULL DEFAULT 'draft' CHECK (status IN ('draft', 'confirmed', 'cancelled')),
     confirmed_start_at  TIMESTAMPTZ,
     confirmed_end_at    TIMESTAMPTZ,
+    idempotency_key     TEXT, -- 可选请求幂等键（防弱网确认会议重复提交）
     recommendation_meta JSONB NOT NULL DEFAULT '{}'::jsonb, -- 选中窗口的评分与推荐解释
     created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at          TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    updated_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    CHECK (confirmed_end_at IS NULL OR confirmed_end_at > confirmed_start_at),
+    CHECK (status <> 'confirmed' OR (confirmed_start_at IS NOT NULL AND confirmed_end_at IS NOT NULL))
 );
+
+CREATE UNIQUE INDEX uq_meeting_proposals_idempotency
+    ON meeting_proposals (workspace_id, organizer_id, idempotency_key)
+    WHERE idempotency_key IS NOT NULL;
+
+CREATE INDEX idx_meeting_proposals_workspace_status
+    ON meeting_proposals (workspace_id, status, confirmed_start_at DESC);
 
 CREATE TABLE meeting_participants (
     proposal_id     UUID NOT NULL REFERENCES meeting_proposals(id) ON DELETE CASCADE,
@@ -155,6 +175,14 @@ CREATE TABLE schedule_items (
     CHECK (end_at > start_at)
 );
 
+CREATE UNIQUE INDEX uq_schedule_items_proposal_user
+    ON schedule_items (meeting_proposal_id, user_id)
+    WHERE meeting_proposal_id IS NOT NULL;
+
+CREATE INDEX idx_schedule_items_proposal
+    ON schedule_items (meeting_proposal_id)
+    WHERE meeting_proposal_id IS NOT NULL;
+
 CREATE INDEX idx_schedule_items_user_range
     ON schedule_items USING GIST (user_id, time_range)
     WHERE status <> 'cancelled';
@@ -164,15 +192,18 @@ CREATE INDEX idx_schedule_items_user_start
 
 -- 6. 突发重排 / 精力过载救援事务快照（支持原子撤销）
 CREATE TABLE rescue_snapshots (
-    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id         UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    strategy        TEXT NOT NULL CHECK (strategy IN ('protect_deadline', 'protect_recovery', 'minimize_changes')),
-    trigger_reason  TEXT NOT NULL, -- 'urgent_task' | 'team_meeting_overload' | 'wearable_fatigue'
-    before_items    JSONB NOT NULL,
-    after_items     JSONB NOT NULL,
-    status          TEXT NOT NULL DEFAULT 'applied' CHECK (status IN ('applied', 'reverted')),
-    applied_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    reverted_at     TIMESTAMPTZ
+    id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id          UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    local_day        DATE NOT NULL,
+    baseline_version TEXT NOT NULL,
+    option_hash      TEXT NOT NULL,
+    strategy         TEXT NOT NULL CHECK (strategy IN ('protect_deadline', 'protect_recovery', 'minimize_changes')),
+    trigger_reason   TEXT NOT NULL CHECK (trigger_reason IN ('urgent_task', 'team_meeting_overload', 'wearable_fatigue')),
+    before_items     JSONB NOT NULL,
+    after_items      JSONB NOT NULL,
+    status           TEXT NOT NULL DEFAULT 'applied' CHECK (status IN ('applied', 'reverted')),
+    applied_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    reverted_at      TIMESTAMPTZ
 );
 
 CREATE INDEX idx_rescue_snapshots_user ON rescue_snapshots (user_id, applied_at DESC);
