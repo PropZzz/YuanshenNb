@@ -2,10 +2,11 @@ package app.shixu.core.network.di
 
 import app.shixu.BuildConfig
 import app.shixu.core.network.AuthInterceptor
-import app.shixu.core.network.InMemoryTokenStore
+import app.shixu.core.datastore.KeystoreTokenStore
 import app.shixu.core.network.ShixuJson
 import app.shixu.core.network.TokenAuthenticator
 import app.shixu.core.network.TokenStore
+import app.shixu.core.network.SessionEvents
 import app.shixu.core.network.generated.apis.AuthApi
 import app.shixu.core.network.generated.apis.BiometricsApi
 import app.shixu.core.network.generated.apis.EnergyApi
@@ -34,7 +35,7 @@ object NetworkModule {
 
     @Provides
     @Singleton
-    fun provideTokenStore(impl: InMemoryTokenStore): TokenStore = impl
+    fun provideTokenStore(impl: KeystoreTokenStore): TokenStore = impl
 
     @Provides
     @Singleton
@@ -45,14 +46,16 @@ object NetworkModule {
     fun provideTokenAuthenticator(
         tokenStore: TokenStore,
         json: Json,
+        sessionEvents: SessionEvents,
     ): TokenAuthenticator {
         val refreshClient = newBaseClientBuilder().build()
         val refreshRetrofit = newRetrofit(refreshClient, json)
         val refreshApi = refreshRetrofit.create(AuthApi::class.java)
 
-        return TokenAuthenticator(tokenStore) { refreshToken ->
+        return TokenAuthenticator(tokenStore, sessionEvents::notifyExpired) { refreshToken ->
             runBlocking {
                 val response = refreshApi.refreshTokens(RefreshTokenRequest(refreshToken = refreshToken))
+                if (response.code() >= 500 || response.code() == 429) throw java.io.IOException("Refresh temporarily unavailable")
                 if (response.isSuccessful) response.body() else null
             }
         }

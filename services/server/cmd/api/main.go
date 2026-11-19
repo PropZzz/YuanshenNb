@@ -159,7 +159,7 @@ func main() {
 
 	srv := &http.Server{
 		Addr:              cfg.Addr,
-		Handler:           NewRouter(cfg, RouterDeps{Pinger: store}),
+		Handler:           NewRouter(cfg, newRuntimeDeps(cfg, pool)),
 		ReadHeaderTimeout: 10 * time.Second,
 		ReadTimeout:       15 * time.Second,
 		IdleTimeout:       60 * time.Second,

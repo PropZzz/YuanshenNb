@@ -20,7 +20,7 @@ export interface CreateApiClientOptions {
 }
 
 export function createApiClient(clientOptions: CreateApiClientOptions = {}) {
-  const baseUrl = clientOptions.baseUrl ?? import.meta.env.VITE_API_BASE_URL ?? "";
+  const baseUrl = clientOptions.baseUrl ?? import.meta.env.VITE_API_BASE_URL ?? (typeof window !== "undefined" ? window.location.origin : "");
   const customFetch = clientOptions.fetch;
   const pendingRequests = new Map<string, Request>();
   let refreshPromise: Promise<string | null> | null = null;
@@ -28,7 +28,7 @@ export function createApiClient(clientOptions: CreateApiClientOptions = {}) {
   const client = createClient<paths>({
     baseUrl,
     credentials: "include",
-    ...(customFetch ? { fetch: customFetch } : {}),
+    fetch: customFetch ?? ((...args) => globalThis.fetch(...args)),
     querySerializer: {
       array: {
         style: "form",
@@ -57,8 +57,10 @@ export function createApiClient(clientOptions: CreateApiClientOptions = {}) {
         const payload = await res.clone().json().catch(() => null);
         if (!res.ok) {
           const problem = parseProblemDetail(res, payload);
-          useAuthStore.getState().clearSession();
-          clientOptions.onSessionExpired?.(problem.code);
+          if (res.status === 401 || res.status === 403) {
+            useAuthStore.getState().clearSession();
+            clientOptions.onSessionExpired?.(problem.code);
+          }
           return null;
         }
 

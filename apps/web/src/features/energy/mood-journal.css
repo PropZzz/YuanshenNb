@@ -1,0 +1,79 @@
+@layer components {
+  .energy-page .energy-top-grid { grid-template-columns: minmax(0,5fr) minmax(0,7fr); }
+  .mood-checkin { display: flex; flex-direction: column; justify-content: space-between; gap: 18px; padding: 24px; min-width: 0; }
+  .mood-checkin > header { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 12px; min-width: 0; }
+  .mood-checkin h2 { font-family: var(--rc-font-headline); font-size: 18px; font-weight: 700; color: var(--rc-primary); }
+  .mood-checkin > header p { color: var(--rc-on-surface-variant); font-size: 11px; line-height: 1.7; margin-top: 4px; }
+  .mood-checkin > header > span { padding: 5px 8px; border-radius: 6px; background: var(--rc-surface-container); color: var(--rc-on-surface-variant); font-size: 10px; font-weight: 500; }
+  .mood-options { display: grid; grid-template-columns: repeat(5,minmax(0,1fr)); gap: 10px; }
+  .mood-option { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px; min-width: 0; min-height: 88px; padding: 12px 4px; border-radius: 8px; background: var(--rc-surface); color: var(--rc-on-surface); text-align: center; transition: background-color 150ms,color 150ms,box-shadow 150ms; }
+  .mood-option i { width: 10px; height: 10px; margin-bottom: 3px; border-radius: 50%; background: var(--rc-surface-tint); transition: transform 150ms; }
+  .mood-option strong { font-size: 12px; font-weight: 700; line-height: 1.4; overflow-wrap: anywhere; }
+  .mood-option small { color: var(--rc-outline); font-size: 9px; letter-spacing: .025em; text-transform: uppercase; }
+  .mood-option:hover { background: var(--rc-surface-container-low); }
+  .mood-option:hover i { transform: scale(1.25); }
+  .mood-option.selected { background: var(--rc-primary-container); color: #fff; box-shadow: 0 1px 3px #0001; }
+  .mood-option.selected small { color: var(--rc-inverse-primary); }
+  .mood-Focused i { background: var(--rc-tertiary-fixed); }
+  .mood-Fatigued i { background: var(--rc-secondary-container); }
+  .mood-Anxious i { background: var(--rc-error); }
+  .mood-Exhausted i { background: var(--rc-outline); }
+  .mood-note-form { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+  .mood-note-form > input { flex: 1 1 160px; min-width: 0; height: 40px; padding: 0 13px; border: 0; border-radius: 8px; background: var(--rc-surface-container-low); font-size: 12px; color: var(--rc-on-surface); }
+  .mood-note-form > input:focus { background: var(--rc-surface-container); }
+  .mood-note-form .button { flex: none; min-height: 40px; padding-inline: 13px; font-size: 12px; }
+  .mood-note-form .material-symbols-outlined { font-size: 16px; }
+  .mood-save-note { font-size: 11px; color: var(--rc-on-tertiary-container); line-height: 1.5; }
+  .mood-care-strip { display: flex; align-items: center; gap: 14px; padding: 20px; margin: 24px 0; border-radius: 12px; background: linear-gradient(90deg,var(--rc-surface-container-low),var(--rc-surface-container),var(--rc-surface-container-low)); box-shadow: 0 1px 2px #1723250a; min-width: 0; }
+  .mood-care-icon { display: grid; place-items: center; width: 40px; height: 40px; flex: none; border-radius: 12px; background: var(--rc-primary-container); color: var(--rc-tertiary-fixed); }
+  .mood-care-strip > div:first-of-type { flex: 1 1 180px; min-width: 0; }
+  .mood-care-strip h2 { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; color: var(--rc-primary); font-size: 11px; font-weight: 700; }
+  .mood-care-strip h2 span { padding: 2px 6px; background: var(--rc-surface-container-highest); color: var(--rc-on-surface-variant); border-radius: 4px; font-size: 9px; }
+  .mood-care-strip p { color: var(--rc-on-surface); font-size: 11px; line-height: 1.8; margin-top: 4px; }
+  .mood-care-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+  .mood-care-actions .button { background: var(--rc-surface-container-lowest); min-height: 34px; padding: 7px 10px; font-size: 11px; color: var(--rc-primary); }
+  .mood-care-actions .material-symbols-outlined { font-size: 17px; }
+  .mood-timeline { padding: 24px; margin: 24px 0; min-width: 0; }
+  .mood-timeline > header { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 18px; }
+  .mood-timeline h2 { font-family: var(--rc-font-headline); font-size: 16px; font-weight: 700; }
+  .mood-timeline > header p { color: var(--rc-outline); font-size: 11px; margin-top: 4px; line-height: 1.5; }
+  .mood-timeline > header .button { flex: none; }
+  .mood-timeline .material-symbols-outlined { font-size: 16px; }
+  .mood-timeline-list { display: grid; gap: 12px; max-height: 420px; overflow-y: auto; }
+  .mood-log { display: block; width: 100%; padding: 14px 16px; border-radius: 8px; background: var(--rc-surface-container-low); text-align: left; transition: background-color 150ms; }
+  .mood-log:hover { background: var(--rc-surface-container); }
+  .mood-log > div { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .mood-log time { color: var(--rc-primary); font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .mood-log small { margin-left: auto; color: var(--rc-outline); font-size: 10px; }
+  .mood-log-label { display: inline-flex; padding: 3px 8px; border-radius: 20px; color: var(--rc-on-primary-fixed-variant); background: var(--rc-primary-fixed); font-size: 10px; font-weight: 600; }
+  .mood-label-Fatigued { background: var(--rc-secondary-fixed); color: var(--rc-on-secondary-fixed-variant); }
+  .mood-label-Anxious { background: var(--rc-error-container); color: var(--rc-on-error-container); }
+  .mood-label-Exhausted { background: var(--rc-surface-container-highest); color: var(--rc-on-surface-variant); }
+  .mood-log p { color: var(--rc-on-surface-variant); font-size: 12px; margin-top: 8px; line-height: 1.7; white-space: pre-wrap; }
+  .mood-timeline > footer { display: flex; align-items: center; gap: 6px; margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--rc-line); color: var(--rc-outline); font-size: 10px; line-height: 1.6; }
+  .mood-empty { display: flex; flex-direction: column; align-items: center; gap: 9px; padding: 30px 12px; color: var(--rc-outline); text-align: center; font-size: 11px; }
+  .mood-empty strong { font-size: 12px; font-weight: 500; color: var(--rc-on-surface-variant); }
+  .mood-empty p { line-height: 1.6; }
+  .mood-empty .material-symbols-outlined { font-size: 24px; color: var(--rc-on-primary-container); }
+  .mood-detail-heading { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+  .mood-detail-heading time { font-size: 11px; color: var(--rc-outline); }
+  .mood-detail-note { background: var(--rc-surface-container-low); padding: 16px; border-radius: 10px; margin-top: 20px; font-size: 13px; line-height: 1.8; white-space: pre-wrap; }
+  .mood-detail-fields { display: grid; gap: 16px; margin: 24px 0; }
+  .mood-detail-fields > div { display: grid; gap: 5px; padding-bottom: 13px; border-bottom: 1px solid var(--rc-line); }
+  .mood-detail-fields dt { color: var(--rc-outline); font-size: 11px; }
+  .mood-detail-fields dd { color: var(--rc-on-surface); font-size: 12px; overflow-wrap: anywhere; }
+  .mood-breathing-guide { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; padding: 30px; margin-bottom: 20px; background: var(--rc-surface-container-low); border-radius: 12px; }
+  .mood-breath-circle { display: grid; place-items: center; width: 80px; height: 80px; border-radius: 50%; color: var(--rc-tertiary-fixed); background: var(--rc-primary-container); box-shadow: 0 0 0 14px color-mix(in srgb,var(--rc-primary-fixed) 40%,transparent); }
+  .mood-breath-circle span { font-size: 20px; font-weight: 700; }
+  .mood-breath-circle.is-running { animation: mood-breathe 19s ease-in-out infinite; }
+  .mood-breathing-guide strong { font-size: 13px; color: var(--rc-primary); font-weight: 500; }
+  .mood-breathing-guide time { font-variant-numeric: tabular-nums; color: var(--rc-outline); font-size: 12px; }
+  .energy-source-extra { margin: 24px 0; }
+  .energy-source-details-button { margin-top: 18px; justify-self: start; }
+}
+@keyframes mood-breathe { 0%,100% { transform: scale(.84); } 21%,57% { transform: scale(1.08); } }
+@media (max-width: 1150px) { .mood-options { gap: 8px; } .mood-option strong { font-size: 11px; } .mood-option small { font-size: 8px; } .mood-care-strip { flex-wrap: wrap; } .mood-care-actions { margin-left: 54px; } .mood-checkin > header { flex-wrap: wrap; } }
+@media (max-width: 1100px) { .energy-page .energy-top-grid { grid-template-columns: minmax(0,1fr); } .mood-options { grid-template-columns: repeat(auto-fit,minmax(min(100%,100px),1fr)); } .mood-care-actions { margin-left: 0; } }
+@media (max-width: 780px) { .energy-page .energy-top-grid { grid-template-columns: 1fr; } .mood-checkin,.mood-timeline { padding: 20px 18px; } .mood-options { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 10px; } .mood-option:last-child { grid-column: 1 / -1; } .mood-option { min-height: 78px; } .mood-option strong { font-size: 12px; } .mood-option small { font-size: 9px; } .mood-care-strip { margin: 18px 0; padding: 18px; gap: 12px; align-items: flex-start; } .mood-care-actions { margin-left: 0; width: 100%; justify-content: flex-end; } .mood-care-actions .button { padding-inline: 8px; font-size: 10px; } .mood-note-form { flex-wrap: wrap; } .mood-note-form > input { flex-basis: 100%; } .mood-note-form > .button { margin-left: auto; } .mood-timeline { margin: 18px 0; } }
+@media (max-width: 359px) { .mood-options { grid-template-columns: minmax(0,1fr); } .mood-option:last-child { grid-column: auto; } }
+@media (prefers-reduced-motion: reduce) { .mood-breath-circle.is-running { animation: none; } }

@@ -9,6 +9,7 @@ import okhttp3.Route
 
 class TokenAuthenticator(
     private val tokenStore: TokenStore,
+    private val onInvalidSession: () -> Unit = {},
     private val refreshCall: (refreshToken: String) -> AuthTokensResponse?,
 ) : Authenticator {
     private val lock = Any()
@@ -44,12 +45,19 @@ class TokenAuthenticator(
             val currentRefresh = tokenStore.refreshToken()?.takeIf { it.isNotBlank() }
             if (currentRefresh == null) {
                 tokenStore.clear()
+                onInvalidSession()
                 return null
             }
 
-            val renewed = runCatching { refreshCall(currentRefresh) }.getOrNull()
+            val renewed = try {
+                refreshCall(currentRefresh)
+            } catch (_: java.io.IOException) {
+                // Offline/5xx is not evidence that a refresh token was revoked.
+                return null
+            }
             if (renewed == null) {
                 tokenStore.clear()
+                onInvalidSession()
                 return null
             }
 

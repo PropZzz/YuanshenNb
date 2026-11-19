@@ -1,176 +1,140 @@
 package app.shixu.app
 
 import android.os.Bundle
+import android.content.Intent
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.viewModels
 import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.CalendarMonth
-import androidx.compose.material.icons.outlined.FavoriteBorder
-import androidx.compose.material.icons.outlined.Groups
-import androidx.compose.material.icons.outlined.Settings
-import androidx.compose.material.icons.outlined.Timer
-import androidx.compose.material3.AssistChip
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
+import androidx.compose.material.icons.outlined.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavGraph.Companion.findStartDestination
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
-import androidx.navigation.compose.currentBackStackEntryAsState
-import androidx.navigation.compose.rememberNavController
-import app.shixu.BuildConfig
+import androidx.navigation.compose.*
+import app.shixu.core.ble.BleHeartRateManager
+import app.shixu.core.database.ShixuDatabase
+import app.shixu.core.database.TodaySnapshotStore
+import app.shixu.core.health.HealthSync
+import app.shixu.core.network.ClientServices
+import app.shixu.core.network.RealtimeClient
+import app.shixu.core.network.SessionEvents
 import app.shixu.core.network.generated.models.ThemeMode
+import app.shixu.core.ui.*
 import app.shixu.core.ui.theme.ShixuTheme
+import app.shixu.feature.energy.*
+import app.shixu.feature.schedule.*
+import app.shixu.feature.settings.*
+import app.shixu.feature.team.*
 import dagger.hilt.android.AndroidEntryPoint
-
-private data class ShixuDestination(
-    val route: String,
-    val displayPath: String,
-    val label: String,
-    val icon: ImageVector,
-    val summary: String,
-)
-
-private val DESTINATIONS = listOf(
-    ShixuDestination("focus", "/focus", "专注", Icons.Outlined.Timer, "今日专注与实时精力保护状态入口"),
-    ShixuDestination("calendar", "/calendar", "日历", Icons.Outlined.CalendarMonth, "今日日程时间轴与突发救援确认入口"),
-    ShixuDestination("team", "/team", "团队", Icons.Outlined.Groups, "团队会议邀请回执与轻量排会入口"),
-    ShixuDestination("energy", "/energy", "精力", Icons.Outlined.FavoriteBorder, "Health Connect / BLE 0x180D 采集与回放控制"),
-    ShixuDestination("settings", "/settings", "设置", Icons.Outlined.Settings, "账号认证、隐私等级与同步诊断"),
-)
+import java.time.ZoneId
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+    @Inject lateinit var api: ClientServices
+    @Inject lateinit var health: HealthSync
+    @Inject lateinit var ble: BleHeartRateManager
+    @Inject lateinit var database: ShixuDatabase
+    @Inject lateinit var snapshots: TodaySnapshotStore
+    @Inject lateinit var notifications: ScheduleNotifications
+    @Inject lateinit var realtime: RealtimeClient
+    @Inject lateinit var sessionEvents: SessionEvents
+    private var requestedRoute by mutableStateOf<String?>(null)
+    private val account by viewModels<AccountViewModel> { modelFactory { AccountViewModel(api) { user ->
+        ble.setOwner(user?.id?.toString())
+        realtime.start(user)
+        if (user != null) { HealthSync.schedule(applicationContext); HealthSync.syncNow(applicationContext) }
+    } } }
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        setContent {
-            ShixuRootApp()
+        requestedRoute = intent?.getStringExtra("destination")
+        setContent { ShixuRootApp(account, api, health, ble, database, snapshots, notifications, realtime, sessionEvents, requestedRoute) { requestedRoute = null } }
+    }
+    override fun onStart() { super.onStart(); if (::api.isInitialized && api.tokens.refreshToken() != null) HealthSync.syncNow(applicationContext) }
+    override fun onStop() { if (::ble.isInitialized) ble.disconnect(); super.onStop() }
+    override fun onNewIntent(intent: Intent) { super.onNewIntent(intent); setIntent(intent); requestedRoute = intent.getStringExtra("destination") }
+}
+
+@Composable fun ShixuRootApp(account: AccountViewModel, api: ClientServices, health: HealthSync, ble: BleHeartRateManager, database: ShixuDatabase, snapshots: TodaySnapshotStore, notifications: ScheduleNotifications, realtime: RealtimeClient, sessionEvents: SessionEvents, requestedRoute: String?, routeHandled: () -> Unit) {
+    LaunchedEffect(sessionEvents) { sessionEvents.expirations.collect { account.forgetLocalSession() } }
+    val dark = when (account.user?.themeMode ?: ThemeMode.system) { ThemeMode.dark -> true; ThemeMode.light -> false; ThemeMode.system -> isSystemInDarkTheme() }
+    ShixuTheme(darkTheme = dark) {
+        Surface(Modifier.fillMaxSize()) {
+            when {
+                !account.bootstrapped -> Column(Modifier.fillMaxSize().padding(32.dp), verticalArrangement = Arrangement.Center) { Text("正在恢复你的时间地图…"); LoadingNotice(true) }
+                account.user == null -> AuthenticationScreen(account)
+                else -> WorkspaceScaffold(account, api, health, ble, database, snapshots, notifications, realtime, requestedRoute, routeHandled)
+            }
         }
     }
 }
 
-@Composable
-fun ShixuRootApp(themeMode: ThemeMode = ThemeMode.system) {
-    val darkTheme = when (themeMode) {
-        ThemeMode.dark -> true
-        ThemeMode.light -> false
-        ThemeMode.system -> isSystemInDarkTheme()
-    }
-    ShixuTheme(darkTheme = darkTheme) {
-        ShixuRootScaffold()
-    }
-}
+private val destinations = listOf("focus" to "专注", "calendar" to "日历", "team" to "团队", "energy" to "精力", "settings" to "设置")
 
 @OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun ShixuRootScaffold() {
-    val navController = rememberNavController()
-    val backStackEntry by navController.currentBackStackEntryAsState()
-    val currentRoute = backStackEntry?.destination?.route ?: DESTINATIONS.first().route
-
+@Composable private fun WorkspaceScaffold(account: AccountViewModel, api: ClientServices, health: HealthSync, ble: BleHeartRateManager, database: ShixuDatabase, snapshots: TodaySnapshotStore, notifications: ScheduleNotifications, realtime: RealtimeClient, requestedRoute: String?, routeHandled: () -> Unit) {
+    val user = account.user ?: return
+    val zone = remember(user.timezone) { runCatching { ZoneId.of(user.timezone) }.getOrDefault(ZoneId.systemDefault()) }
+    val schedule: ScheduleViewModel = viewModel(key = "schedule-${user.id}-${user.timezone}", factory = modelFactory { ScheduleViewModel(api, zone, user.id.toString(), snapshots, notifications) })
+    val energy: EnergyViewModel = viewModel(key = "energy-${user.id}", factory = modelFactory { EnergyViewModel(api, health) })
+    val team: TeamViewModel = viewModel(key = "team-${user.id}-${user.timezone}", factory = modelFactory { TeamViewModel(api, zone, user.id) })
+    val pending by remember(user.id) { database.pending().count(user.id.toString()) }.collectAsStateWithLifecycle(initialValue = 0)
+    val nav = rememberNavController()
+    val backStack by nav.currentBackStackEntryAsState()
+    val route = backStack?.destination?.route ?: "focus"
+    var openRescue by remember { mutableStateOf(false) }
+    val realtimeStatus by realtime.status.collectAsStateWithLifecycle()
+    LaunchedEffect(requestedRoute) {
+        requestedRoute?.let { requested ->
+            openRescue = requested == "rescue"
+            nav.navigate(if (requested == "rescue") "calendar" else requested.takeIf { path -> destinations.any { it.first == path } } ?: "focus") { launchSingleTop = true }
+            routeHandled()
+        }
+    }
+    LaunchedEffect(realtime, user.id) {
+        realtime.updates.collect { update ->
+            if (update.energy) energy.load()
+            if (update.schedule) schedule.load()
+            if (update.team) team.load()
+        }
+    }
+    LaunchedEffect(route) {
+        when (route) { "focus" -> { val today = java.time.LocalDate.now(zone); if (schedule.day != today) schedule.selectDay(today) else schedule.load() }; "calendar" -> schedule.load(); "energy" -> energy.load(); "team" -> team.load() }
+    }
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text("时序智配 V2") },
-                actions = {
-                    AssistChip(
-                        onClick = {},
-                        label = { Text("baseline_only · 未连接穿戴") },
-                        modifier = Modifier.padding(end = 12.dp),
-                    )
-                },
-            )
+            TopAppBar(title = {
+                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text("时序智配", fontFamily = FontFamily.Serif, style = MaterialTheme.typography.titleLarge)
+                    Text(sourceLabel(energy.energy?.dataFreshness), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }, actions = {
+                Surface(shape = MaterialTheme.shapes.extraLarge, color = MaterialTheme.colorScheme.surfaceContainerLow, modifier = Modifier.padding(end = 16.dp)) {
+                    Text("${energy.energy?.score ?: "—"} · $realtimeStatus", Modifier.padding(horizontal = 12.dp, vertical = 8.dp), style = MaterialTheme.typography.labelMedium)
+                }
+            })
         },
         bottomBar = {
             NavigationBar {
-                DESTINATIONS.forEach { item ->
-                    NavigationBarItem(
-                        selected = currentRoute == item.route,
-                        onClick = {
-                            navController.navigate(item.route) {
-                                popUpTo(navController.graph.findStartDestination().id) {
-                                    saveState = true
-                                }
-                                launchSingleTop = true
-                                restoreState = true
-                            }
-                        },
-                        icon = { Icon(item.icon, contentDescription = item.label) },
-                        label = { Text(item.label) },
-                    )
-                }
+                destinations.forEach { (path, label) -> NavigationBarItem(selected = route == path, onClick = { nav.navigate(path) { popUpTo(nav.graph.findStartDestination().id) { saveState = true }; launchSingleTop = true; restoreState = true } }, icon = { Icon(when (path) { "focus" -> Icons.Outlined.Timer; "calendar" -> Icons.Outlined.CalendarMonth; "team" -> Icons.Outlined.Groups; "energy" -> Icons.Outlined.FavoriteBorder; else -> Icons.Outlined.Settings }, contentDescription = label) }, label = { Text(label) }) }
             }
         },
-    ) { innerPadding ->
-        NavHost(
-            navController = navController,
-            startDestination = DESTINATIONS.first().route,
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .padding(16.dp),
-        ) {
-            DESTINATIONS.forEach { dest ->
-                composable(dest.route) {
-                    DestinationStarterCard(dest)
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun DestinationStarterCard(destination: ShixuDestination) {
-    Column(
-        modifier = Modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
-            ),
-        ) {
-            Column(
-                modifier = Modifier.padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                Text(
-                    text = "${destination.displayPath} · ${destination.label}",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.primary,
-                )
-                Text(
-                    text = destination.summary,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Text(
-                    text = "API Base: ${BuildConfig.API_BASE_URL}",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.outline,
-                )
-            }
+    ) { padding ->
+        NavHost(navController = nav, startDestination = "focus", modifier = Modifier.fillMaxSize().padding(padding)) {
+            composable("focus") { FocusScreen(schedule) }
+            composable("calendar") { ScheduleScreen(schedule, openRescue) { openRescue = false } }
+            composable("team") { TeamScreen(team) }
+            composable("energy") { EnergyScreen(energy, ble, pending) }
+            composable("settings") { SettingsScreen(account) }
         }
     }
 }
