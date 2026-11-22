@@ -1,117 +1,549 @@
 package app.shixu.feature.team
 
-import androidx.compose.foundation.layout.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.ScheduleSend
+import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.Cancel
+import androidx.compose.material.icons.outlined.Check
+import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.GroupAdd
+import androidx.compose.material.icons.outlined.Groups
+import androidx.compose.material.icons.outlined.Refresh
+import androidx.compose.material.icons.outlined.WarningAmber
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import app.shixu.core.network.generated.models.*
-import app.shixu.core.ui.*
-import app.shixu.feature.schedule.loadLabel
-import java.time.LocalDate
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import app.shixu.core.network.generated.models.AvailabilitySlotKind
+import app.shixu.core.network.generated.models.EnergyTier
+import app.shixu.core.network.generated.models.MeetingDecisionStatus
+import app.shixu.core.network.generated.models.MeetingProposalDTO
+import app.shixu.core.network.generated.models.MeetingProposalStatus
+import app.shixu.core.network.generated.models.MeetingResponseStatus
+import app.shixu.core.network.generated.models.MemberAvailabilityView
+import app.shixu.core.network.generated.models.PrivacyLevel
+import app.shixu.core.network.generated.models.TagTone
+import app.shixu.core.network.generated.models.WorkspaceRole
+import app.shixu.core.ui.activityHiltViewModel
+import app.shixu.core.ui.components.EmptyStateCard
+import app.shixu.core.ui.components.LoadingSkeletonCard
+import app.shixu.core.ui.components.ShixuFormatters
+import app.shixu.core.ui.components.StateBanner
+import app.shixu.core.ui.theme.LocalShixuSemanticColors
+import app.shixu.core.ui.theme.TabularNumeralStyle
+import java.time.ZoneId
+import java.util.UUID
 
-@Composable fun TeamScreen(model: TeamViewModel) {
-    var workspaceName by remember { mutableStateOf("") }
-    var inviteCode by remember { mutableStateOf("") }
-    var meetingEditor by remember { mutableStateOf(false) }
-    var confirmWindow by remember { mutableStateOf<GoldenWindowRecommendation?>(null) }
-    PageColumn {
-        PageHeading("BETTER TOGETHER", "一起，找到好时间", "尊重每个人的专注边界，再开启高效协作。")
-        LoadingNotice(model.busy); ErrorNotice(model.error, model::load)
-        model.notice?.let { Text(it, color = MaterialTheme.colorScheme.secondary) }
-        if (model.workspaces.isNotEmpty()) ChoiceField("工作区", model.selected ?: model.workspaces.first(), model.workspaces, { it.name }) { model.select(it) }
-        val workspace = model.selected
-        if (workspace != null) {
-            SectionCard(workspace.name) {
-                Text("${workspace.memberCount} 位成员 · ${workspace.myRole.value}")
-                Text("邀请码 ${workspace.inviteCode}", style = MaterialTheme.typography.labelMedium)
-                ChoiceField("我的分享范围", workspace.myPrivacyLevel, PrivacyLevel.entries, ::privacyLabel) { model.privacy(it) }
-                Text(privacyDescription(workspace.myPrivacyLevel), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Button(onClick = { meetingEditor = true }, enabled = !model.busy, modifier = Modifier.fillMaxWidth()) { Text("寻找黄金协作窗口") }
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+fun TeamScreen(
+    viewModel: TeamViewModel = activityHiltViewModel(),
+) {
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val activeWorkspace = state.activeWorkspace
+
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        item {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 8.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column {
+                    Text("团队协同排会", style = MaterialTheme.typography.headlineSmall)
+                    Text(
+                        text = "严格脱敏投影 · 绝不暴露成员 HR/HRV/睡眠原始数值",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                IconButton(onClick = viewModel::refreshActiveWorkspace) {
+                    Icon(Icons.Outlined.Refresh, contentDescription = "刷新团队状态")
+                }
             }
-            model.recommendations?.let { response ->
-                response.blockingDiagnostics.forEach { diagnostic -> SectionCard("暂未找到合适窗口") { Text(diagnostic.message); Text(diagnostic.suggestedAction) } }
-                response.recommendations.forEach { window ->
-                    SectionCard("黄金窗口 ${window.rank} · 匹配度 ${window.score}") {
-                        Text("${timeLabel(window.startAt, model.zone)} — ${timeLabel(window.endAt, model.zone)}", style = MaterialTheme.typography.titleMedium)
-                        Text(window.summary)
-                        Text("精力匹配 ${window.breakdown.energyMatchScore} · 专注保护 ${window.breakdown.focusShieldScore} · 紧凑度 ${window.breakdown.compactnessScore}", style = MaterialTheme.typography.bodySmall)
-                        window.explanationTags.forEach { tag -> Text(tag.label, style = MaterialTheme.typography.labelSmall) }
-                        Button(onClick = { confirmWindow = window }, enabled = !model.busy, modifier = Modifier.fillMaxWidth()) { Text("确认这个时间") }
+        }
+
+        item {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                OutlinedButton(onClick = viewModel::openCreateDialog, modifier = Modifier.weight(1f)) {
+                    Icon(Icons.Outlined.Add, contentDescription = null)
+                    Text("创建工作区", modifier = Modifier.padding(start = 6.dp))
+                }
+                OutlinedButton(onClick = viewModel::openJoinDialog, modifier = Modifier.weight(1f)) {
+                    Icon(Icons.Outlined.GroupAdd, contentDescription = null)
+                    Text("邀请码加入", modifier = Modifier.padding(start = 6.dp))
+                }
+            }
+        }
+
+        state.feedbackMessage?.let { msg ->
+            item {
+                StateBanner(
+                    tone = TagTone.positive,
+                    icon = Icons.Outlined.Check,
+                    title = "协同更新",
+                    message = msg,
+                    actionLabel = "关闭",
+                    onAction = viewModel::clearFeedback,
+                )
+            }
+        }
+
+        state.errorMessage?.let { err ->
+            item {
+                StateBanner(
+                    tone = TagTone.warning,
+                    icon = Icons.Outlined.WarningAmber,
+                    title = "团队同步提示",
+                    message = err,
+                    actionLabel = "关闭",
+                    onAction = viewModel::clearFeedback,
+                )
+            }
+        }
+
+        if (state.workspaces.isNotEmpty()) {
+            item {
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    state.workspaces.forEach { ws ->
+                        FilterChip(
+                            selected = ws.id == activeWorkspace?.id,
+                            onClick = { viewModel.selectWorkspace(ws.id) },
+                            label = { Text("${ws.name} (${ws.memberCount})") },
+                        )
                     }
                 }
             }
-            SectionCard("成员的今日状态") {
-                if (model.members.isEmpty()) Text("正在读取成员名册")
-                model.members.forEach { member ->
-                    val view = model.availability?.members?.firstOrNull { it.userId == member.userId }
-                    Text(member.displayName, style = MaterialTheme.typography.titleSmall)
-                    Text("${member.timezone} · ${privacyLabel(member.privacyLevel)}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    if (view == null) Text("状态尚未加载", style = MaterialTheme.typography.bodySmall)
-                    else if (view.slots.isEmpty()) Text("暂无忙碌或保护时间块", style = MaterialTheme.typography.bodySmall)
-                    else view.slots.take(6).forEach { slot -> Text("${clockLabel(slot.startAt, model.zone)}–${clockLabel(slot.endAt, model.zone)} · ${slotLabel(slot.kind)}${slot.title?.let { " · $it" } ?: ""}", style = MaterialTheme.typography.bodySmall) }
-                    HorizontalDivider()
-                }
+        }
+
+        if (state.isLoading && activeWorkspace == null) {
+            item { LoadingSkeletonCard(lines = 4) }
+        } else if (activeWorkspace == null) {
+            item {
+                EmptyStateCard(
+                    icon = Icons.Outlined.Groups,
+                    title = "尚未加入团队工作区",
+                    description = "创建一个新工作区获取邀请码，或输入队友的邀请码加入协同排会。",
+                    actionLabel = "创建工作区",
+                    onAction = viewModel::openCreateDialog,
+                )
             }
-            if (model.meetings.isEmpty() && !model.busy) EmptyNotice("会议邀请", "目前没有会议提案。可以寻找一个适合大家的协作窗口。")
-            model.meetings.forEach { meeting ->
-                SectionCard(meeting.title) {
-                    Text(meeting.confirmedStartAt?.let { timeLabel(it, model.zone) } ?: "时间待确认")
-                    Text("${meeting.durationMinutes} 分钟 · ${meeting.status.value}", style = MaterialTheme.typography.bodySmall)
-                    meeting.participants.forEach { Text("${it.displayName} · ${it.responseStatus.value}", style = MaterialTheme.typography.bodySmall) }
-                    if (meeting.status == MeetingProposalStatus.confirmed && meeting.participants.any { it.userId == model.myId }) Row {
-                        Button(onClick = { model.respond(meeting, MeetingDecisionStatus.accepted) }, enabled = !model.busy) { Text("接受") }
-                        TextButton(onClick = { model.respond(meeting, MeetingDecisionStatus.declined) }, enabled = !model.busy) { Text("拒绝并释放时段") }
+        } else {
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLowest),
+                ) {
+                    Column(
+                        modifier = Modifier.padding(14.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(activeWorkspace.name, style = MaterialTheme.typography.titleLarge)
+                                Text(
+                                    text = "邀请码：${activeWorkspace.inviteCode} · ${activeWorkspace.memberCount} 名成员",
+                                    style = MaterialTheme.typography.bodySmall.merge(TabularNumeralStyle),
+                                    color = MaterialTheme.colorScheme.primary,
+                                )
+                            }
+                            Button(onClick = viewModel::openMeetingWizard) {
+                                Icon(Icons.AutoMirrored.Outlined.ScheduleSend, contentDescription = null)
+                                Text("发起排会", modifier = Modifier.padding(start = 6.dp))
+                            }
+                        }
+
+                        Text("我在本工作区的隐私投影等级：", style = MaterialTheme.typography.labelLarge)
+                        FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            PrivacyLevel.entries.forEach { level ->
+                                FilterChip(
+                                    selected = activeWorkspace.myPrivacyLevel == level,
+                                    onClick = { viewModel.updatePrivacyLevel(level) },
+                                    label = { Text(ShixuFormatters.privacyLevelLabel(level)) },
+                                )
+                            }
+                        }
                     }
-                    if (meeting.status == MeetingProposalStatus.confirmed && (meeting.organizerId == model.myId || workspace.myRole == WorkspaceRole.owner || workspace.myRole == WorkspaceRole.admin)) TextButton(onClick = { model.cancel(meeting) }, enabled = !model.busy) { Text("取消会议") }
                 }
             }
-        } else if (model.loaded) EmptyNotice("建立你的协作空间", "创建工作区，或通过邀请码加入团队。")
-        SectionCard("创建或加入工作区") {
-            FormField(workspaceName, { workspaceName = it }, "新工作区名称")
-            OutlinedButton(onClick = { model.create(workspaceName) }, enabled = !model.busy && workspaceName.isNotBlank()) { Text("创建工作区") }
-            FormField(inviteCode, { inviteCode = it }, "团队邀请码")
-            OutlinedButton(onClick = { model.join(inviteCode) }, enabled = !model.busy && inviteCode.isNotBlank()) { Text("加入工作区") }
+
+            item {
+                Text("团队会议提案与回执 (${state.meetings.size})", style = MaterialTheme.typography.titleMedium)
+            }
+
+            if (state.meetings.isEmpty()) {
+                item {
+                    EmptyStateCard(
+                        icon = Icons.AutoMirrored.Outlined.ScheduleSend,
+                        title = "暂无团队会议提案",
+                        description = "点击「发起排会」，服务端将在不泄漏个人生理原值的前提下求解全员精力最佳的 Top 3 黄金窗口。",
+                        actionLabel = "发起协同排会",
+                        onAction = viewModel::openMeetingWizard,
+                    )
+                }
+            } else {
+                items(state.meetings, key = { it.id.toString() }) { proposal ->
+                    MeetingProposalCard(
+                        proposal = proposal,
+                        currentUserId = state.currentUserId,
+                        myRole = activeWorkspace.myRole,
+                        zoneId = state.userZoneId,
+                        isBusy = state.isSubmittingAction,
+                        onRespond = { decision -> viewModel.respondToMeeting(proposal.id, decision) },
+                        onCancel = { viewModel.cancelMeeting(proposal.id) },
+                    )
+                }
+            }
+
+            item {
+                Text("成员脱敏可用性网格 (${state.availability.size})", style = MaterialTheme.typography.titleMedium)
+            }
+
+            items(state.availability, key = { it.userId.toString() }) { member ->
+                SanitizedMemberAvailabilityCard(
+                    member = member,
+                    zoneId = state.userZoneId,
+                )
+            }
         }
+
+        item { Box(modifier = Modifier.height(16.dp)) }
     }
-    if (meetingEditor) MeetingEditor(model) { meetingEditor = false }
-    confirmWindow?.let { window -> AlertDialog(onDismissRequest = { confirmWindow = null }, title = { Text("确认团队会议") }, text = { Text("将按 ${timeLabel(window.startAt, model.zone)} 的推荐时间创建会议并同步参会人的日程。") }, confirmButton = { Button(onClick = { model.confirm(window); confirmWindow = null }) { Text("确认并通知参会人") } }, dismissButton = { TextButton(onClick = { confirmWindow = null }) { Text("再看看") } }) }
+
+    if (state.showCreateDialog) {
+        AlertDialog(
+            onDismissRequest = viewModel::dismissDialogs,
+            title = { Text("创建团队工作区") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    OutlinedTextField(
+                        value = state.createName,
+                        onValueChange = { viewModel.updateCreateFields(name = it) },
+                        label = { Text("团队名称") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    OutlinedTextField(
+                        value = state.createDescription,
+                        onValueChange = { viewModel.updateCreateFields(description = it) },
+                        label = { Text("团队说明（可选）") },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    state.dialogError?.let {
+                        Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+                    }
+                }
+            },
+            confirmButton = {
+                Button(onClick = viewModel::submitCreateWorkspace, enabled = !state.isSubmittingAction) {
+                    Text("创建")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = viewModel::dismissDialogs) { Text("取消") }
+            },
+        )
+    }
+
+    if (state.showJoinDialog) {
+        AlertDialog(
+            onDismissRequest = viewModel::dismissDialogs,
+            title = { Text("通过邀请码加入工作区") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    OutlinedTextField(
+                        value = state.joinInviteCode,
+                        onValueChange = viewModel::updateJoinCode,
+                        label = { Text("邀请码") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    state.dialogError?.let {
+                        Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+                    }
+                }
+            },
+            confirmButton = {
+                Button(onClick = viewModel::submitJoinWorkspace, enabled = !state.isSubmittingAction) {
+                    Text("加入")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = viewModel::dismissDialogs) { Text("取消") }
+            },
+        )
+    }
+
+    if (state.wizard.isOpen) {
+        MeetingWizardSheet(
+            state = state.wizard,
+            members = state.members,
+            zoneId = state.userZoneId,
+            onDismiss = viewModel::closeMeetingWizard,
+            onUpdateWizard = viewModel::updateWizard,
+            onToggleRequired = viewModel::toggleRequiredMember,
+            onToggleOptional = viewModel::toggleOptionalMember,
+            onRecommend = viewModel::recommendGoldenWindows,
+            onConfirm = viewModel::confirmSelectedWindow,
+        )
+    }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable private fun MeetingEditor(model: TeamViewModel, onDismiss: () -> Unit) {
-    var title by remember { mutableStateOf("") }
-    var duration by remember { mutableStateOf("30") }
-    var day by remember { mutableStateOf(LocalDate.now(model.zone).toString()) }
-    var days by remember { mutableStateOf("3") }
-    var load by remember { mutableStateOf(CognitiveLoad.medium) }
-    var selected by remember { mutableStateOf(model.members.map { it.userId.toString() }.toSet()) }
-    var error by remember { mutableStateOf<String?>(null) }
-    ModalBottomSheet(onDismissRequest = onDismiss) {
-        PageColumn {
-            PageHeading("GOLDEN WINDOW", "找到大家都好的时刻", "服务端会综合工作时间、隐私边界与专注保护求解。")
-            FormField(title, { title = it }, "会议主题")
-            FormField(duration, { duration = it }, "会议分钟数")
-            FormField(day, { day = it }, "搜索起始日期 YYYY-MM-DD")
-            FormField(days, { days = it }, "搜索天数 1–14")
-            ChoiceField("认知负荷", load, CognitiveLoad.entries, ::loadLabel) { load = it }
-            model.members.forEach { member -> Row(verticalAlignment = Alignment.CenterVertically) { Checkbox(member.userId.toString() in selected, { checked -> selected = if (checked) selected + member.userId.toString() else selected - member.userId.toString() }); Text(member.displayName) } }
-            ErrorNotice(error ?: model.error)
-            Button(onClick = {
-                runCatching {
-                    require(title.isNotBlank() && selected.isNotEmpty()) { "请输入主题并选择参会人" }
-                    val length = duration.toLong().also { require(it in 5..480) { "会议时长需在 5–480 分钟之间" } }
-                    val range = days.toLong().also { require(it in 1..14) { "搜索范围需为 1–14 天" } }
-                    val start = LocalDate.parse(day).atStartOfDay(model.zone).toOffsetDateTime()
-                    model.recommend(RecommendMeetingRequest(load, length, selected.toList(), start, LocalDate.parse(day).plusDays(range).atStartOfDay(model.zone).toOffsetDateTime(), title.trim()))
-                    onDismiss()
-                }.onFailure { error = it.message ?: "请检查会议参数" }
-            }, enabled = !model.busy, modifier = Modifier.fillMaxWidth()) { Text("生成最多三个推荐窗口") }
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun MeetingProposalCard(
+    proposal: MeetingProposalDTO,
+    currentUserId: UUID?,
+    myRole: WorkspaceRole,
+    zoneId: ZoneId,
+    isBusy: Boolean,
+    onRespond: (MeetingDecisionStatus) -> Unit,
+    onCancel: () -> Unit,
+) {
+    val myParticipant = proposal.participants.firstOrNull { it.userId == currentUserId }
+    val canCancel = proposal.status != MeetingProposalStatus.cancelled &&
+        (proposal.organizerId == currentUserId || myRole == WorkspaceRole.owner || myRole == WorkspaceRole.admin)
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLowest),
+    ) {
+        Column(
+            modifier = Modifier.padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(proposal.title, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
+                val statusLabel = when (proposal.status) {
+                    MeetingProposalStatus.draft -> "草稿"
+                    MeetingProposalStatus.confirmed -> "已确认"
+                    MeetingProposalStatus.cancelled -> "已取消"
+                }
+                Text(
+                    text = statusLabel,
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = if (proposal.status == MeetingProposalStatus.cancelled) {
+                        MaterialTheme.colorScheme.error
+                    } else {
+                        MaterialTheme.colorScheme.primary
+                    },
+                )
+            }
+
+            if (proposal.confirmedStartAt != null && proposal.confirmedEndAt != null) {
+                Text(
+                    text = "${ShixuFormatters.formatDateTime(proposal.confirmedStartAt, zoneId)} · ${
+                        ShixuFormatters.formatTimeRange(proposal.confirmedStartAt, proposal.confirmedEndAt, zoneId)
+                    } (${proposal.durationMinutes}m)",
+                    style = MaterialTheme.typography.bodyMedium.merge(TabularNumeralStyle),
+                    color = MaterialTheme.colorScheme.secondary,
+                )
+            }
+
+            Text(
+                text = ShixuFormatters.cognitiveLoadLabel(proposal.cognitiveLoad),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                proposal.participants.forEach { p ->
+                    val respText = when (p.responseStatus) {
+                        MeetingResponseStatus.pending -> "待回执"
+                        MeetingResponseStatus.accepted -> "已接受"
+                        MeetingResponseStatus.declined -> "已拒绝"
+                    }
+                    Surface(
+                        color = MaterialTheme.colorScheme.surfaceContainerLow,
+                        shape = RoundedCornerShape(999.dp),
+                    ) {
+                        Text(
+                            text = "${p.displayName} · $respText",
+                            style = MaterialTheme.typography.labelSmall,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                        )
+                    }
+                }
+            }
+
+            if (proposal.status != MeetingProposalStatus.cancelled && (myParticipant != null || canCancel)) {
+                HorizontalDivider()
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    if (myParticipant != null) {
+                        Button(
+                            onClick = { onRespond(MeetingDecisionStatus.accepted) },
+                            enabled = !isBusy && myParticipant.responseStatus != MeetingResponseStatus.accepted,
+                            modifier = Modifier.weight(1f),
+                        ) {
+                            Icon(Icons.Outlined.Check, contentDescription = null)
+                            Text("接受", modifier = Modifier.padding(start = 4.dp))
+                        }
+                        OutlinedButton(
+                            onClick = { onRespond(MeetingDecisionStatus.declined) },
+                            enabled = !isBusy && myParticipant.responseStatus != MeetingResponseStatus.declined,
+                            modifier = Modifier.weight(1f),
+                        ) {
+                            Icon(Icons.Outlined.Close, contentDescription = null)
+                            Text("拒绝并释放", modifier = Modifier.padding(start = 4.dp))
+                        }
+                    }
+                    if (canCancel) {
+                        TextButton(onClick = onCancel, enabled = !isBusy) {
+                            Icon(Icons.Outlined.Cancel, contentDescription = null, tint = MaterialTheme.colorScheme.error)
+                            Text(
+                                text = "取消",
+                                color = MaterialTheme.colorScheme.error,
+                                modifier = Modifier.padding(start = 4.dp),
+                            )
+                        }
+                    }
+                }
+            }
         }
     }
 }
 
-fun privacyLabel(level: PrivacyLevel): String = when (level) { PrivacyLevel.busy_only -> "仅忙闲"; PrivacyLevel.energy_tier -> "忙闲与精力档位"; PrivacyLevel.full_title -> "授权日程标题" }
-fun privacyDescription(level: PrivacyLevel): String = when (level) { PrivacyLevel.busy_only -> "仅分享是否忙碌，不分享日程标题或生理指标。"; PrivacyLevel.energy_tier -> "分享忙闲和脱敏精力档位，心率、HRV 与睡眠原始数据始终私密。"; PrivacyLevel.full_title -> "授权团队查看日程标题，生理原始数据仍保持私密。" }
-private fun slotLabel(kind: AvailabilitySlotKind): String = when (kind) { AvailabilitySlotKind.busy -> "忙碌"; AvailabilitySlotKind.focus_shield -> "深度专注保护"; AvailabilitySlotKind.soft_busy -> "可协调" }
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun SanitizedMemberAvailabilityCard(
+    member: MemberAvailabilityView,
+    zoneId: ZoneId,
+) {
+    val semantic = LocalShixuSemanticColors.current
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLowest),
+    ) {
+        Column(
+            modifier = Modifier.padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(member.displayName, style = MaterialTheme.typography.titleSmall)
+                Text(
+                    text = "${member.timezone} · ${ShixuFormatters.formatMinuteOfDay(member.workStartMinute)}-${
+                        ShixuFormatters.formatMinuteOfDay(member.workEndMinute)
+                    }",
+                    style = MaterialTheme.typography.labelSmall.merge(TabularNumeralStyle),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Text(
+                text = "隐私脱敏等级：${ShixuFormatters.privacyLevelLabel(member.privacyLevel)}",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+
+            if (member.slots.isEmpty()) {
+                Text("近期无占用时段（仅工作日边界内可协作）", style = MaterialTheme.typography.bodySmall)
+            } else {
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    member.slots.take(6).forEach { slot ->
+                        val kindLabel = when (slot.kind) {
+                            AvailabilitySlotKind.busy -> "忙碌"
+                            AvailabilitySlotKind.focus_shield -> "深度专注保护"
+                            AvailabilitySlotKind.soft_busy -> "弹性事务"
+                        }
+                        val titleSuffix = slot.title?.takeIf { it.isNotBlank() }?.let { " · $it" }.orEmpty()
+                        Surface(
+                            color = MaterialTheme.colorScheme.surfaceContainerLow,
+                            shape = RoundedCornerShape(8.dp),
+                        ) {
+                            Text(
+                                text = "${ShixuFormatters.formatTimeRange(slot.startAt, slot.endAt, zoneId)} $kindLabel$titleSuffix",
+                                style = MaterialTheme.typography.labelSmall.merge(TabularNumeralStyle),
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                            )
+                        }
+                    }
+                }
+            }
+
+            if (!member.energyBuckets.isNullOrEmpty()) {
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    member.energyBuckets.take(8).forEach { bucket ->
+                        val (bg, fg) = when (bucket.tier) {
+                            EnergyTier.peak -> semantic.peakContainer to semantic.peak
+                            EnergyTier.steady -> semantic.steadyContainer to semantic.steady
+                            EnergyTier.strained -> semantic.strainedContainer to semantic.strained
+                            EnergyTier.depleted -> semantic.depletedContainer to semantic.depleted
+                        }
+                        val hr = bucket.hourStartAt.atZoneSameInstant(zoneId).hour
+                        Surface(color = bg, contentColor = fg, shape = RoundedCornerShape(6.dp)) {
+                            Text(
+                                text = "%02d时·%s".format(hr, ShixuFormatters.tierShortLabel(bucket.tier)),
+                                style = MaterialTheme.typography.labelSmall.merge(TabularNumeralStyle),
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

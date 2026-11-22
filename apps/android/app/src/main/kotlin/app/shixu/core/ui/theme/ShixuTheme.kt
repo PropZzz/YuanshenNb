@@ -2,22 +2,121 @@ package app.shixu.core.ui.theme
 
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
-import androidx.compose.material3.Typography
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.sp
 
-private val BaseTypography = Typography()
-private val ShixuTypography = BaseTypography.copy(
-    displayLarge = BaseTypography.displayLarge.copy(fontFamily = FontFamily.Serif, fontFeatureSettings = "tnum"),
-    displayMedium = BaseTypography.displayMedium.copy(fontFamily = FontFamily.Serif, fontFeatureSettings = "tnum"),
-    headlineLarge = BaseTypography.headlineLarge.copy(fontFamily = FontFamily.Serif),
-    headlineMedium = BaseTypography.headlineMedium.copy(fontFamily = FontFamily.Serif),
-    headlineSmall = BaseTypography.headlineSmall.copy(fontFamily = FontFamily.Serif),
-    labelMedium = BaseTypography.labelMedium.copy(fontFeatureSettings = "tnum"),
-    labelSmall = BaseTypography.labelSmall.copy(fontFeatureSettings = "tnum"),
+@Immutable
+data class ShixuSemanticColors(
+    val peak: Color,
+    val peakContainer: Color,
+    val steady: Color,
+    val steadyContainer: Color,
+    val strained: Color,
+    val strainedContainer: Color,
+    val depleted: Color,
+    val depletedContainer: Color,
+    val positive: Color,
+    val positiveContainer: Color,
+    val warning: Color,
+    val warningContainer: Color,
+    val neutral: Color,
+    val neutralContainer: Color,
+)
+
+private val LightSemanticColors = ShixuSemanticColors(
+    peak = Color(0xFF002727),
+    peakContainer = Color(0xFFC2EAE9),
+    steady = Color(0xFF005DB5),
+    steadyContainer = Color(0xFFD6E3FF),
+    strained = Color(0xFFB45309),
+    strainedContainer = Color(0xFFFEF3C7),
+    depleted = Color(0xFFBA1A1A),
+    depletedContainer = Color(0xFFFFDAD6),
+    positive = Color(0xFF00531C),
+    positiveContainer = Color(0xFFDCFCE7),
+    warning = Color(0xFF92400E),
+    warningContainer = Color(0xFFFEF3C7),
+    neutral = Color(0xFF414848),
+    neutralContainer = Color(0xFFEFEDF3),
+)
+
+private val DarkSemanticColors = ShixuSemanticColors(
+    peak = Color(0xFFA7CECD),
+    peakContainer = Color(0xFF163D3D),
+    steady = Color(0xFF62A1FE),
+    steadyContainer = Color(0xFF00468B),
+    strained = Color(0xFFFBBF24),
+    strainedContainer = Color(0xFF451A03),
+    depleted = Color(0xFFFFB4AB),
+    depletedContainer = Color(0xFF3D1E1B),
+    positive = Color(0xFF53E16F),
+    positiveContainer = Color(0xFF003912),
+    warning = Color(0xFFFCD34D),
+    warningContainer = Color(0xFF422006),
+    neutral = Color(0xFFB7C5C4),
+    neutralContainer = Color(0xFF1C2B2E),
+)
+
+val LocalShixuSemanticColors = staticCompositionLocalOf { LightSemanticColors }
+
+val TabularNumeralStyle = TextStyle(
+    fontFeatureSettings = "tnum",
+)
+
+private val ShixuTypography = Typography(
+    displayLarge = TextStyle(
+        fontFamily = FontFamily.Serif,
+        fontWeight = FontWeight.SemiBold,
+        fontSize = 44.sp,
+        lineHeight = 52.sp,
+        fontFeatureSettings = "tnum",
+    ),
+    headlineMedium = TextStyle(
+        fontFamily = FontFamily.Serif,
+        fontWeight = FontWeight.SemiBold,
+        fontSize = 26.sp,
+        lineHeight = 32.sp,
+    ),
+    headlineSmall = TextStyle(
+        fontFamily = FontFamily.Serif,
+        fontWeight = FontWeight.SemiBold,
+        fontSize = 22.sp,
+        lineHeight = 28.sp,
+    ),
+    titleLarge = TextStyle(
+        fontFamily = FontFamily.Serif,
+        fontWeight = FontWeight.Medium,
+        fontSize = 20.sp,
+        lineHeight = 26.sp,
+    ),
+    titleMedium = TextStyle(
+        fontFamily = FontFamily.SansSerif,
+        fontWeight = FontWeight.SemiBold,
+        fontSize = 16.sp,
+        lineHeight = 22.sp,
+    ),
+    bodyMedium = TextStyle(
+        fontFamily = FontFamily.SansSerif,
+        fontWeight = FontWeight.Normal,
+        fontSize = 14.sp,
+        lineHeight = 20.sp,
+    ),
+    labelMedium = TextStyle(
+        fontFamily = FontFamily.SansSerif,
+        fontWeight = FontWeight.Medium,
+        fontSize = 12.sp,
+        lineHeight = 16.sp,
+    ),
 )
 
 // 与 apps/web/src/styles/tokens.css 及 docs/06-design-system-v2.md 完全对齐的语义色板
@@ -91,9 +190,12 @@ fun ShixuTheme(
     content: @Composable () -> Unit,
 ) {
     val colorScheme = if (darkTheme) ShixuDarkColors else ShixuLightColors
-    MaterialTheme(
-        colorScheme = colorScheme,
-        typography = ShixuTypography,
-        content = content,
-    )
+    val semanticColors = if (darkTheme) DarkSemanticColors else LightSemanticColors
+    CompositionLocalProvider(LocalShixuSemanticColors provides semanticColors) {
+        MaterialTheme(
+            colorScheme = colorScheme,
+            typography = ShixuTypography,
+            content = content,
+        )
+    }
 }

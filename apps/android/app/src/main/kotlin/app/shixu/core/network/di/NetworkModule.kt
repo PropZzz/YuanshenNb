@@ -2,17 +2,20 @@ package app.shixu.core.network.di
 
 import app.shixu.BuildConfig
 import app.shixu.core.network.AuthInterceptor
-import app.shixu.core.datastore.KeystoreTokenStore
+import app.shixu.core.network.ProblemDetailParser
+import app.shixu.core.network.Rfc3339StringConverterFactory
+import app.shixu.core.network.SessionEvent
+import app.shixu.core.network.SessionEventBus
 import app.shixu.core.network.ShixuJson
 import app.shixu.core.network.TokenAuthenticator
 import app.shixu.core.network.TokenStore
-import app.shixu.core.network.SessionEvents
 import app.shixu.core.network.generated.apis.AuthApi
 import app.shixu.core.network.generated.apis.BiometricsApi
 import app.shixu.core.network.generated.apis.EnergyApi
 import app.shixu.core.network.generated.apis.ScheduleApi
 import app.shixu.core.network.generated.apis.SystemApi
 import app.shixu.core.network.generated.apis.WorkspacesApi
+import app.shixu.core.network.generated.models.ErrorCode
 import app.shixu.core.network.generated.models.RefreshTokenRequest
 import dagger.Module
 import dagger.Provides
@@ -27,15 +30,16 @@ import retrofit2.Retrofit
 import retrofit2.converter.kotlinx.serialization.asConverterFactory
 import retrofit2.converter.scalars.ScalarsConverterFactory
 import java.util.concurrent.TimeUnit
+import javax.inject.Qualifier
 import javax.inject.Singleton
+
+@Qualifier
+@Retention(AnnotationRetention.BINARY)
+annotation class WsOkHttpClient
 
 @Module
 @InstallIn(SingletonComponent::class)
 object NetworkModule {
-
-    @Provides
-    @Singleton
-    fun provideTokenStore(impl: KeystoreTokenStore): TokenStore = impl
 
     @Provides
     @Singleton
@@ -45,18 +49,61 @@ object NetworkModule {
     @Singleton
     fun provideTokenAuthenticator(
         tokenStore: TokenStore,
+        sessionEventBus: SessionEventBus,
         json: Json,
-        sessionEvents: SessionEvents,
     ): TokenAuthenticator {
         val refreshClient = newBaseClientBuilder().build()
         val refreshRetrofit = newRetrofit(refreshClient, json)
         val refreshApi = refreshRetrofit.create(AuthApi::class.java)
 
-        return TokenAuthenticator(tokenStore, sessionEvents::notifyExpired) { refreshToken ->
+        var specificEventEmitted = false
+        return TokenAuthenticator(
+            tokenStore = tokenStore,
+            onInvalidSession = {
+                if (!specificEventEmitted) {
+                    sessionEventBus.tryEmit(
+                        SessionEvent.SessionExpired("登录状态已过期，请重新登录"),
+                    )
+                }
+                specificEventEmitted = false
+            },
+        ) { refreshToken ->
+            specificEventEmitted = false
             runBlocking {
                 val response = refreshApi.refreshTokens(RefreshTokenRequest(refreshToken = refreshToken))
-                if (response.code() >= 500 || response.code() == 429) throw java.io.IOException("Refresh temporarily unavailable")
-                if (response.isSuccessful) response.body() else null
+                if (response.code() >= 500 || response.code() == 429) {
+                    throw java.io.IOException("Refresh temporarily unavailable (${response.code()})")
+                }
+                if (response.isSuccessful) {
+                    response.body()
+                } else {
+                    val problem = ProblemDetailParser.parse(response)
+                    when (problem?.code) {
+                        ErrorCode.TOKEN_REUSE_DETECTED -> {
+                            specificEventEmitted = true
+                            sessionEventBus.tryEmit(
+                                SessionEvent.TokenReuseDetected(
+                                    problem.detail.ifBlank { "检测到会话异常，请重新登录" },
+                                ),
+                            )
+                        }
+                        ErrorCode.INVALID_REFRESH_TOKEN -> {
+                            specificEventEmitted = true
+                            sessionEventBus.tryEmit(
+                                SessionEvent.SessionExpired(
+                                    problem.detail.ifBlank { "登录状态已过期，请重新登录" },
+                                ),
+                            )
+                        }
+                        else -> if (response.code() == 401) {
+                            specificEventEmitted = true
+                            sessionEventBus.tryEmit(
+                                SessionEvent.SessionExpired("登录状态已过期，请重新登录"),
+                            )
+                        }
+                    }
+                    null
+                }
             }
         }
     }
@@ -70,6 +117,15 @@ object NetworkModule {
         newBaseClientBuilder()
             .addInterceptor(authInterceptor)
             .authenticator(tokenAuthenticator)
+            .build()
+
+    @Provides
+    @Singleton
+    @WsOkHttpClient
+    fun provideWsOkHttpClient(): OkHttpClient =
+        newBaseClientBuilder()
+            .readTimeout(0, TimeUnit.MILLISECONDS)
+            .pingInterval(30, TimeUnit.SECONDS)
             .build()
 
     @Provides
@@ -124,6 +180,7 @@ object NetworkModule {
         Retrofit.Builder()
             .baseUrl(BuildConfig.API_BASE_URL)
             .client(client)
+            .addConverterFactory(Rfc3339StringConverterFactory)
             .addConverterFactory(ScalarsConverterFactory.create())
             .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
             .build()

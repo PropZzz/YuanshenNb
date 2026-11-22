@@ -1,97 +1,386 @@
 package app.shixu.feature.settings
 
-import android.Manifest
-import android.os.Build
-import android.content.pm.PackageManager
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.ui.platform.LocalContext
-import androidx.core.content.ContextCompat
-
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.Logout
+import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.CheckCircleOutline
+import androidx.compose.material.icons.outlined.DeleteOutline
+import androidx.compose.material.icons.outlined.Refresh
+import androidx.compose.material.icons.outlined.WarningAmber
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
-import app.shixu.core.network.generated.models.*
-import app.shixu.core.ui.*
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import app.shixu.BuildConfig
+import app.shixu.core.network.WsConnectionState
+import app.shixu.core.network.generated.models.Chronotype
+import app.shixu.core.network.generated.models.PrivacyLevel
+import app.shixu.core.network.generated.models.TagTone
+import app.shixu.core.network.generated.models.ThemeMode
+import app.shixu.core.ui.activityHiltViewModel
+import app.shixu.core.ui.components.ShixuFormatters
+import app.shixu.core.ui.components.StateBanner
+import app.shixu.core.ui.theme.TabularNumeralStyle
 
-@Composable fun AuthenticationScreen(model: AccountViewModel) {
-    var register by remember { mutableStateOf(false) }
-    var email by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
-    var name by remember { mutableStateOf("") }
-    PageColumn {
-        Spacer(Modifier.height(36.dp))
-        PageHeading("SHIXU / TIME MAP", "让时间，\n顺应你的节律。", "连接个人精力与团队协作，从今天的时间地图开始。")
-        SectionCard(if (register) "创建时序账号" else "欢迎回来") {
-            if (register) FormField(name, { name = it }, "你的昵称")
-            OutlinedTextField(email, { email = it }, Modifier.fillMaxWidth(), label = { Text("邮箱") }, singleLine = true, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email))
-            OutlinedTextField(password, { password = it }, Modifier.fillMaxWidth(), label = { Text("密码 · 至少 8 位") }, singleLine = true, visualTransformation = PasswordVisualTransformation(), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password))
-            LoadingNotice(model.busy)
-            ErrorNotice(model.error)
-            if (model.error != null) TextButton(onClick = model::bootstrap, enabled = !model.busy) { Text("重试恢复已有会话") }
-            Button(onClick = { model.authenticate(email, password, if (register) name else null) }, enabled = !model.busy, modifier = Modifier.fillMaxWidth()) { Text(if (register) "创建账号并进入" else "登录工作台") }
-            TextButton(onClick = { register = !register }, enabled = !model.busy) { Text(if (register) "已有账号？登录" else "首次使用？创建账号") }
-        }
-        Text("生理数据仅用于个人精力洞察。团队只接收你授权的脱敏状态。", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
-    }
-}
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+fun SettingsScreen(
+    viewModel: SettingsViewModel = activityHiltViewModel(),
+) {
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val draft = state.draft
 
-@Composable fun SettingsScreen(model: AccountViewModel) {
-    val context = LocalContext.current
-    var notificationsAllowed by remember { mutableStateOf(Build.VERSION.SDK_INT < 33 || ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) }
-    val notificationPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { notificationsAllowed = it }
-    val user = model.user ?: return
-    var name by remember(user.updatedAt) { mutableStateOf(user.displayName) }
-    var timezone by remember(user.updatedAt) { mutableStateOf(user.timezone) }
-    var theme by remember(user.updatedAt) { mutableStateOf(user.themeMode) }
-    val profile = model.profile
-    var workStart by remember(profile) { mutableStateOf(minuteLabel(profile?.workStartMinute ?: 540)) }
-    var workEnd by remember(profile) { mutableStateOf(minuteLabel(profile?.workEndMinute ?: 1080)) }
-    var recovery by remember(profile) { mutableStateOf((profile?.minRecoveryBufferMin ?: 15).toString()) }
-    var chronotype by remember(profile) { mutableStateOf(profile?.chronotype ?: Chronotype.balanced) }
-    var validation by remember { mutableStateOf<String?>(null) }
-    PageColumn {
-        PageHeading("ACCOUNT & PRIVACY", "为自己设定边界", "工作、恢复与分享，都由你决定。")
-        LoadingNotice(model.busy)
-        ErrorNotice(validation ?: model.error)
-        SectionCard("账户通行证") {
-            Text(user.email, style = MaterialTheme.typography.bodyMedium)
-            FormField(name, { name = it }, "显示名称")
-            FormField(timezone, { timezone = it }, "IANA 时区，例如 Asia/Shanghai")
-            ChoiceField("外观", theme, ThemeMode.entries, { when(it) { ThemeMode.system -> "跟随系统"; ThemeMode.light -> "瓷白"; ThemeMode.dark -> "深松绿" } }) { theme = it }
-            Button(onClick = { model.updateAccount(name, timezone, theme) }, enabled = !model.busy) { Text("保存账户设置") }
-        }
-        SectionCard("工作节律") {
-            if (profile == null) {
-                Text("尚未读取节律配置")
-                TextButton(onClick = model::bootstrap) { Text("重新读取") }
-            } else {
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    FormField(workStart, { workStart = it }, "开始 HH:mm", Modifier.weight(1f))
-                    FormField(workEnd, { workEnd = it }, "结束 HH:mm", Modifier.weight(1f))
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        item {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 8.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column {
+                    Text("账号与隐私配置", style = MaterialTheme.typography.headlineSmall)
+                    Text(
+                        text = state.user?.email ?: "未登录",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 }
-                ChoiceField("昼夜类型", chronotype, Chronotype.entries, { when(it) { Chronotype.balanced -> "均衡型"; Chronotype.morning_lark -> "晨间型"; Chronotype.night_owl -> "夜间型" } }) { chronotype = it }
-                FormField(recovery, { recovery = it }, "最小恢复缓冲（分钟）")
-                Button(onClick = {
-                    runCatching {
-                        val from = parseMinute(workStart); val to = parseMinute(workEnd)
-                        require(from < to) { "工作结束时间必须晚于开始时间" }
-                        model.updateEnergy(UpdateEnergyProfileRequest(chronotype, recovery.toLong(), profile.preferredFocusWindows, to, from))
-                        validation = null
-                    }.onFailure { validation = it.message ?: "请检查工作时段与分钟数" }
-                }, enabled = !model.busy) { Text("保存节律偏好") }
-                Text("精力曲线由服务端结合生理样本和日程统一计算。", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                IconButton(onClick = viewModel::refreshAllSettings) {
+                    Icon(Icons.Outlined.Refresh, contentDescription = "刷新配置")
+                }
             }
         }
-        SectionCard("日程与精力提醒") {
-            Text(if (notificationsAllowed) "系统通知已授权。提醒使用系统允许的非精确闹钟，可能受省电策略影响。" else "尚未授权系统通知；应用内仍会显示精力保护建议。")
-            if (!notificationsAllowed && Build.VERSION.SDK_INT >= 33) OutlinedButton(onClick = { notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS) }) { Text("允许系统通知") }
+
+        draft.feedbackMessage?.let { msg ->
+            item {
+                StateBanner(
+                    tone = TagTone.positive,
+                    icon = Icons.Outlined.CheckCircleOutline,
+                    title = "保存成功",
+                    message = msg,
+                    actionLabel = "关闭",
+                    onAction = viewModel::clearMessages,
+                )
+            }
         }
-        OutlinedButton(onClick = model::logout, enabled = !model.busy, modifier = Modifier.fillMaxWidth()) { Text("退出当前设备") }
+
+        draft.errorMessage?.let { err ->
+            item {
+                StateBanner(
+                    tone = TagTone.warning,
+                    icon = Icons.Outlined.WarningAmber,
+                    title = "设置校验提示",
+                    message = err,
+                    actionLabel = "关闭",
+                    onAction = viewModel::clearMessages,
+                )
+            }
+        }
+
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLowest),
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    Text("账号档案与外观主题", style = MaterialTheme.typography.titleMedium)
+                    OutlinedTextField(
+                        value = draft.displayName,
+                        onValueChange = { txt -> viewModel.updateDraft { it.copy(displayName = txt) } },
+                        label = { Text("显示昵称") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    OutlinedTextField(
+                        value = draft.timezone,
+                        onValueChange = { txt -> viewModel.updateDraft { it.copy(timezone = txt) } },
+                        label = { Text("IANA 时区（如 Asia/Shanghai）") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    Text("主题模式（双端同步）", style = MaterialTheme.typography.labelLarge)
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        listOf(
+                            ThemeMode.system to "跟随系统",
+                            ThemeMode.light to "浅色瓷白",
+                            ThemeMode.dark to "深色护眼",
+                        ).forEach { (mode, label) ->
+                            FilterChip(
+                                selected = draft.themeMode == mode,
+                                onClick = { viewModel.selectThemeMode(mode) },
+                                label = { Text(label) },
+                            )
+                        }
+                    }
+                    Button(
+                        onClick = viewModel::saveUserProfile,
+                        enabled = !draft.isSavingProfile,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text(if (draft.isSavingProfile) "保存中..." else "保存档案与时区")
+                    }
+                }
+            }
+        }
+
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLowest),
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    Text("昼夜节律与个人工作窗", style = MaterialTheme.typography.titleMedium)
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            text = "工作开始：${ShixuFormatters.formatMinuteOfDay(draft.workStartMinute)}",
+                            style = MaterialTheme.typography.bodyMedium.merge(TabularNumeralStyle),
+                        )
+                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            OutlinedButton(
+                                onClick = {
+                                    viewModel.updateDraft {
+                                        it.copy(workStartMinute = (it.workStartMinute - 30L).coerceAtLeast(0L))
+                                    }
+                                },
+                            ) { Text("-30m") }
+                            OutlinedButton(
+                                onClick = {
+                                    viewModel.updateDraft {
+                                        it.copy(workStartMinute = (it.workStartMinute + 30L).coerceAtMost(1410L))
+                                    }
+                                },
+                            ) { Text("+30m") }
+                        }
+                    }
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            text = "工作结束：${ShixuFormatters.formatMinuteOfDay(draft.workEndMinute)}",
+                            style = MaterialTheme.typography.bodyMedium.merge(TabularNumeralStyle),
+                        )
+                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            OutlinedButton(
+                                onClick = {
+                                    viewModel.updateDraft {
+                                        it.copy(workEndMinute = (it.workEndMinute - 30L).coerceAtLeast(60L))
+                                    }
+                                },
+                            ) { Text("-30m") }
+                            OutlinedButton(
+                                onClick = {
+                                    viewModel.updateDraft {
+                                        it.copy(workEndMinute = (it.workEndMinute + 30L).coerceAtMost(1440L))
+                                    }
+                                },
+                            ) { Text("+30m") }
+                        }
+                    }
+
+                    Text("节律类型 (Chronotype)", style = MaterialTheme.typography.labelLarge)
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Chronotype.entries.forEach { ct ->
+                            FilterChip(
+                                selected = draft.chronotype == ct,
+                                onClick = { viewModel.updateDraft { it.copy(chronotype = ct) } },
+                                label = { Text(ShixuFormatters.chronotypeLabel(ct)) },
+                            )
+                        }
+                    }
+
+                    Text("高负荷后最少恢复缓冲 (分钟)", style = MaterialTheme.typography.labelLarge)
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        listOf(10L, 15L, 20L, 30L, 45L).forEach { buf ->
+                            FilterChip(
+                                selected = draft.minRecoveryBufferMin == buf,
+                                onClick = { viewModel.updateDraft { it.copy(minRecoveryBufferMin = buf) } },
+                                label = { Text("${buf}m") },
+                            )
+                        }
+                    }
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text("偏好心流窗口 (${draft.preferredFocusWindows.size})", style = MaterialTheme.typography.labelLarge)
+                        TextButton(onClick = viewModel::addDefaultFocusWindow) {
+                            Icon(Icons.Outlined.Add, contentDescription = null)
+                            Text("添加 09:00-12:00")
+                        }
+                    }
+
+                    draft.preferredFocusWindows.forEachIndexed { idx, win ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(
+                                text = "${ShixuFormatters.formatMinuteOfDay(win.startMinute)} ~ ${
+                                    ShixuFormatters.formatMinuteOfDay(win.endMinute)
+                                }",
+                                style = MaterialTheme.typography.bodyMedium.merge(TabularNumeralStyle),
+                            )
+                            IconButton(onClick = { viewModel.removeFocusWindowAt(idx) }) {
+                                Icon(Icons.Outlined.DeleteOutline, contentDescription = "移除心流窗")
+                            }
+                        }
+                    }
+
+                    state.energyProfile?.let { ep ->
+                        Text(
+                            text = "14 日个人基线（仅本人可见）：HRV ${
+                                ep.hrvBaselineMs?.let { "%.1f ms".format(it) } ?: "未就绪"
+                            } · RHR ${ep.rhrBaselineBpm?.let { "%.0f bpm".format(it) } ?: "未就绪"}",
+                            style = MaterialTheme.typography.labelSmall.merge(TabularNumeralStyle),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+
+                    Button(
+                        onClick = viewModel::saveEnergyProfile,
+                        enabled = !draft.isSavingEnergyProfile,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text(if (draft.isSavingEnergyProfile) "更新节律模型中..." else "保存节律配置并重算当日精力")
+                    }
+                }
+            }
+        }
+
+        if (state.workspaces.isNotEmpty()) {
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLowest),
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
+                        Text("团队隐私脱敏颗粒度开关", style = MaterialTheme.typography.titleMedium)
+                        state.workspaces.forEach { ws ->
+                            HorizontalDivider()
+                            Text(ws.name, style = MaterialTheme.typography.titleSmall)
+                            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                PrivacyLevel.entries.forEach { level ->
+                                    FilterChip(
+                                        selected = ws.myPrivacyLevel == level,
+                                        onClick = { viewModel.updateWorkspacePrivacy(ws.id, level) },
+                                        label = { Text(ShixuFormatters.privacyLevelLabel(level)) },
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Text("同步诊断与离线队列", style = MaterialTheme.typography.titleMedium)
+                    Text("API Base: ${BuildConfig.API_BASE_URL}", style = MaterialTheme.typography.bodySmall)
+                    val wsLabel = when (state.wsState) {
+                        WsConnectionState.Connected -> "WebSocket 已连接"
+                        WsConnectionState.Connecting -> "WebSocket 握手中"
+                        is WsConnectionState.Reconnecting -> "WebSocket 指数退避重连中 (#${(state.wsState as WsConnectionState.Reconnecting).attempt})"
+                        WsConnectionState.Disconnected -> "WebSocket 已断开"
+                    }
+                    Text("实时通道：$wsLabel", style = MaterialTheme.typography.bodySmall)
+                    Text(
+                        text = "Room 待补传生理队列：${state.pendingQueueCount} 条",
+                        style = MaterialTheme.typography.bodySmall.merge(TabularNumeralStyle),
+                    )
+                    state.syncMetadata.lastHealthSyncSummary?.let { summary ->
+                        Text("穿戴同步：$summary", style = MaterialTheme.typography.bodySmall)
+                    }
+                    draft.healthProbeResult?.let { probe ->
+                        Text("健康探针：$probe", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
+                    }
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        OutlinedButton(onClick = viewModel::probeHealth, modifier = Modifier.weight(1f)) {
+                            Text("测试 /health")
+                        }
+                        OutlinedButton(
+                            onClick = viewModel::flushPendingBiometrics,
+                            enabled = !draft.isFlushingQueue,
+                            modifier = Modifier.weight(1f),
+                        ) {
+                            Text(if (draft.isFlushingQueue) "补传中..." else "立即补传队列")
+                        }
+                    }
+                }
+            }
+        }
+
+        item {
+            OutlinedButton(
+                onClick = viewModel::logout,
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Icon(Icons.AutoMirrored.Outlined.Logout, contentDescription = null)
+                Text("退出当前账号并清空本地密钥", modifier = Modifier.padding(start = 8.dp))
+            }
+        }
+
+        item { Box(modifier = Modifier.height(16.dp)) }
     }
 }

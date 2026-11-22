@@ -2,11 +2,109 @@
   "formatVersion": 1,
   "database": {
     "version": 1,
-    "identityHash": "104b806e1ee7bfdf7fcd735065289d96",
+    "identityHash": "8609371f786d506589320102efd0c45c",
     "entities": [
       {
         "tableName": "pending_biometrics",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `ownerId` TEXT NOT NULL, `payload` TEXT NOT NULL, `queuedAt` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `sourceType` TEXT NOT NULL, `metricType` TEXT NOT NULL, `recordedAtIso` TEXT NOT NULL, `endAtIso` TEXT, `numericValue` REAL NOT NULL, `unit` TEXT NOT NULL, `sleepStage` TEXT, `externalId` TEXT NOT NULL, `metadataJson` TEXT, `createdAtEpochMs` INTEGER NOT NULL, `retryCount` INTEGER NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sourceType",
+            "columnName": "sourceType",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "metricType",
+            "columnName": "metricType",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "recordedAtIso",
+            "columnName": "recordedAtIso",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "endAtIso",
+            "columnName": "endAtIso",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "numericValue",
+            "columnName": "numericValue",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "unit",
+            "columnName": "unit",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sleepStage",
+            "columnName": "sleepStage",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "externalId",
+            "columnName": "externalId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "metadataJson",
+            "columnName": "metadataJson",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "createdAtEpochMs",
+            "columnName": "createdAtEpochMs",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "retryCount",
+            "columnName": "retryCount",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_pending_biometrics_sourceType_metricType_externalId",
+            "unique": true,
+            "columnNames": [
+              "sourceType",
+              "metricType",
+              "externalId"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_pending_biometrics_sourceType_metricType_externalId` ON `${TABLE_NAME}` (`sourceType`, `metricType`, `externalId`)"
+          }
+        ],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "cached_schedule_items",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `userId` TEXT NOT NULL, `workspaceId` TEXT, `meetingProposalId` TEXT, `title` TEXT NOT NULL, `notes` TEXT NOT NULL, `category` TEXT NOT NULL, `cognitiveLoad` TEXT NOT NULL, `flexibility` TEXT NOT NULL, `status` TEXT NOT NULL, `startAtIso` TEXT NOT NULL, `endAtIso` TEXT NOT NULL, `durationMinutes` INTEGER NOT NULL, `deadlineAtIso` TEXT, `reminderMinutes` INTEGER NOT NULL, `createdAtIso` TEXT NOT NULL, `updatedAtIso` TEXT NOT NULL, `cachedAtEpochMs` INTEGER NOT NULL, PRIMARY KEY(`id`))",
         "fields": [
           {
             "fieldPath": "id",
@@ -15,20 +113,104 @@
             "notNull": true
           },
           {
-            "fieldPath": "ownerId",
-            "columnName": "ownerId",
+            "fieldPath": "userId",
+            "columnName": "userId",
             "affinity": "TEXT",
             "notNull": true
           },
           {
-            "fieldPath": "payload",
-            "columnName": "payload",
+            "fieldPath": "workspaceId",
+            "columnName": "workspaceId",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "meetingProposalId",
+            "columnName": "meetingProposalId",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "title",
+            "columnName": "title",
             "affinity": "TEXT",
             "notNull": true
           },
           {
-            "fieldPath": "queuedAt",
-            "columnName": "queuedAt",
+            "fieldPath": "notes",
+            "columnName": "notes",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "category",
+            "columnName": "category",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "cognitiveLoad",
+            "columnName": "cognitiveLoad",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "flexibility",
+            "columnName": "flexibility",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "status",
+            "columnName": "status",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "startAtIso",
+            "columnName": "startAtIso",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "endAtIso",
+            "columnName": "endAtIso",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "durationMinutes",
+            "columnName": "durationMinutes",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "deadlineAtIso",
+            "columnName": "deadlineAtIso",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "reminderMinutes",
+            "columnName": "reminderMinutes",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAtIso",
+            "columnName": "createdAtIso",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAtIso",
+            "columnName": "updatedAtIso",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "cachedAtEpochMs",
+            "columnName": "cachedAtEpochMs",
             "affinity": "INTEGER",
             "notNull": true
           }
@@ -41,51 +223,12 @@
         },
         "indices": [],
         "foreignKeys": []
-      },
-      {
-        "tableName": "schedule_snapshots",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`ownerId` TEXT NOT NULL, `localDay` TEXT NOT NULL, `payload` TEXT NOT NULL, `savedAt` INTEGER NOT NULL, PRIMARY KEY(`ownerId`, `localDay`))",
-        "fields": [
-          {
-            "fieldPath": "ownerId",
-            "columnName": "ownerId",
-            "affinity": "TEXT",
-            "notNull": true
-          },
-          {
-            "fieldPath": "localDay",
-            "columnName": "localDay",
-            "affinity": "TEXT",
-            "notNull": true
-          },
-          {
-            "fieldPath": "payload",
-            "columnName": "payload",
-            "affinity": "TEXT",
-            "notNull": true
-          },
-          {
-            "fieldPath": "savedAt",
-            "columnName": "savedAt",
-            "affinity": "INTEGER",
-            "notNull": true
-          }
-        ],
-        "primaryKey": {
-          "autoGenerate": false,
-          "columnNames": [
-            "ownerId",
-            "localDay"
-          ]
-        },
-        "indices": [],
-        "foreignKeys": []
       }
     ],
     "views": [],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '104b806e1ee7bfdf7fcd735065289d96')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '8609371f786d506589320102efd0c45c')"
     ]
   }
 }
