@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
 
 from .auth import current_user_id
 from .repositories import (
@@ -11,6 +11,7 @@ from .repositories import (
     upsert_task_events,
 )
 from .schemas import TaskEvent
+from .repositories.events import delete_task_event
 
 
 router = APIRouter(prefix="/events", tags=["events"])
@@ -18,6 +19,12 @@ router = APIRouter(prefix="/events", tags=["events"])
 
 def _db_path(request: Request):
     return getattr(request.app.state, "db_path", None)
+
+
+@router.delete("/{event_id}", status_code=status.HTTP_204_NO_CONTENT)
+def remove_event(event_id: str, request: Request, user_id: str = Depends(current_user_id)) -> Response:
+    delete_task_event(_db_path(request), user_id, event_id)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @router.post("", response_model=TaskEvent)

@@ -7,7 +7,9 @@ from .common import _now
 from .common import _parse_int
 from .errors import TaskEventBatchValidationError
 from .errors import TaskEventConflictError
+from .errors import RepositoryNotFoundError
 from pathlib import Path
+import json
 import sqlite3
 import uuid
 
@@ -82,6 +84,10 @@ def _upsert_task_event_on_connection(
 ) -> str:
     values = _task_event_values(payload, now)
     event_id = str(values[0])
+    if connection.execute(
+        "SELECT 1 FROM task_event_deletions WHERE event_id = ?", (event_id,),
+    ).fetchone() is not None:
+        raise TaskEventConflictError("Task event id is no longer available")
     existing = connection.execute(
         "SELECT user_id FROM task_events WHERE id = ?",
         (event_id,),
@@ -108,13 +114,13 @@ def upsert_task_event(
     payload: dict[str, object],
 ) -> dict[str, object]:
     with _connect(db_path) as connection:
+        connection.execute("BEGIN IMMEDIATE")
         event_id = _upsert_task_event_on_connection(
             connection,
             user_id,
             payload,
             _now(),
         )
-        connection.commit()
         row = connection.execute(
             "SELECT * FROM task_events WHERE id = ? AND user_id = ?",
             (event_id, user_id),
@@ -139,6 +145,7 @@ def upsert_task_events(
         seen_ids.add(event_id)
 
     with _connect(db_path) as connection:
+        connection.execute("BEGIN IMMEDIATE")
         for event_id in seen_ids:
             existing = connection.execute(
                 "SELECT user_id FROM task_events WHERE id = ?",
@@ -153,7 +160,6 @@ def upsert_task_events(
             _upsert_task_event_on_connection(connection, user_id, payload, _now())
             for payload in payloads
         ]
-        connection.commit()
         return [
             _task_event_row_to_dict(
                 connection.execute(
@@ -191,3 +197,19 @@ def list_task_events(
             params,
         ).fetchall()
         return [_task_event_row_to_dict(row) or {} for row in rows]
+
+
+def delete_task_event(db_path: str | Path | None, user_id: str, event_id: str) -> None:
+    """Archive the complete stored row and delete it in one serialized transaction."""
+    with _connect(db_path) as connection:
+        connection.execute("BEGIN IMMEDIATE")
+        row = connection.execute(
+            "SELECT * FROM task_events WHERE id = ? AND user_id = ?", (event_id, user_id),
+        ).fetchone()
+        if row is None:
+            raise RepositoryNotFoundError("Task event not found")
+        connection.execute(
+            "INSERT INTO task_event_deletions (event_id, user_id, payload_json, schema_version, deleted_at) VALUES (?, ?, ?, 1, ?)",
+            (event_id, user_id, json.dumps(dict(row), ensure_ascii=False), _now()),
+        )
+        connection.execute("DELETE FROM task_events WHERE id = ? AND user_id = ?", (event_id, user_id))

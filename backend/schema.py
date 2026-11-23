@@ -258,6 +258,33 @@ def init_db(db_path: str | Path | None = None, connection: sqlite3.Connection | 
             )
             """
         )
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS reminders (
+                id TEXT PRIMARY KEY,
+                user_id TEXT NOT NULL,
+                schedule_id TEXT NOT NULL,
+                enabled INTEGER NOT NULL CHECK(enabled IN (0, 1)),
+                minutes_before INTEGER CHECK(minutes_before BETWEEN 0 AND 10080),
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL,
+                UNIQUE(user_id, schedule_id),
+                FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+            )
+            """
+        )
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS task_event_deletions (
+                event_id TEXT PRIMARY KEY,
+                user_id TEXT NOT NULL,
+                payload_json TEXT NOT NULL,
+                schema_version INTEGER NOT NULL DEFAULT 1,
+                deleted_at TEXT NOT NULL,
+                FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+            )
+            """
+        )
         connection.commit()
     finally:
         if owns_connection:
