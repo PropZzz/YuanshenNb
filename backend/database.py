@@ -39,4 +39,8 @@ def get_connection(db_path: str | Path | None = None) -> sqlite3.Connection:
     path = Path(db_path) if db_path is not None else get_database_path()
     path.parent.mkdir(parents=True, exist_ok=True)
     connection = sqlite3.connect(path, timeout=CONNECT_TIMEOUT_SECONDS)
-    return _configure_connection(connection)
+    try:
+        return _configure_connection(connection)
+    except BaseException:
+        connection.close()
+        raise
