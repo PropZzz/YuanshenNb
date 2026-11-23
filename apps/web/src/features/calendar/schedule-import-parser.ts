@@ -1,5 +1,6 @@
 import type { ApiComponents } from "@/api/client";
 import { localDateTimeToISO, shiftDay } from "@/lib/datetime";
+import { attributeFromText } from "./schedule-presentation";
 
 export type ImportPayload=ApiComponents["CreateScheduleItemRequest"];
 export interface ImportPreviewRow {id:string;title:string;payload?:ImportPayload;error?:string;duplicate?:boolean;conflicts?:string[]}
@@ -19,8 +20,9 @@ export function inferImportMapping(headers:string[]):ImportMapping{return Object
 export function importPayload(title:string,startAt:string,endAt:string,notes="",tag=""):ImportPayload{
  if(!title.trim())throw new Error("缺少日程名称");if(title.length>200)throw new Error("日程名称不能超过 200 个字符");if(!Number.isFinite(Date.parse(startAt))||!Number.isFinite(Date.parse(endAt))||Date.parse(endAt)<=Date.parse(startAt))throw new Error("结束时间需要晚于开始时间");
  const categories:Record<string,ImportPayload["category"]>={deep_work:"deep_work",meeting:"meeting",recovery:"recovery",routine:"routine",urgent:"urgent",深度工作:"deep_work",协同会议:"meeting",恢复缓冲:"recovery",日常事务:"routine",紧急任务:"urgent"};
- const category=categories[tag]??"routine",description=[notes,tag&&!categories[tag]?`原属性标签：${tag}`:""].filter(Boolean).join("\n");if(description.length>4000)throw new Error("备注及导入元数据不能超过 4000 个字符");
- return {title:title.trim(),startAt,endAt,notes:description,category,cognitiveLoad:"medium",flexibility:"hard_locked",reminderMinutes:10,allowOverlap:false};
+ const attribute=attributeFromText(tag);
+ const category=attribute?.category??categories[tag]??"routine",description=[notes,tag&&!attribute&&!categories[tag]?`原属性标签：${tag}`:""].filter(Boolean).join("\n");if(description.length>4000)throw new Error("备注及导入元数据不能超过 4000 个字符");
+ return {...(attribute?{presentation:{attributeTag:attribute.id}}:{}),title:title.trim(),startAt,endAt,notes:description,category,cognitiveLoad:"medium",flexibility:"hard_locked",reminderMinutes:10,allowOverlap:false};
 }
 function clock(value:string){const match=value.trim().match(/^(\d{1,2}):(\d{2})(?::\d{2})?$/);if(!match||Number(match[1])>23||Number(match[2])>59)throw new Error("时间格式应为 HH:mm");return `${match[1].padStart(2,"0")}:${match[2]}`;}
 function date(value:string){const match=value.trim().match(/^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})$/);if(!match)throw new Error("日期格式应为 YYYY-MM-DD");return `${match[1]}-${match[2].padStart(2,"0")}-${match[3].padStart(2,"0")}`;}

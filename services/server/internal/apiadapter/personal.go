@@ -36,6 +36,8 @@ func personalProblem(err error) error {
 		})
 	}
 	switch {
+	case errors.Is(err, schedule.ErrPresentation):
+		return api.NewProblem(422, api.ErrValidationFailed, "schedule attribute or goal link is invalid")
 	case errors.Is(err, schedule.ErrNotFound):
 		return api.NewProblem(404, api.ErrNotFound, "schedule or snapshot was not found")
 	case errors.Is(err, schedule.ErrOverlap):

@@ -575,6 +575,7 @@ export interface components {
             endAt: string;
             flexibility: components["schemas"]["Flexibility"];
             notes?: string;
+            presentation?: components["schemas"]["SchedulePresentation"];
             /**
              * Format: int64
              * @default 10
@@ -1030,6 +1031,7 @@ export interface components {
             /** Format: uuid */
             meetingProposalId?: string;
             notes: string;
+            presentation?: components["schemas"]["SchedulePresentation"];
             /** Format: int64 */
             reminderMinutes: number;
             /** Format: date-time */
@@ -1067,6 +1069,7 @@ export interface components {
             /** Format: uuid */
             meetingProposalId?: string;
             notes: string;
+            presentation?: components["schemas"]["SchedulePresentation"];
             /** Format: int64 */
             reminderMinutes: number;
             /** Format: date-time */
@@ -1088,6 +1091,12 @@ export interface components {
             baselineLocalDay: string;
             baselineVersion: string;
             item: components["schemas"]["ScheduleItemDTO"];
+        };
+        SchedulePresentation: {
+            /** @enum {string} */
+            attributeTag?: "review" | "collaboration" | "coding" | "research" | "routine" | "study" | "homework" | "exam" | "meeting" | "project" | "recovery";
+            goalId?: string;
+            goalTitle?: string;
         };
         /** @enum {string} */
         ScheduleStatus: "planned" | "in_progress" | "completed" | "cancelled";
@@ -1143,6 +1152,8 @@ export interface components {
             endAt?: string;
             flexibility?: components["schemas"]["Flexibility"];
             notes?: string;
+            /** @description 提供对象会替换显示属性；空对象清除属性与目标关联，省略则保留 */
+            presentation?: components["schemas"]["SchedulePresentation"];
             /** Format: int64 */
             reminderMinutes?: number;
             /** Format: date-time */

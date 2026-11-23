@@ -40,7 +40,7 @@ $goose = Join-Path (go env GOPATH) 'bin\goose.exe'
 & $goose -dir migrations postgres $env:DATABASE_URL up
 ```
 
-必须依次包含 `0001_init.sql` 与 `0002_ws_tickets.sql`。后者创建数据库共享的一次性握手票据表；没有该表，REST 票据签发会失败。不要直接用 `psql -f` 执行完整迁移文件，因为文件内同时包含 Up 和 Down 段。服务启动时不会自动建表或清理数据。
+必须依次包含 `0001_init.sql`、`0002_ws_tickets.sql` 与 `0003_schedule_presentation.sql`。第二份创建数据库共享的一次性握手票据表；第三份为日程增加兼容旧请求的可选显示属性 JSONB 列，用于真实保存 Web 属性颜色与用户明确选择的目标名称。已有数据库也应通过迁移工具应用第三份迁移，再启动新版 API。不要直接用 `psql -f` 执行完整迁移文件，因为文件内同时包含 Up 和 Down 段。服务启动时不会自动建表或清理数据。
 
 ```powershell
 go run ./cmd/api
@@ -50,10 +50,10 @@ go run ./cmd/api
 
 ### 本工作区现有本机数据库
 
-本次联调使用的 PostgreSQL 在 `127.0.0.1:55432`，与 Compose 的 5432 分开。现有开发库已经执行上述两份迁移，使用它时直接设置连接并启动，**不要删除、重建或重复执行原始迁移 SQL**：
+2026-11-23 本次联调实际使用的 PostgreSQL 在 `127.0.0.1:5432`，早期记录的 55432 不适用于当前会话。现有开发库已应用上述三份迁移，使用它时直接设置连接并启动，**不要删除、重建或重复执行原始迁移 SQL**：
 
 ```powershell
-$env:DATABASE_URL = 'postgres://shixu@127.0.0.1:55432/shixu_v2_dev?sslmode=disable'
+$env:DATABASE_URL = 'postgres://shixu@127.0.0.1:5432/shixu_v2_dev?sslmode=disable'
 go run ./cmd/api
 ```
 

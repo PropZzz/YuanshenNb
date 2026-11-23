@@ -346,6 +346,9 @@
           "notes": {
             "type": "string"
           },
+          "presentation": {
+            "$ref": "#/components/schemas/SchedulePresentation"
+          },
           "reminderMinutes": {
             "default": 10,
             "format": "int64",
@@ -1937,6 +1940,9 @@
           "notes": {
             "type": "string"
           },
+          "presentation": {
+            "$ref": "#/components/schemas/SchedulePresentation"
+          },
           "reminderMinutes": {
             "format": "int64",
             "minimum": 0,
@@ -2046,6 +2052,9 @@
           "notes": {
             "type": "string"
           },
+          "presentation": {
+            "$ref": "#/components/schemas/SchedulePresentation"
+          },
           "reminderMinutes": {
             "format": "int64",
             "minimum": 0,
@@ -2111,6 +2120,36 @@
           "baselineLocalDay",
           "baselineVersion"
         ],
+        "type": "object"
+      },
+      "SchedulePresentation": {
+        "additionalProperties": false,
+        "properties": {
+          "attributeTag": {
+            "enum": [
+              "review",
+              "collaboration",
+              "coding",
+              "research",
+              "routine",
+              "study",
+              "homework",
+              "exam",
+              "meeting",
+              "project",
+              "recovery"
+            ],
+            "type": "string"
+          },
+          "goalId": {
+            "maxLength": 128,
+            "type": "string"
+          },
+          "goalTitle": {
+            "maxLength": 240,
+            "type": "string"
+          }
+        },
         "type": "object"
       },
       "ScheduleStatus": {
@@ -2299,6 +2338,10 @@
           },
           "notes": {
             "type": "string"
+          },
+          "presentation": {
+            "$ref": "#/components/schemas/SchedulePresentation",
+            "description": "提供对象会替换显示属性；空对象清除属性与目标关联，省略则保留"
           },
           "reminderMinutes": {
             "format": "int64",

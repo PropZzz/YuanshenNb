@@ -18,7 +18,7 @@ beforeEach(()=>{localStorage.clear();writes=[];vi.stubGlobal("fetch",vi.fn(async
  return json({score:80,dataFreshness:"baseline_only",localDay:"2026-11-20",hourlyCurve:[],focusShields:[]});
 }));});
 afterEach(()=>{cleanup();cache?.clear();vi.unstubAllGlobals();localStorage.clear();});
-function mount(query=""){cache=new QueryClient({defaultOptions:{queries:{retry:false}}});return render(<QueryClientProvider client={cache}><MemoryRouter initialEntries={[`/calendar${query}`]}><CalendarPage/></MemoryRouter></QueryClientProvider>);}
+function mount(query=""){const search=new URLSearchParams(query);if(!search.has("day"))search.set("day","2026-11-20");query="?"+search;cache=new QueryClient({defaultOptions:{queries:{retry:false}}});return render(<QueryClientProvider client={cache}><MemoryRouter initialEntries={[`/calendar${query}`]}><CalendarPage/></MemoryRouter></QueryClientProvider>);}
 
 it("opens a read-only schedule detail before entering edit mode",async()=>{
  mount();const user=userEvent.setup();await user.click(await screen.findByRole("button",{name:/日程详情回归 09:00至10:00/}));
@@ -54,7 +54,7 @@ it("preserves the new-schedule draft after visiting and cancelling import",async
 });
 
 it("persists local calendar options and changes the rendered time-map scale",async()=>{
- const {container}=mount();const user=userEvent.setup();await user.click(await screen.findByRole("button",{name:"日历显示选项"}));
+ const {container}=mount();const user=userEvent.setup();await user.click(await screen.findByRole("button",{name:"筛选"}));await user.click(screen.getByRole("button",{name:"更多显示选项"}));
  await user.click(screen.getByRole("button",{name:"紧凑"}));await user.click(screen.getByRole("switch",{name:"显示当前时间线"}));
  expect(JSON.parse(localStorage.getItem("ruanchuang-calendar-options")??"{}")).toMatchObject({hourHeight:44,nowLine:false});
  await user.click(screen.getByRole("button",{name:"完成"}));await waitFor(()=>expect(container.querySelector(".time-map-body")?.getAttribute("data-hour-height")).toBe("44"));
@@ -115,7 +115,9 @@ it("expands a course table using the chosen semester Monday and explicit section
 });
 
 it("applies every original display filter locally to the time map",async()=>{
+ vi.stubGlobal("fetch",vi.fn(async(request:Request)=>request.url.includes('/schedule/items')?json({items:[{...item,presentation:{goalId:"goal-1",goalTitle:"真实目标"}}]}):request.url.includes('rescue/history')?json({snapshots:[]}):json({score:80,dataFreshness:'baseline_only',localDay:'2026-11-20',hourlyCurve:[],focusShields:[]})));
  const {container}=mount();const user=userEvent.setup();await screen.findByRole("button",{name:/日程详情回归 09:00至10:00/});
+ await user.click(screen.getByRole("button",{name:"筛选"}));
  for(const [label,selector,key] of [["时间标尺",".map-hours","timeRuler"],["属性标签",".event-category","attributeTags"],["完成状态",".event-status","completionStatus"],["缓冲与提醒",".event-reminder","buffersAndReminders"],["战略目标关联",".event-goal-link","strategyLinks"]]){
   expect(container.querySelector(selector)).not.toBeNull();await user.click(screen.getByRole("checkbox",{name:label}));expect(container.querySelector(selector)).toBeNull();
   expect(JSON.parse(localStorage.getItem("ruanchuang-calendar-options")??"{}")[key]).toBe(false);

@@ -4,7 +4,7 @@ import type { ApiComponents } from "@/api/client";
 import { Button } from "@/components/ui/button";
 import { displayDay, localDate, localTime } from "@/lib/datetime";
 import { defaultCalendarOptions, type CalendarOptions } from "./calendar-options";
-import { categoryLabels } from "./queries";
+import { AttributeLegend, ScheduleMeta, scheduleStyle } from "./schedule-presentation";
 
 type Item = ApiComponents["ScheduleItemDTO"];
 const weekdays = ["周一", "周二", "周三", "周四", "周五", "周六", "周日"];
@@ -32,6 +32,7 @@ export function MonthMap({
   timezone,
   options = defaultCalendarOptions,
   onSelectDay,
+  onOpenDay = onSelectDay,
   onEdit,
   onCreate,
 }: {
@@ -41,11 +42,13 @@ export function MonthMap({
   timezone: string;
   options?: CalendarOptions;
   onSelectDay: (day: string) => void;
+  onOpenDay?: (day: string) => void;
   onEdit: (item: Item) => void;
   onCreate: (day: string, time?: string) => void;
 }) {
   const today = localDate(new Date(), timezone);
   const currentMonth = selectedDay.slice(0, 7);
+  const selectedItems=items.filter(item=>overlapsDay(item,selectedDay,timezone)).sort((a,b)=>a.startAt.localeCompare(b.startAt));
 
   return (
     <div className="surface-card time-map cal-month-map" role="region" aria-label="月视图日程网格">
@@ -86,7 +89,6 @@ export function MonthMap({
                   className="cal-month-add"
                   aria-label={`${date} 新增日程`}
                   onClick={() => {
-                    onSelectDay(date);
                     onCreate(date, "09:00");
                   }}
                 >
@@ -98,6 +100,8 @@ export function MonthMap({
                   <button
                     key={item.id}
                     type="button"
+                    data-attribute={item.presentation?.attributeTag}
+                    style={scheduleStyle(item)}
                     className={`map-event cal-event-compact event-${item.category} ${
                       options.completionStatus && item.status === "completed" ? "is-complete" : ""
                     }`}
@@ -113,17 +117,16 @@ export function MonthMap({
                       ) : null}
                       {item.title}
                     </span>
-                    <span className="event-time">
-                      {localTime(item.startAt, timezone)}
-                      {options.attributeTags ? ` · ${categoryLabels[item.category]}` : ""}
-                    </span>
+                    {options.timeRuler&&<span className="event-time">{localTime(item.startAt, timezone)}</span>}
+                    <ScheduleMeta item={item} options={options}/>
                   </button>
                 ))}
                 {hiddenCount > 0 && (
                   <button
                     type="button"
                     className="cal-month-more"
-                    onClick={() => onSelectDay(date)}
+                    aria-label={'查看 '+date+' 的全部 '+dayItems.length+' 项日程'}
+                    onClick={() => onOpenDay(date)}
                   >
                     +{hiddenCount} 项日程
                   </button>
@@ -133,7 +136,12 @@ export function MonthMap({
           );
         })}
       </div>
-      <footer className="map-legend">
+      <section className="cal-selected-agenda" aria-label="所选日期日程">
+        <header><div><h2>{displayDay(selectedDay)}</h2><p>{selectedItems.length} 项安排 · {timezone}</p></div><Button variant="outline" size="sm" onClick={()=>onOpenDay(selectedDay)}>查看日视图</Button></header>
+        {selectedItems.length?<div className="cal-agenda-list">{selectedItems.map(item=><button type="button" key={item.id} data-attribute={item.presentation?.attributeTag} style={scheduleStyle(item)} className={'cal-agenda-item event-'+item.category+(options.completionStatus&&item.status==='completed'?' is-complete':'')} onClick={()=>onEdit(item)} aria-label={'查看 '+item.title}>{options.timeRuler&&<time>{localTime(item.startAt,timezone)}<span>— {localTime(item.endAt,timezone)}</span></time>}<span><strong>{item.title}</strong><small>{item.durationMinutes} 分钟</small><ScheduleMeta item={item} options={options}/></span></button>)}</div>:<p className="cal-agenda-empty">这一天还没有日程，选择空闲时间安排一件重要的事。</p>}
+        <Button variant="ghost" size="sm" onClick={()=>onCreate(selectedDay,'09:00')}><Plus size={14}/>为所选日期新增日程</Button>
+      </section>
+      <footer className="map-legend">{options.attributeTags&&<AttributeLegend items={items}/>}
         <span>
           <i className="event-deep_work" />
           深度工作
@@ -243,7 +251,7 @@ export function GanttMap({
             </div>
             <div className="cal-gantt-days">
               {ganttScale === "day"
-                ? Array.from({ length: 24 }, (_, hour) => (
+                ? options.timeRuler&&Array.from({ length: 24 }, (_, hour) => (
                     <div className="cal-gantt-hour" key={hour}>
                       {String(hour).padStart(2, "0")}:00
                     </div>
@@ -287,15 +295,13 @@ export function GanttMap({
                     ) : null}
                     {item.title}
                   </strong>
-                  <span>
+                  {options.timeRuler&&<span>
                     {startDay.slice(5)} {localTime(item.startAt, timezone)} –{" "}
                     {endDay !== startDay ? `${endDay.slice(5)} ` : ""}
                     {localTime(item.endAt, timezone)}
-                  </span>
-                  <small>
-                    <i className={`event-${item.category}`} />
-                    {categoryLabels[item.category]} · {item.durationMinutes}m
-                  </small>
+                  </span>}
+                  <small>{item.durationMinutes} 分钟</small>
+                  <ScheduleMeta item={item} options={options}/>
                 </button>
                 <div className="cal-gantt-track">
                   {ganttScale === "day"
@@ -314,8 +320,10 @@ export function GanttMap({
                     className={`cal-gantt-bar event-${item.category} ${
                       options.completionStatus && item.status === "completed" ? "is-complete" : ""
                     }`}
+                    data-attribute={item.presentation?.attributeTag}
                     style={
                       {
+                        ...scheduleStyle(item),
                         "--gantt-start": `${startPct}%`,
                         "--gantt-length": `${lengthPct}%`,
                       } as CSSProperties
@@ -350,7 +358,7 @@ export function GanttMap({
           </div>
         )}
       </div>
-      <footer className="map-legend">
+      <footer className="map-legend">{options.attributeTags&&<AttributeLegend items={items}/>}
         <span>
           <i className="event-deep_work" />
           深度工作

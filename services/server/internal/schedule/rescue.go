@@ -256,7 +256,7 @@ func (s *RescueService) Undo(ctx context.Context, user, id uuid.UUID) (api.Rescu
 		if !changed[it.ID] {
 			continue
 		}
-		if _, err = tx.Exec(ctx, "UPDATE schedule_items SET title=$3,notes=$4,category=$5,cognitive_load=$6,flexibility=$7,status=$8,start_at=$9,end_at=$10,deadline_at=$11,reminder_minutes=$12 WHERE id=$1 AND user_id=$2", it.ID, user, it.Title, it.Notes, it.Category, it.CognitiveLoad, it.Flexibility, it.Status, it.StartAt, it.EndAt, it.DeadlineAt, it.ReminderMinutes); err != nil {
+		if _, err = tx.Exec(ctx, "UPDATE schedule_items SET title=$3,notes=$4,category=$5,cognitive_load=$6,flexibility=$7,status=$8,start_at=$9,end_at=$10,deadline_at=$11,reminder_minutes=$12,presentation=$13 WHERE id=$1 AND user_id=$2", it.ID, user, it.Title, it.Notes, it.Category, it.CognitiveLoad, it.Flexibility, it.Status, it.StartAt, it.EndAt, it.DeadlineAt, it.ReminderMinutes, presentationValue(it.Presentation)); err != nil {
 			return api.RescueUndoResponse{}, err
 		}
 	}

@@ -189,43 +189,53 @@ type UpdateEnergyProfileRequest struct {
 
 // ── 2.3 个人日程与救援 DTO ──
 
+// SchedulePresentation is user-selected display metadata, independent of solver categories.
+// Goals currently originate from the account-isolated browser goal module.
+type SchedulePresentation struct {
+	AttributeTag string `json:"attributeTag,omitempty" enum:"review,collaboration,coding,research,routine,study,homework,exam,meeting,project,recovery"`
+	GoalID       string `json:"goalId,omitempty" maxLength:"128"`
+	GoalTitle    string `json:"goalTitle,omitempty" maxLength:"240"`
+}
+
 type ScheduleItemDTO struct {
-	ID                uuid.UUID        `json:"id" format:"uuid"`
-	UserID            uuid.UUID        `json:"userId" format:"uuid"`
-	WorkspaceID       *uuid.UUID       `json:"workspaceId,omitempty" format:"uuid"`
-	MeetingProposalID *uuid.UUID       `json:"meetingProposalId,omitempty" format:"uuid"`
-	Title             string           `json:"title" minLength:"1" maxLength:"200"`
-	Notes             string           `json:"notes"`
-	Category          ScheduleCategory `json:"category"`
-	CognitiveLoad     CognitiveLoad    `json:"cognitiveLoad"`
-	Flexibility       Flexibility      `json:"flexibility"`
-	Status            ScheduleStatus   `json:"status"`
-	StartAt           time.Time        `json:"startAt" format:"date-time"`
-	EndAt             time.Time        `json:"endAt" format:"date-time"`
-	DurationMinutes   int              `json:"durationMinutes" minimum:"1"`
-	DeadlineAt        *time.Time       `json:"deadlineAt,omitempty" format:"date-time"`
-	ReminderMinutes   int              `json:"reminderMinutes" minimum:"0"`
-	CreatedAt         time.Time        `json:"createdAt" format:"date-time"`
-	UpdatedAt         time.Time        `json:"updatedAt" format:"date-time"`
+	Presentation      *SchedulePresentation `json:"presentation,omitempty"`
+	ID                uuid.UUID             `json:"id" format:"uuid"`
+	UserID            uuid.UUID             `json:"userId" format:"uuid"`
+	WorkspaceID       *uuid.UUID            `json:"workspaceId,omitempty" format:"uuid"`
+	MeetingProposalID *uuid.UUID            `json:"meetingProposalId,omitempty" format:"uuid"`
+	Title             string                `json:"title" minLength:"1" maxLength:"200"`
+	Notes             string                `json:"notes"`
+	Category          ScheduleCategory      `json:"category"`
+	CognitiveLoad     CognitiveLoad         `json:"cognitiveLoad"`
+	Flexibility       Flexibility           `json:"flexibility"`
+	Status            ScheduleStatus        `json:"status"`
+	StartAt           time.Time             `json:"startAt" format:"date-time"`
+	EndAt             time.Time             `json:"endAt" format:"date-time"`
+	DurationMinutes   int                   `json:"durationMinutes" minimum:"1"`
+	DeadlineAt        *time.Time            `json:"deadlineAt,omitempty" format:"date-time"`
+	ReminderMinutes   int                   `json:"reminderMinutes" minimum:"0"`
+	CreatedAt         time.Time             `json:"createdAt" format:"date-time"`
+	UpdatedAt         time.Time             `json:"updatedAt" format:"date-time"`
 }
 
 type ScheduleItemSnapshot struct {
-	ID                uuid.UUID        `json:"id" format:"uuid"`
-	UserID            uuid.UUID        `json:"userId" format:"uuid"`
-	WorkspaceID       *uuid.UUID       `json:"workspaceId,omitempty" format:"uuid"`
-	MeetingProposalID *uuid.UUID       `json:"meetingProposalId,omitempty" format:"uuid"`
-	Title             string           `json:"title"`
-	Notes             string           `json:"notes"`
-	Category          ScheduleCategory `json:"category"`
-	CognitiveLoad     CognitiveLoad    `json:"cognitiveLoad"`
-	Flexibility       Flexibility      `json:"flexibility"`
-	Status            ScheduleStatus   `json:"status"`
-	StartAt           time.Time        `json:"startAt" format:"date-time"`
-	EndAt             time.Time        `json:"endAt" format:"date-time"`
-	DurationMinutes   int              `json:"durationMinutes" minimum:"1"`
-	DeadlineAt        *time.Time       `json:"deadlineAt,omitempty" format:"date-time"`
-	ReminderMinutes   int              `json:"reminderMinutes" minimum:"0"`
-	UpdatedAt         time.Time        `json:"updatedAt" format:"date-time"`
+	Presentation      *SchedulePresentation `json:"presentation,omitempty"`
+	ID                uuid.UUID             `json:"id" format:"uuid"`
+	UserID            uuid.UUID             `json:"userId" format:"uuid"`
+	WorkspaceID       *uuid.UUID            `json:"workspaceId,omitempty" format:"uuid"`
+	MeetingProposalID *uuid.UUID            `json:"meetingProposalId,omitempty" format:"uuid"`
+	Title             string                `json:"title"`
+	Notes             string                `json:"notes"`
+	Category          ScheduleCategory      `json:"category"`
+	CognitiveLoad     CognitiveLoad         `json:"cognitiveLoad"`
+	Flexibility       Flexibility           `json:"flexibility"`
+	Status            ScheduleStatus        `json:"status"`
+	StartAt           time.Time             `json:"startAt" format:"date-time"`
+	EndAt             time.Time             `json:"endAt" format:"date-time"`
+	DurationMinutes   int                   `json:"durationMinutes" minimum:"1"`
+	DeadlineAt        *time.Time            `json:"deadlineAt,omitempty" format:"date-time"`
+	ReminderMinutes   int                   `json:"reminderMinutes" minimum:"0"`
+	UpdatedAt         time.Time             `json:"updatedAt" format:"date-time"`
 }
 
 type ScheduleItemListResponse struct {
@@ -241,19 +251,21 @@ type ScheduleMutationResponse struct {
 }
 
 type CreateScheduleItemRequest struct {
-	Title           string           `json:"title" minLength:"1" maxLength:"200"`
-	Notes           string           `json:"notes,omitempty"`
-	Category        ScheduleCategory `json:"category"`
-	CognitiveLoad   CognitiveLoad    `json:"cognitiveLoad"`
-	Flexibility     Flexibility      `json:"flexibility"`
-	StartAt         time.Time        `json:"startAt" format:"date-time"`
-	EndAt           time.Time        `json:"endAt" format:"date-time"`
-	DeadlineAt      *time.Time       `json:"deadlineAt,omitempty" format:"date-time"`
-	ReminderMinutes *int             `json:"reminderMinutes,omitempty" minimum:"0" default:"10"`
-	AllowOverlap    bool             `json:"allowOverlap,omitempty" default:"false"`
+	Presentation    *SchedulePresentation `json:"presentation,omitempty"`
+	Title           string                `json:"title" minLength:"1" maxLength:"200"`
+	Notes           string                `json:"notes,omitempty"`
+	Category        ScheduleCategory      `json:"category"`
+	CognitiveLoad   CognitiveLoad         `json:"cognitiveLoad"`
+	Flexibility     Flexibility           `json:"flexibility"`
+	StartAt         time.Time             `json:"startAt" format:"date-time"`
+	EndAt           time.Time             `json:"endAt" format:"date-time"`
+	DeadlineAt      *time.Time            `json:"deadlineAt,omitempty" format:"date-time"`
+	ReminderMinutes *int                  `json:"reminderMinutes,omitempty" minimum:"0" default:"10"`
+	AllowOverlap    bool                  `json:"allowOverlap,omitempty" default:"false"`
 }
 
 type UpdateScheduleItemRequest struct {
+	Presentation    *SchedulePresentation    `json:"presentation,omitempty" doc:"提供对象会替换显示属性；空对象清除属性与目标关联，省略则保留"`
 	Title           *string                  `json:"title,omitempty" minLength:"1" maxLength:"200"`
 	Notes           *string                  `json:"notes,omitempty"`
 	Category        *ScheduleCategory        `json:"category,omitempty"`

@@ -22,3 +22,26 @@ it("previews a reference hour/minute picker and only changes the submitted value
  await user.click(within(picker).getByRole("button",{name:"确认时间"}));expect(input.value).toBe("2026-11-19T14:35");
  expect(new FormData(screen.getByRole("form") as HTMLFormElement).get("startAt")).toBe("2026-11-19T14:35");
 });
+it('browses years and months without changing the date until confirmation',async()=>{
+ const user=userEvent.setup();render(<DateTimeField label='开始时间' defaultValue='2028-02-29T09:10'/>);
+ await user.click(screen.getByRole('button',{name:'选择开始时间日期'}));
+ const picker=screen.getByRole('dialog',{name:'选择日期'});
+ await user.selectOptions(within(picker).getByLabelText('年份'),'2027');
+ await user.click(within(picker).getByRole('button',{name:'2027-02-28'}));
+ expect(screen.getByLabelText('开始时间')).toHaveProperty('value','2028-02-29T09:10');
+ await user.click(within(picker).getByRole('button',{name:'确认日期'}));
+ expect(screen.getByLabelText('开始时间')).toHaveProperty('value','2027-02-28T09:10');
+});
+
+it('moves date focus across months with arrows, selects with Enter and cancels without applying',async()=>{
+ const user=userEvent.setup();render(<DateTimeField label='日期' type='date' defaultValue='2028-02-29'/>);
+ await user.click(screen.getByRole('button',{name:'选择日期'}));
+ const picker=screen.getByRole('dialog',{name:'选择日期'});
+ const selected=within(picker).getByRole('button',{name:'2028-02-29'});selected.focus();
+ await user.keyboard('{ArrowRight}{Enter}');
+ expect(within(picker).getByLabelText('月份')).toHaveProperty('value','3');
+ expect(within(picker).getByRole('button',{name:'2028-03-01'}).getAttribute('aria-pressed')).toBe('true');
+ await user.keyboard('{Escape}');
+ expect(screen.getByLabelText('日期')).toHaveProperty('value','2028-02-29');
+ expect(screen.getByRole('button',{name:'选择日期'})).toBe(document.activeElement);
+});

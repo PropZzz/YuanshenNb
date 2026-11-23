@@ -6,6 +6,7 @@ import (
 	"errors"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -15,22 +16,23 @@ import (
 )
 
 var (
-	ErrNotFound = errors.New("schedule not found")
-	ErrOverlap  = errors.New("schedule overlap")
-	ErrManaged  = errors.New("meeting managed by proposal")
-	ErrTime     = errors.New("invalid time range")
-	ErrRange    = errors.New("range exceeds 62 days")
+	ErrNotFound     = errors.New("schedule not found")
+	ErrOverlap      = errors.New("schedule overlap")
+	ErrManaged      = errors.New("meeting managed by proposal")
+	ErrTime         = errors.New("invalid time range")
+	ErrRange        = errors.New("range exceeds 62 days")
+	ErrPresentation = errors.New("invalid schedule presentation")
 )
 
 type Service struct{ pool *pgxpool.Pool }
 
 func NewService(pool *pgxpool.Pool) *Service { return &Service{pool} }
 
-const columns = "id,user_id,workspace_id,meeting_proposal_id,title,notes,category,cognitive_load,flexibility,status,start_at,end_at,duration_minutes,deadline_at,reminder_minutes,created_at,updated_at"
+const columns = "id,user_id,workspace_id,meeting_proposal_id,title,notes,category,cognitive_load,flexibility,status,start_at,end_at,duration_minutes,deadline_at,reminder_minutes,created_at,updated_at,presentation"
 
 func scan(row pgx.Row) (api.ScheduleItemDTO, error) {
 	var it api.ScheduleItemDTO
-	err := row.Scan(&it.ID, &it.UserID, &it.WorkspaceID, &it.MeetingProposalID, &it.Title, &it.Notes, &it.Category, &it.CognitiveLoad, &it.Flexibility, &it.Status, &it.StartAt, &it.EndAt, &it.DurationMinutes, &it.DeadlineAt, &it.ReminderMinutes, &it.CreatedAt, &it.UpdatedAt)
+	err := row.Scan(&it.ID, &it.UserID, &it.WorkspaceID, &it.MeetingProposalID, &it.Title, &it.Notes, &it.Category, &it.CognitiveLoad, &it.Flexibility, &it.Status, &it.StartAt, &it.EndAt, &it.DurationMinutes, &it.DeadlineAt, &it.ReminderMinutes, &it.CreatedAt, &it.UpdatedAt, &it.Presentation)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return it, ErrNotFound
 	}
@@ -90,6 +92,9 @@ func checkConflict(ctx context.Context, q Querier, user, id uuid.UUID, start, en
 	return nil
 }
 func (s *Service) Create(ctx context.Context, user uuid.UUID, in api.CreateScheduleItemRequest) (api.ScheduleItemDTO, error) {
+	if !validPresentation(in.Presentation) {
+		return api.ScheduleItemDTO{}, ErrPresentation
+	}
 	if !in.EndAt.After(in.StartAt) || strings.TrimSpace(in.Title) == "" {
 		return api.ScheduleItemDTO{}, ErrTime
 	}
@@ -110,7 +115,7 @@ func (s *Service) Create(ctx context.Context, user uuid.UUID, in api.CreateSched
 	if in.ReminderMinutes != nil {
 		reminder = *in.ReminderMinutes
 	}
-	it, err := scan(tx.QueryRow(ctx, "INSERT INTO schedule_items(user_id,title,notes,category,cognitive_load,flexibility,start_at,end_at,deadline_at,reminder_minutes) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING "+columns, user, in.Title, in.Notes, in.Category, in.CognitiveLoad, in.Flexibility, in.StartAt, in.EndAt, in.DeadlineAt, reminder))
+	it, err := scan(tx.QueryRow(ctx, "INSERT INTO schedule_items(user_id,title,notes,category,cognitive_load,flexibility,start_at,end_at,deadline_at,reminder_minutes,presentation) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING "+columns, user, in.Title, in.Notes, in.Category, in.CognitiveLoad, in.Flexibility, in.StartAt, in.EndAt, in.DeadlineAt, reminder, presentationValue(in.Presentation)))
 	if err != nil {
 		return it, err
 	}
@@ -120,6 +125,9 @@ func managedChange(item api.ScheduleItemDTO, in api.UpdateScheduleItemRequest) b
 	return item.MeetingProposalID != nil && (in.Title != nil || in.Category != nil || in.CognitiveLoad != nil || in.Flexibility != nil || in.StartAt != nil || in.EndAt != nil || in.DeadlineAt.Set || in.ClearDeadline != nil || (in.Status != nil && *in.Status != "completed"))
 }
 func (s *Service) Update(ctx context.Context, user, id uuid.UUID, in api.UpdateScheduleItemRequest) (api.ScheduleItemDTO, error) {
+	if !validPresentation(in.Presentation) {
+		return api.ScheduleItemDTO{}, ErrPresentation
+	}
 	tx, err := s.pool.Begin(ctx)
 	if err != nil {
 		return api.ScheduleItemDTO{}, err
@@ -140,6 +148,9 @@ func (s *Service) Update(ctx context.Context, user, id uuid.UUID, in api.UpdateS
 	}
 	if in.Notes != nil {
 		it.Notes = *in.Notes
+	}
+	if in.Presentation != nil {
+		it.Presentation = in.Presentation
 	}
 	if in.Category != nil {
 		it.Category = *in.Category
@@ -175,11 +186,29 @@ func (s *Service) Update(ctx context.Context, user, id uuid.UUID, in api.UpdateS
 			return it, err
 		}
 	}
-	it, err = scan(tx.QueryRow(ctx, "UPDATE schedule_items SET title=$3,notes=$4,category=$5,cognitive_load=$6,flexibility=$7,status=$8,start_at=$9,end_at=$10,deadline_at=$11,reminder_minutes=$12 WHERE id=$1 AND user_id=$2 RETURNING "+columns, id, user, it.Title, it.Notes, it.Category, it.CognitiveLoad, it.Flexibility, it.Status, it.StartAt, it.EndAt, it.DeadlineAt, it.ReminderMinutes))
+	it, err = scan(tx.QueryRow(ctx, "UPDATE schedule_items SET title=$3,notes=$4,category=$5,cognitive_load=$6,flexibility=$7,status=$8,start_at=$9,end_at=$10,deadline_at=$11,reminder_minutes=$12,presentation=$13 WHERE id=$1 AND user_id=$2 RETURNING "+columns, id, user, it.Title, it.Notes, it.Category, it.CognitiveLoad, it.Flexibility, it.Status, it.StartAt, it.EndAt, it.DeadlineAt, it.ReminderMinutes, presentationValue(it.Presentation)))
 	if err != nil {
 		return it, err
 	}
 	return it, tx.Commit(ctx)
+}
+
+func presentationValue(value *api.SchedulePresentation) *api.SchedulePresentation {
+	if value == nil {
+		return &api.SchedulePresentation{}
+	}
+	return value
+}
+func validPresentation(value *api.SchedulePresentation) bool {
+	if value == nil {
+		return true
+	}
+	switch value.AttributeTag {
+	case "", "review", "collaboration", "coding", "research", "routine", "study", "homework", "exam", "meeting", "project", "recovery":
+	default:
+		return false
+	}
+	return utf8.RuneCountInString(value.GoalID) <= 128 && utf8.RuneCountInString(value.GoalTitle) <= 240 && ((strings.TrimSpace(value.GoalID) == "") == (strings.TrimSpace(value.GoalTitle) == ""))
 }
 func (s *Service) Delete(ctx context.Context, user, id uuid.UUID) error {
 	tx, err := s.pool.Begin(ctx)

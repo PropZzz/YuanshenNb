@@ -9,9 +9,9 @@ it("accepts the original table row/column envelope but caps the generated event 
  expect(()=>mapImportTable(table,inferImportMapping(table[0]),"Asia/Shanghai")).toThrow(/2000/);
 });
 
-it("supports quoted CSV and all original metadata columns without inventing a category",()=>{
+it("persists recognized attributes from quoted CSV while preserving teacher and location metadata",()=>{
  const table=parseDelimited('标题,日期,开始时间,时长（分钟）,属性标签,教师,教室,备注\n"课程,实验",2026-11-20,08:00,95,上课学习,张老师,B102,"准备器材\n提前到场"');
- const row=mapImportTable(table,inferImportMapping(table[0]),"Asia/Shanghai")[0];expect(row.payload).toMatchObject({title:"课程,实验",category:"routine",startAt:"2026-11-20T00:00:00.000Z",endAt:"2026-11-20T01:35:00.000Z"});expect(row.payload?.notes).toContain("原属性标签：上课学习");expect(row.payload?.notes).toContain("教师：张老师");expect(row.payload?.notes).toContain("地点：B102");
+ const row=mapImportTable(table,inferImportMapping(table[0]),"Asia/Shanghai")[0];expect(row.payload).toMatchObject({title:"课程,实验",category:"deep_work",presentation:{attributeTag:"study"},startAt:"2026-11-20T00:00:00.000Z",endAt:"2026-11-20T01:35:00.000Z"});expect(row.payload?.notes).not.toContain("原属性标签：上课学习");expect(row.payload?.notes).toContain("教师：张老师");expect(row.payload?.notes).toContain("地点：B102");
 });
 it("normalizes JSON wrappers and isolates invalid rows",()=>{
  const rows=parseJsonImport(JSON.stringify({schedules:[{title:"UTC JSON",startAt:"2026-11-20T01:00:00Z",endAt:"2026-11-20T02:00:00Z",category:"meeting"},null,{title:"重复例外",date:"2026-11-20",start:"09:00",repeat:"weekly"}]}),"Asia/Shanghai");

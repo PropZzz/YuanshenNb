@@ -75,7 +75,7 @@ func TestPostgresUndoPreservesNewItemsAndReturnsWholeWindowBaseline(t *testing.T
 	day := now.Format("2006-01-02")
 	start, _ := time.Parse("2006-01-02", day)
 	start = start.Add(27 * time.Hour)
-	before, err := calendar.Create(ctx, id, api.CreateScheduleItemRequest{Title: "Move me", Category: "routine", CognitiveLoad: "low", Flexibility: "flexible", StartAt: start, EndAt: start.Add(time.Hour)})
+	before, err := calendar.Create(ctx, id, api.CreateScheduleItemRequest{Title: "Move me", Presentation: &api.SchedulePresentation{AttributeTag: "project", GoalID: "goal-1", GoalTitle: "Preserved goal"}, Category: "routine", CognitiveLoad: "low", Flexibility: "flexible", StartAt: start, EndAt: start.Add(time.Hour)})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -118,6 +118,10 @@ func TestPostgresUndoPreservesNewItemsAndReturnsWholeWindowBaseline(t *testing.T
 	out, err := s.Undo(ctx, id, snapshot)
 	if err != nil {
 		t.Fatal(err)
+	}
+	restored, err := calendar.Get(ctx, id, before.ID)
+	if err != nil || restored.Presentation == nil || restored.Presentation.AttributeTag != "project" || restored.Presentation.GoalID != "goal-1" {
+		t.Fatal("undo lost saved presentation metadata")
 	}
 	preserved, err := calendar.Get(ctx, id, untouched.ID)
 	if err != nil || preserved.Notes != newNotes {

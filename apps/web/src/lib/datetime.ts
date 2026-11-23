@@ -25,6 +25,11 @@ export function localDateTimeToISO(value: string, timeZone: string): string {
   return new Date(candidate).toISOString();
 }
 export function localInput(value: string, timeZone: string): string { return `${localDate(value, timeZone)}T${localTime(value, timeZone)}`; }
+export function isValidDay(value: string | null | undefined): value is string {
+  if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value) || Number(value.slice(0,4)) < 1) return false;
+  const date = new Date(value + 'T12:00:00Z');
+  return !Number.isNaN(date.getTime()) && date.toISOString().slice(0,10) === value;
+}
 export function shiftDay(day: string, offset: number): string {
   const date = new Date(`${day}T12:00:00Z`);
   date.setUTCDate(date.getUTCDate() + offset);

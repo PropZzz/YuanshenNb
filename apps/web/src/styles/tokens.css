@@ -1,5 +1,5 @@
-/* 时序智配 V2 设计令牌与核心工作台基础样式
- * 提炼自 V1 Stitch “时间地图”视觉规范，适配 Tailwind CSS v4 (@theme) 与标准 CSS 变量。
+/* 时序智配 V2.5 设计令牌（Web & Android 对齐）
+ * 精密生理时序仪器 × 温润刊物秩序
  */
 
 :root {
@@ -39,7 +39,18 @@
   --rc-error-container: #ffdad6;
   --rc-on-error-container: #93000a;
 
+  /* ── 精力四档专属语义令牌 ── */
+  --rc-energy-peak: #0d7a5f;
+  --rc-energy-peak-bg: #e4f6ef;
+  --rc-energy-steady: #1e6f8c;
+  --rc-energy-steady-bg: #e6f3f8;
+  --rc-energy-strained: #b4690e;
+  --rc-energy-strained-bg: #fef3e2;
+  --rc-energy-depleted: #ba1a1a;
+  --rc-energy-depleted-bg: #ffebe9;
+
   /* ── 表面层级（Warm Porcelain Surface Hierarchy） ── */
+  --rc-canvas: #f7f7fb;
   --rc-background: #faf8fe;
   --rc-on-background: #1a1b1f;
   --rc-surface: #faf8fe;
@@ -57,15 +68,18 @@
   --rc-inverse-surface: #2f3034;
   --rc-inverse-on-surface: #f1f0f6;
 
-  --rc-outline: #717978;
+  --rc-outline: #616968;
   --rc-outline-variant: #c0c8c7;
 
-  /* ── 阴影、边框与布局度量 ── */
+  /* ── 阴影、边框、动效与布局度量 ── */
   --rc-line: rgba(23, 35, 37, 0.1);
   --rc-shadow: 0 1px 2px rgba(23, 35, 37, 0.04), 0 8px 24px rgba(23, 35, 37, 0.06);
   --rc-shadow-active: 0 2px 4px rgba(0, 93, 181, 0.12), 0 10px 24px rgba(0, 93, 181, 0.16);
-  --rc-sidebar-width: 260px;
-  --rc-header-height: 64px;
+  --rc-ease: cubic-bezier(0.2, 0, 0, 1);
+  --rc-drawer-enter: cubic-bezier(0.22, 1, 0.36, 1);
+  --rc-drawer-leave: cubic-bezier(0.4, 0, 1, 1);
+  --rc-sidebar-width: 236px;
+  --rc-header-height: 56px;
 
   /* ── 字体栈 ── */
   --rc-font-headline: "Noto Serif SC", "Noto Serif", "Source Han Serif SC", Georgia, serif;
@@ -79,82 +93,74 @@ html.dark {
   --rc-on-primary: #002020;
   --rc-primary-container: #163d3d;
   --rc-on-primary-container: #c2eae9;
+  --rc-primary-fixed: #1c4a4a;
+  --rc-primary-fixed-dim: #2b5d5d;
+  --rc-on-primary-fixed: #d9f3f2;
+  --rc-on-primary-fixed-variant: #a7cecd;
 
   --rc-secondary: #62a1fe;
   --rc-on-secondary: #001b3d;
   --rc-secondary-container: #00468b;
   --rc-on-secondary-container: #d6e3ff;
+  --rc-secondary-fixed: #10325d;
+  --rc-on-secondary-fixed: #d6e3ff;
 
   --rc-tertiary: #53e16f;
   --rc-on-tertiary: #002107;
   --rc-tertiary-container: #00531c;
   --rc-on-tertiary-container: #72fe88;
+  --rc-tertiary-fixed: #09441a;
+  --rc-on-tertiary-fixed: #72fe88;
 
   --rc-error: #ffb4ab;
   --rc-on-error: #690005;
   --rc-error-container: #3d1e1b;
   --rc-on-error-container: #ffb4ab;
 
-  --rc-background: #101b1d;
+  /* ── 精力四档专属语义令牌（深色） ── */
+  --rc-energy-peak: #4ade9c;
+  --rc-energy-peak-bg: #0f2e25;
+  --rc-energy-steady: #67c3e6;
+  --rc-energy-steady-bg: #122933;
+  --rc-energy-strained: #f5b856;
+  --rc-energy-strained-bg: #302411;
+  --rc-energy-depleted: #ff968a;
+  --rc-energy-depleted-bg: #361918;
+
+  --rc-canvas: #0e1718;
+  --rc-background: #0e1718;
   --rc-on-background: #e7f0ed;
   --rc-surface: #101b1d;
   --rc-surface-bright: #1c2b2e;
   --rc-surface-dim: #0b1416;
   --rc-surface-variant: #263a3c;
-  --rc-surface-container-lowest: #172426;
-  --rc-surface-container-low: #152426;
-  --rc-surface-container: #1c2b2e;
-  --rc-surface-container-high: #263a3c;
-  --rc-surface-container-highest: #314749;
+  --rc-surface-container-lowest: #162325;
+  --rc-surface-container-low: #132022;
+  --rc-surface-container: #1b2a2d;
+  --rc-surface-container-high: #24373a;
+  --rc-surface-container-highest: #2e4447;
   --rc-on-surface: #e7f0ed;
   --rc-on-surface-variant: #b7c5c4;
+  --rc-inverse-surface: #e7f0ed;
+  --rc-inverse-on-surface: #141f21;
 
   --rc-outline: #8ca09e;
-  --rc-outline-variant: #38494a;
+  --rc-outline-variant: #354749;
 
   --rc-line: rgba(196, 213, 213, 0.14);
-  --rc-shadow: 0 1px 2px rgba(0, 0, 0, 0.25), 0 8px 24px rgba(0, 0, 0, 0.35);
+  --rc-shadow: 0 1px 2px rgba(0, 0, 0, 0.28), 0 8px 24px rgba(0, 0, 0, 0.4);
+  --rc-shadow-active: 0 2px 6px rgba(98, 161, 254, 0.18), 0 10px 24px rgba(0, 0, 0, 0.42);
 }
-
-/* Tailwind CSS v4 语义映射（在引入 @import "tailwindcss" 后启用 @theme）
- * @theme inline {
- *   --color-primary: var(--rc-primary);
- *   --color-on-primary: var(--rc-on-primary);
- *   --color-primary-container: var(--rc-primary-container);
- *   --color-on-primary-container: var(--rc-on-primary-container);
- *   --color-primary-fixed: var(--rc-primary-fixed);
- *   --color-secondary: var(--rc-secondary);
- *   --color-on-secondary: var(--rc-on-secondary);
- *   --color-secondary-container: var(--rc-secondary-container);
- *   --color-tertiary: var(--rc-tertiary);
- *   --color-tertiary-container: var(--rc-tertiary-container);
- *   --color-on-tertiary-container: var(--rc-on-tertiary-container);
- *   --color-tertiary-fixed: var(--rc-tertiary-fixed);
- *   --color-error: var(--rc-error);
- *   --color-error-container: var(--rc-error-container);
- *   --color-on-error-container: var(--rc-on-error-container);
- *   --color-surface: var(--rc-surface);
- *   --color-surface-container-lowest: var(--rc-surface-container-lowest);
- *   --color-surface-container-low: var(--rc-surface-container-low);
- *   --color-surface-container: var(--rc-surface-container);
- *   --color-surface-container-high: var(--rc-surface-container-high);
- *   --color-surface-container-highest: var(--rc-surface-container-highest);
- *   --color-on-surface: var(--rc-on-surface);
- *   --color-on-surface-variant: var(--rc-on-surface-variant);
- *   --color-outline: var(--rc-outline);
- *   --color-outline-variant: var(--rc-outline-variant);
- *   --font-headline: var(--rc-font-headline);
- *   --font-body: var(--rc-font-body);
- * }
- */
 
 html,
 body {
   margin: 0;
   padding: 0;
-  background-color: var(--rc-surface);
+  background-color: var(--rc-canvas);
   color: var(--rc-on-surface);
   font-family: var(--rc-font-body);
+  font-size: 14px;
+  line-height: 1.55;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
   overscroll-behavior: none;
@@ -165,7 +171,7 @@ body {
   font-feature-settings: "tnum";
 }
 
-/* ── 时间地图核心时间线样式（用于日历组件） ── */
+/* ── 时间地图核心时间线样式 ── */
 .cal-now-line {
   position: absolute;
   left: 0;

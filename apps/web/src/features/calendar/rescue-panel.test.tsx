@@ -1,4 +1,4 @@
-import { afterEach, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -20,7 +20,8 @@ function mount() {
   const cache = new QueryClient({ defaultOptions: { queries: { retry: false } } }); caches.push(cache);
   render(<QueryClientProvider client={cache}><RescuePanel day={day} forceOpen onClose={() => {}} /></QueryClientProvider>);
 }
-afterEach(() => { cleanup(); caches.splice(0).forEach(cache => cache.clear()); vi.unstubAllGlobals(); useAuthStore.getState().clearSession(); });
+beforeEach(()=>{vi.useFakeTimers({toFake:["Date"]});vi.setSystemTime(new Date("2026-11-19T02:00:00Z"));});
+afterEach(() => { cleanup();vi.useRealTimers(); caches.splice(0).forEach(cache => cache.clear()); vi.unstubAllGlobals(); useAuthStore.getState().clearSession(); });
 
 it("uses the reference drawer and prevents a deadline in the past from reaching the rescue engine",async()=>{
  const previews:unknown[]=[];vi.stubGlobal("fetch",vi.fn(async(request:Request)=>{if(request.url.endsWith("/options")){previews.push(await request.json());return json(options);}return json({snapshots:[]});}));

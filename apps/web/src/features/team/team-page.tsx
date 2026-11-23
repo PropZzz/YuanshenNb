@@ -1,67 +1,737 @@
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link, useSearchParams } from "react-router-dom";
-import { ArrowRight, CalendarCheck, Clock3, Copy, DoorOpen, LockKeyhole, Plus, ShieldCheck, Sparkles, Users } from "@/components/ui/reference-icons";
+import {
+  ArrowRight,
+  Bell,
+  CalendarCheck,
+  Clock3,
+  Copy,
+  DoorOpen,
+  LockKeyhole,
+  Plus,
+  ShieldCheck,
+  Sparkles,
+  Users,
+} from "@/components/ui/reference-icons";
 import { apiClient, type ApiComponents } from "@/api/client";
 import { unwrap } from "@/api/unwrap";
 import { queryKeys } from "@/api/query-keys";
 import { useAuthStore } from "@/stores/auth-store";
 import { dayRange, displayDay, localDate, localTime, minuteLabel } from "@/lib/datetime";
 import { Button } from "@/components/ui/button";
+import { DateTimeField } from "@/components/ui/date-time-field";
 import { Dialog } from "@/components/ui/dialog";
 import { Drawer } from "@/components/ui/drawer";
 import { EmptyState, ErrorState, InlineError, LoadingState, Notice } from "@/components/ui/states";
+import { useToast } from "@/components/ui/toast";
 import { tierLabels } from "@/features/energy/queries";
 import { privacyLabels, useAvailability, useMeetings, useMembers, useWorkspaces } from "./queries";
 import { WorkspaceDialog } from "./workspace-dialog";
 import { MeetingPlanner } from "./meeting-planner";
 import { GoldenWindowCard } from "./golden-window-card";
 import { TeamTimeMap } from "./team-time-map";
+import "./team.css";
 
-const slotLabels={busy:"忙碌",focus_shield:"深度专注保护",soft_busy:"可协商安排"};
-const responseLabels={pending:"待回复",accepted:"已接受",declined:"已拒绝"};
+const slotLabels = { busy: "忙碌", focus_shield: "深度专注保护", soft_busy: "可协商安排" };
+const responseLabels = { pending: "待回复", accepted: "已接受", declined: "已拒绝" };
+
 export function TeamPage() {
- const workspaces=useWorkspaces(),[selectedId,setSelectedId]=useState<string>(),[mode,setMode]=useState<"create"|"join">("create"),[workspaceOpen,setWorkspaceOpen]=useState(false),[copied,setCopied]=useState(false),[copyError,setCopyError]=useState<unknown>(null),[inviteOpen,setInviteOpen]=useState(false);
- const current=workspaces.data?.workspaces.find(w=>w.id===selectedId)??workspaces.data?.workspaces[0];
- function openWorkspace(next:"create"|"join"){setMode(next);setWorkspaceOpen(true);}
- async function copyInvite(){if(!current)return;try{await navigator.clipboard.writeText(current.inviteCode);setCopied(true);setCopyError(null);}catch{setCopyError(new Error("未能复制，请手动复制下方邀请码。"));}}
- return <div className="team-page"><section className="surface-card team-workspace-header"><div className="team-header-copy"><span className="badge badge-success"><ShieldCheck size={12}/>隐私边界内的团队协作</span><h1>{current?.name??"在合适的时间，一起做好重要的事。"}</h1><p>{current?.description||"让会议顺应每个人的节奏，把完整的注意力留给真正需要一起讨论的事。"}</p><div className="team-workspace-tools">{current&&<><label className="sr-only" htmlFor="workspace-select">切换工作区</label><select id="workspace-select" value={current.id} onChange={e=>{setSelectedId(e.target.value);setCopied(false);setCopyError(null);}}>{workspaces.data?.workspaces.map(w=><option key={w.id} value={w.id}>{w.name}</option>)}</select><span className="badge">{current.myRole==="owner"?"工作区负责人":"工作区成员"}</span><span className="badge"><LockKeyhole size={11}/>{privacyLabels[current.myPrivacyLevel]}</span></>}</div></div><div className="team-header-actions"><Button variant="default" onClick={()=>openWorkspace("create")}><Plus size={15}/>创建工作区</Button><Button variant="outline" onClick={()=>openWorkspace("join")}><DoorOpen size={15}/>加入工作区</Button>{current&&<Button variant="outline" onClick={()=>{setInviteOpen(true);setCopied(false);setCopyError(null);}}><Copy size={14}/>邀请成员</Button>}</div>{current&&<div className="team-invite-line">工作区邀请码 <code>{current.inviteCode}</code><span>请仅分享给希望邀请的成员</span></div>}<InlineError error={copyError}/></section>
- {workspaces.isPending?<div className="surface-card mt-6"><LoadingState label="正在读取你的工作区"/></div>:workspaces.isError?<div className="surface-card mt-6"><ErrorState error={workspaces.error} retry={()=>void workspaces.refetch()}/></div>:current?<WorkspaceContent key={current.id} workspace={current}/>:<div className="surface-card mt-6"><EmptyState title="还没有加入工作区" description="创建一个团队，或使用邀请码加入。你可以先从仅共享忙闲开始。" action="建立第一个工作区" onAction={()=>openWorkspace("create")} icon={Users}/></div>}
- <WorkspaceDialog key={mode} open={workspaceOpen} mode={mode} onClose={()=>setWorkspaceOpen(false)} onJoined={setSelectedId}/>
- {current&&<Drawer open={inviteOpen} onOpenChange={setInviteOpen} title="邀请成员" description="分享当前工作区的真实邀请码，对方确认共享范围后即可加入。" width={420} className="team-invitation-drawer"><div className="team-invitation-content"><span className="team-invitation-icon"><Users size={28}/></span><h2>{current.name}</h2><p>{current.memberCount} 位成员 · {current.myRole==="owner"?"工作区负责人":current.myRole==="admin"?"工作区管理员":"工作区成员"}</p><div className="team-invitation-code"><span>工作区邀请码</span><code>{current.inviteCode}</code></div><Notice>请仅分享给希望邀请的成员。每位成员自行决定忙闲、精力档位或日程标题的共享范围。</Notice><InlineError error={copyError}/><Button variant="secondary" onClick={()=>void copyInvite()}><Copy size={15}/>{copied?"邀请码已复制":"复制邀请码"}</Button><p className="team-invitation-limit">当前接口未提供邀请码重置、移除成员或修改他人权限的能力。</p></div></Drawer>}
- </div>;
+  const workspaces = useWorkspaces();
+  const cache = useQueryClient();
+  const toast = useToast();
+  const [selectedId, setSelectedId] = useState<string>();
+  const [mode, setMode] = useState<"create" | "join">("create");
+  const [workspaceOpen, setWorkspaceOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [copyError, setCopyError] = useState<unknown>(null);
+  const [inviteOpen, setInviteOpen] = useState(false);
+  const [planRequestKey, setPlanRequestKey] = useState(0);
+
+  const current = workspaces.data?.workspaces.find(w => w.id === selectedId) ?? workspaces.data?.workspaces[0];
+
+  const updatePrivacy = useMutation({
+    mutationFn: async (privacyLevel: ApiComponents["PrivacyLevel"]) => {
+      if (!current) throw new Error("未选择工作区");
+      return unwrap(
+        await apiClient.PATCH("/api/v1/workspaces/{id}/me", {
+          params: { path: { id: current.id } },
+          body: { privacyLevel } satisfies ApiComponents["UpdateWorkspaceMemberConfigRequest"],
+        }),
+      );
+    },
+    onSuccess: saved => {
+      if (!current) return;
+      cache.setQueryData<ApiComponents["WorkspaceListResponse"]>(queryKeys.workspaces.all, prev =>
+        prev
+          ? {
+              ...prev,
+              workspaces: prev.workspaces.map(item =>
+                item.id === current.id ? { ...item, myPrivacyLevel: saved.privacyLevel } : item,
+              ),
+            }
+          : prev,
+      );
+      void cache.invalidateQueries({ queryKey: queryKeys.workspaces.members(current.id) });
+      void cache.invalidateQueries({ queryKey: queryKeys.workspaces.availabilityRoot(current.id) });
+      toast.push({ title: `已切换为「${privacyLabels[saved.privacyLevel]}」`, tone: "success" });
+    },
+  });
+
+  function openWorkspace(next: "create" | "join") {
+    setMode(next);
+    setWorkspaceOpen(true);
+  }
+
+  async function copyInvite() {
+    if (!current) return;
+    try {
+      await navigator.clipboard.writeText(current.inviteCode);
+      setCopied(true);
+      setCopyError(null);
+      toast.push({ title: "工作区邀请码已复制", tone: "success" });
+    } catch {
+      setCopyError(new Error("未能复制，请手动复制下方邀请码。"));
+    }
+  }
+
+  return (
+    <div className="team-page">
+      <section className="surface-card team-workspace-header">
+        <div className="team-header-copy">
+          <span className="badge badge-success">
+            <ShieldCheck size={12} />
+            隐私边界内的团队协作
+          </span>
+          <h1>{current?.name ?? "在合适的时间，一起做好重要的事。"}</h1>
+          <p>
+            {current?.description ||
+              "让会议顺应每个人的节奏，把完整的注意力留给真正需要一起讨论的事。"}
+          </p>
+          {current && (
+            <div className="team-workspace-tools">
+              <label className="sr-only" htmlFor="workspace-select">
+                切换工作区
+              </label>
+              <select
+                id="workspace-select"
+                value={current.id}
+                onChange={e => {
+                  setSelectedId(e.target.value);
+                  setCopied(false);
+                  setCopyError(null);
+                }}
+              >
+                {workspaces.data?.workspaces.map(w => (
+                  <option key={w.id} value={w.id}>
+                    {w.name}
+                  </option>
+                ))}
+              </select>
+              <span className="badge">
+                {current.myRole === "owner" ? "工作区负责人" : current.myRole === "admin" ? "工作区管理员" : "工作区成员"} ·{" "}
+                {current.memberCount} 人
+              </span>
+              <label className="team-inline-privacy">
+                <LockKeyhole size={12} />
+                <span className="sr-only">本工作区共享范围</span>
+                <select
+                  aria-label="本工作区共享范围"
+                  value={updatePrivacy.isPending ? updatePrivacy.variables : current.myPrivacyLevel}
+                  disabled={updatePrivacy.isPending}
+                  onChange={e => updatePrivacy.mutate(e.target.value as ApiComponents["PrivacyLevel"])}
+                >
+                  {Object.entries(privacyLabels).map(([value, label]) => (
+                    <option key={value} value={value}>
+                      共享：{label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+          )}
+        </div>
+
+        <div className="team-header-actions">
+          {current && (
+            <Button variant="default" onClick={() => setPlanRequestKey(k => k + 1)}>
+              <Sparkles size={15} />
+              新建排会
+            </Button>
+          )}
+          <Button variant="outline" onClick={() => openWorkspace("create")}>
+            <Plus size={15} />
+            创建工作区
+          </Button>
+          <Button variant="outline" onClick={() => openWorkspace("join")}>
+            <DoorOpen size={15} />
+            加入工作区
+          </Button>
+          {current && (
+            <Button
+              variant="outline"
+              onClick={() => {
+                setInviteOpen(true);
+                setCopied(false);
+                setCopyError(null);
+              }}
+            >
+              <Copy size={14} />
+              邀请成员
+            </Button>
+          )}
+        </div>
+
+        {current && (
+          <div className="team-invite-line">
+            工作区邀请码 <code>{current.inviteCode}</code>
+            <span>请仅分享给希望邀请的成员</span>
+          </div>
+        )}
+        <InlineError error={copyError ?? updatePrivacy.error} />
+      </section>
+
+      {workspaces.isPending ? (
+        <div className="surface-card mt-6">
+          <LoadingState label="正在读取你的工作区" />
+        </div>
+      ) : workspaces.isError ? (
+        <div className="surface-card mt-6">
+          <ErrorState error={workspaces.error} retry={() => void workspaces.refetch()} />
+        </div>
+      ) : current ? (
+        <WorkspaceContent key={current.id} workspace={current} externalPlanSignal={planRequestKey} />
+      ) : (
+        <div className="surface-card mt-6">
+          <EmptyState
+            title="还没有加入工作区"
+            description="创建一个团队，或使用邀请码加入。你可以先从仅共享忙闲开始。"
+            action="建立第一个工作区"
+            onAction={() => openWorkspace("create")}
+            icon={Users}
+          />
+        </div>
+      )}
+
+      <WorkspaceDialog
+        key={mode}
+        open={workspaceOpen}
+        mode={mode}
+        onClose={() => setWorkspaceOpen(false)}
+        onJoined={setSelectedId}
+      />
+
+      {current && (
+        <Drawer
+          open={inviteOpen}
+          onOpenChange={setInviteOpen}
+          title="邀请成员"
+          description="分享当前工作区的真实邀请码，对方确认共享范围后即可加入。"
+          width={420}
+          className="team-invitation-drawer"
+        >
+          <div className="team-invitation-content">
+            <span className="team-invitation-icon">
+              <Users size={28} />
+            </span>
+            <h2>{current.name}</h2>
+            <p>
+              {current.memberCount} 位成员 ·{" "}
+              {current.myRole === "owner" ? "工作区负责人" : current.myRole === "admin" ? "工作区管理员" : "工作区成员"}
+            </p>
+            <div className="team-invitation-code">
+              <span>工作区邀请码</span>
+              <code>{current.inviteCode}</code>
+            </div>
+            <Notice>
+              请仅分享给希望邀请的成员。每位成员自行决定忙闲、精力档位或日程标题的共享范围。
+            </Notice>
+            <InlineError error={copyError} />
+            <Button variant="secondary" onClick={() => void copyInvite()}>
+              <Copy size={15} />
+              {copied ? "邀请码已复制" : "复制邀请码"}
+            </Button>
+            <p className="team-invitation-limit">
+              当前接口未提供邀请码重置、移除成员或修改他人权限的能力。
+            </p>
+          </div>
+        </Drawer>
+      )}
+    </div>
+  );
 }
 
-function WorkspaceContent({workspace}:{workspace:ApiComponents["WorkspaceDTO"]}) {
- const user=useAuthStore(s=>s.user),timezone=user?.timezone??"Asia/Shanghai",cache=useQueryClient();
- const [day,setDay]=useState(localDate(new Date(),timezone)),[params,setParams]=useSearchParams(),[planning,setPlanning]=useState(false),[recommendations,setRecommendations]=useState<ApiComponents["RecommendMeetingResponse"]>(),[notice,setNotice]=useState(""),[cancelId,setCancelId]=useState<string>();
- const range=dayRange(day,timezone),members=useMembers(workspace.id),availability=useAvailability(workspace.id,range.from,range.to),meetings=useMeetings(workspace.id);
- const now=Date.now(),view=availability.data?.members??[];
- const pendingResponses=meetings.data?.meetings.filter(m=>m.status!=="cancelled"&&m.participants.some(p=>p.userId===user?.id&&p.responseStatus==="pending")).length;
- const occupied=view.filter(m=>m.slots.some(s=>Date.parse(s.startAt)<=now&&Date.parse(s.endAt)>now)).length;
- async function refresh(){await Promise.all([cache.invalidateQueries({queryKey:queryKeys.workspaces.meetings(workspace.id)}),cache.invalidateQueries({queryKey:queryKeys.workspaces.availabilityRoot(workspace.id)}),cache.invalidateQueries({queryKey:queryKeys.schedule.itemsRoot}),cache.invalidateQueries({queryKey:queryKeys.energy.todayRoot})]);}
- const respond=useMutation({mutationFn:async({id,status}:{id:string;status:"accepted"|"declined"})=>unwrap(await apiClient.POST("/api/v1/workspaces/{id}/meetings/{proposalId}/respond",{params:{path:{id:workspace.id,proposalId:id}},body:{responseStatus:status}})),onSuccess:async(_,v)=>{await refresh();setNotice(v.status==="accepted"?"已接受会议邀请。":"已拒绝会议，个人日历中的对应占用已释放。");}});
- const cancel=useMutation({mutationFn:async()=>unwrap(await apiClient.POST("/api/v1/workspaces/{id}/meetings/{proposalId}/cancel",{params:{path:{id:workspace.id,proposalId:cancelId!}},body:{}})),onSuccess:async()=>{await refresh();setCancelId(undefined);setNotice("会议已取消，参会成员的对应日程已释放。");}});
- function closePlanner(){setPlanning(false);setParams(p=>{p.delete("meeting");return p;},{replace:true});}
- return <div className="team-workspace-content"><div className="team-overview"><section className="metric-grid team-metrics" aria-label="团队协作概览">{[
-  {label:"团队成员",value:members.data?.members.length??"—",note:"真实工作区成员",icon:Users},
-  {label:day===localDate(new Date(),timezone)?"当前存在占用":"所选日有占用",value:availability.data?(day===localDate(new Date(),timezone)?occupied:view.filter(m=>m.slots.length>0).length):"—",note:"仅统计共享范围内的安排",icon:Clock3},
-  {label:"黄金协作窗口",value:recommendations?.recommendations.length??"—",note:recommendations?"本次服务端推荐":"发起排会后计算",icon:Sparkles},
-  {label:"我的待回复会议",value:pendingResponses??"—",note:"接受或拒绝，明确你的安排",icon:CalendarCheck},
- ].map(({label,value,note,icon:Icon})=><div className="surface-card metric-card" key={label}><div className="metric-label">{label}<Icon size={17}/></div><p className="metric-value">{value}</p><p className="metric-note">{note}</p></div>)}</section>
- <GoldenWindowCard result={recommendations} timezone={timezone} canPlan={!!members.data?.members.length} onPlan={()=>setPlanning(true)}/></div>
- {notice&&<Notice>{notice}</Notice>}<InlineError error={respond.error}/>
- <section className="team-member-section"><div className="team-section-heading"><h2><Users size={19}/>成员的共享状态</h2><label>查看日期<input type="date" aria-label="团队状态日期" value={day} onChange={e=>{if(e.target.value)setDay(e.target.value);}}/></label></div><p className="team-section-note"><LockKeyhole size={12}/>这里只显示已授权的忙闲、精力等级或日程标题；不会显示他人的心率、HRV 或睡眠数据。</p>
- {members.isPending||availability.isPending?<div className="surface-card"><LoadingState label="正在读取成员隐私投影"/></div>:members.isError||availability.isError?<div className="surface-card"><ErrorState error={members.error??availability.error} retry={()=>{void members.refetch();void availability.refetch();}}/></div>:<div className="team-member-grid">{members.data.members.map(member=>{
-  const projection=view.find(p=>p.userId===member.userId),slot=projection?.slots.find(s=>Date.parse(s.startAt)<=now&&Date.parse(s.endAt)>now),bucket=projection?.energyBuckets?.find(b=>Date.parse(b.hourStartAt)<=now&&Date.parse(b.hourStartAt)+3600_000>now);
-  return <article key={member.userId} className={`surface-card team-member-card ${slot?.kind??"unoccupied"}`}><header><span className="avatar">{member.displayName.slice(0,1)}</span><div><h3>{member.displayName}{member.userId===user?.id&&<small>（我）</small>}</h3><p>{member.role==="owner"?"工作区负责人":"团队成员"}</p></div><span className="badge">{slot?slotLabels[slot.kind]:"暂无共享占用"}</span></header><div className="member-shared-status"><strong><ShieldCheck size={13}/>{privacyLabels[member.privacyLevel]}</strong><p>{(member.privacyLevel==="full_title"?slot?.title:undefined)??(slot?slotLabels[slot.kind]:"不显示未授权的活动细节")}</p>{bucket&&member.privacyLevel!=="busy_only"&&<span className="badge">{tierLabels[bucket.tier]}</span>}</div><div className="member-working-time"><Clock3 size={12}/><span>{projection?`${minuteLabel(projection.workStartMinute)}–${minuteLabel(projection.workEndMinute)}`:"工作时间读取中"}</span><small>{member.timezone}</small></div></article>;
- })}</div>}</section>
- <div className="team-bottom-grid"><section className="surface-card team-availability"><header className="card-header"><div><h2 className="card-title">团队共享时间地图</h2><p>{displayDay(day)} · {timezone}</p></div><Link to="/profile?panel=privacy" className="text-xs text-secondary">管理我的授权</Link></header>{availability.isError?<ErrorState error={availability.error} retry={()=>void availability.refetch()}/>:availability.isPending?<LoadingState/>:<TeamTimeMap members={view} day={day} timezone={timezone}/>}</section><aside className="surface-card team-privacy-card"><LockKeyhole size={26}/><h2>协作，也尊重边界。</h2><p>你的工作区当前共享范围为「{privacyLabels[workspace.myPrivacyLevel]}」。其他人只能看到服务端脱敏后的信息。</p><Link to="/profile?panel=privacy" className="button button-outline">调整共享范围 <ArrowRight size={14}/></Link></aside></div>
- <section className="surface-card team-meetings"><header className="card-header"><h2 className="card-title">会议与邀请</h2><span className="badge">{meetings.data?.meetings.length??"—"} 条记录</span></header>{meetings.isPending?<LoadingState label="读取会议邀请"/>:meetings.isError?<ErrorState error={meetings.error} retry={()=>void meetings.refetch()}/>:meetings.data.meetings.length===0?<EmptyState title="还没有会议安排" description="发起智能排会，比较窗口并确认后，会议与成员回执会显示在这里。" icon={CalendarCheck}/>:<div className="meeting-list">{meetings.data.meetings.map(meeting=>{
-  const mine=meeting.participants.find(p=>p.userId===user?.id),cancelled=meeting.status==="cancelled";
-  return <article key={meeting.id} className={cancelled?"cancelled":""}><div className="meeting-list-main"><span className="meeting-date-icon"><CalendarCheck size={20}/></span><div><h3>{meeting.title}<span className="badge ml-2">{cancelled?"已取消":meeting.status==="confirmed"?"已确认":"待确认"}</span></h3><p>{meeting.confirmedStartAt&&`${displayDay(localDate(meeting.confirmedStartAt,timezone),{month:"long",day:"numeric"})} ${localTime(meeting.confirmedStartAt,timezone)}`}{meeting.confirmedEndAt&&`–${localTime(meeting.confirmedEndAt,timezone)}`} · {meeting.durationMinutes} 分钟</p>{meeting.description&&<p>{meeting.description}</p>}<div className="meeting-response-list">{meeting.participants.map(p=><span key={p.userId} className={`badge response-${p.responseStatus}`}>{p.displayName} · {responseLabels[p.responseStatus]}{!p.required&&"（可选）"}</span>)}</div></div></div><div className="meeting-list-actions">{!cancelled&&mine&&<><Button variant="outline" size="sm" disabled={respond.isPending||mine.responseStatus==="accepted"} onClick={()=>respond.mutate({id:meeting.id,status:"accepted"})}>接受会议</Button><Button variant="ghost" size="sm" disabled={respond.isPending||mine.responseStatus==="declined"} onClick={()=>respond.mutate({id:meeting.id,status:"declined"})}>拒绝会议</Button></>}{!cancelled&&meeting.organizerId===user?.id&&<Button variant="ghost" size="sm" onClick={()=>setCancelId(meeting.id)}>取消会议</Button>}</div></article>;
- })}</div>}</section>
- {members.data&&<MeetingPlanner open={planning||params.has("meeting")} workspaceId={workspace.id} members={members.data.members} onClose={closePlanner} onRecommended={setRecommendations} onConfirmed={()=>setNotice("会议已创建，参会成员可接受或拒绝邀请。")}/>}
- <Dialog open={!!cancelId} onOpenChange={open=>{if(!open&&!cancel.isPending)setCancelId(undefined);}} title="取消这个会议？" description="取消后，所有成员由此会议创建的日程占用将一并释放。"><InlineError error={cancel.error}/><div className="form-actions"><Button variant="outline" disabled={cancel.isPending} onClick={()=>setCancelId(undefined)}>保留会议</Button><Button variant="danger" pending={cancel.isPending} onClick={()=>cancel.mutate()}>确认取消会议</Button></div></Dialog>
- </div>;
+function WorkspaceContent({
+  workspace,
+  externalPlanSignal,
+}: {
+  workspace: ApiComponents["WorkspaceDTO"];
+  externalPlanSignal: number;
+}) {
+  const user = useAuthStore(s => s.user);
+  const timezone = user?.timezone ?? "Asia/Shanghai";
+  const cache = useQueryClient();
+  const [day, setDay] = useState(localDate(new Date(), timezone));
+  const [params, setParams] = useSearchParams();
+  const [planning, setPlanning] = useState(false);
+  const [lastSignal, setLastSignal] = useState(externalPlanSignal);
+  const [recommendations, setRecommendations] = useState<ApiComponents["RecommendMeetingResponse"]>();
+  const [highlightedWindow, setHighlightedWindow] = useState<ApiComponents["GoldenWindowRecommendation"]>();
+  const [notice, setNotice] = useState("");
+  const [cancelId, setCancelId] = useState<string>();
+
+  if (externalPlanSignal !== lastSignal) {
+    setLastSignal(externalPlanSignal);
+    setPlanning(true);
+  }
+
+  const range = dayRange(day, timezone);
+  const members = useMembers(workspace.id);
+  const availability = useAvailability(workspace.id, range.from, range.to);
+  const meetings = useMeetings(workspace.id);
+
+  const now = Date.now();
+  const view = availability.data?.members ?? [];
+  const pendingMeetings = (meetings.data?.meetings ?? []).filter(
+    m =>
+      m.status !== "cancelled" &&
+      m.participants.some(p => p.userId === user?.id && p.responseStatus === "pending"),
+  );
+  const occupied = view.filter(m =>
+    m.slots.some(s => Date.parse(s.startAt) <= now && Date.parse(s.endAt) > now),
+  ).length;
+
+  async function refresh() {
+    await Promise.all([
+      cache.invalidateQueries({ queryKey: queryKeys.workspaces.meetings(workspace.id) }),
+      cache.invalidateQueries({ queryKey: queryKeys.workspaces.availabilityRoot(workspace.id) }),
+      cache.invalidateQueries({ queryKey: queryKeys.schedule.itemsRoot }),
+      cache.invalidateQueries({ queryKey: queryKeys.energy.todayRoot }),
+    ]);
+  }
+
+  const respond = useMutation({
+    mutationFn: async ({ id, status }: { id: string; status: "accepted" | "declined" }) =>
+      unwrap(
+        await apiClient.POST("/api/v1/workspaces/{id}/meetings/{proposalId}/respond", {
+          params: { path: { id: workspace.id, proposalId: id } },
+          body: { responseStatus: status },
+        }),
+      ),
+    onSuccess: async (_, v) => {
+      await refresh();
+      setNotice(
+        v.status === "accepted" ? "已接受会议邀请。" : "已拒绝会议，个人日历中的对应占用已释放。",
+      );
+    },
+  });
+
+  const cancel = useMutation({
+    mutationFn: async () =>
+      unwrap(
+        await apiClient.POST("/api/v1/workspaces/{id}/meetings/{proposalId}/cancel", {
+          params: { path: { id: workspace.id, proposalId: cancelId! } },
+          body: {},
+        }),
+      ),
+    onSuccess: async () => {
+      await refresh();
+      setCancelId(undefined);
+      setNotice("会议已取消，参会成员的对应日程已释放。");
+    },
+  });
+
+  function closePlanner() {
+    setPlanning(false);
+    setParams(
+      p => {
+        p.delete("meeting");
+        return p;
+      },
+      { replace: true },
+    );
+  }
+
+  function handleRecommended(result: ApiComponents["RecommendMeetingResponse"]) {
+    setRecommendations(result);
+    const first = result.recommendations[0];
+    setHighlightedWindow(first);
+    if (first) {
+      setDay(localDate(first.startAt, timezone));
+    }
+  }
+
+  function handleSelectWindow(win: ApiComponents["GoldenWindowRecommendation"]) {
+    setHighlightedWindow(win);
+    setDay(localDate(win.startAt, timezone));
+  }
+
+  return (
+    <div className="team-workspace-content">
+      {pendingMeetings.length > 0 && (
+        <section className="surface-card team-pending-banner" aria-label="待回复会议邀请">
+          <div className="team-pending-head">
+            <Bell size={18} />
+            <strong>你有 {pendingMeetings.length} 个待回复的团队会议邀请</strong>
+          </div>
+          <div className="team-pending-list">
+            {pendingMeetings.map(meeting => (
+              <div key={meeting.id} className="team-pending-item">
+                <div>
+                  <strong>{meeting.title}</strong>
+                  <span>
+                    {meeting.confirmedStartAt &&
+                      `${displayDay(localDate(meeting.confirmedStartAt, timezone), {
+                        month: "numeric",
+                        day: "numeric",
+                      })} ${localTime(meeting.confirmedStartAt, timezone)}`}
+                    {meeting.confirmedEndAt && `–${localTime(meeting.confirmedEndAt, timezone)}`} ·{" "}
+                    {meeting.durationMinutes} 分钟
+                  </span>
+                </div>
+                <div className="team-pending-actions">
+                  <Button
+                    size="sm"
+                    variant="default"
+                    disabled={respond.isPending}
+                    onClick={() => respond.mutate({ id: meeting.id, status: "accepted" })}
+                  >
+                    立即接受
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={respond.isPending}
+                    onClick={() => respond.mutate({ id: meeting.id, status: "declined" })}
+                  >
+                    婉拒邀请
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      <div className="team-overview">
+        <section className="metric-grid team-metrics" aria-label="团队协作概览">
+          {[
+            {
+              label: "团队成员",
+              value: members.data?.members.length ?? "—",
+              note: "真实工作区成员",
+              icon: Users,
+            },
+            {
+              label: day === localDate(new Date(), timezone) ? "当前存在占用" : "所选日有占用",
+              value: availability.data
+                ? day === localDate(new Date(), timezone)
+                  ? occupied
+                  : view.filter(m => m.slots.length > 0).length
+                : "—",
+              note: "仅统计共享范围内的安排",
+              icon: Clock3,
+            },
+            {
+              label: "黄金协作窗口",
+              value: recommendations?.recommendations.length ?? "—",
+              note: recommendations ? "本次服务端推荐" : "发起排会后计算",
+              icon: Sparkles,
+            },
+            {
+              label: "我的待回复会议",
+              value: meetings.data ? pendingMeetings.length : "—",
+              note: "接受或拒绝，明确你的安排",
+              icon: CalendarCheck,
+            },
+          ].map(({ label, value, note, icon: Icon }) => (
+            <div className="surface-card metric-card" key={label}>
+              <div className="metric-label">
+                {label}
+                <Icon size={17} />
+              </div>
+              <p className="metric-value">{value}</p>
+              <p className="metric-note">{note}</p>
+            </div>
+          ))}
+        </section>
+
+        <GoldenWindowCard
+          result={recommendations}
+          timezone={timezone}
+          canPlan={!!members.data?.members.length}
+          onPlan={() => setPlanning(true)}
+          onSelectWindow={handleSelectWindow}
+        />
+      </div>
+
+      {notice && <Notice>{notice}</Notice>}
+      <InlineError error={respond.error} />
+
+      <section className="surface-card team-availability">
+        <header className="card-header team-availability-header">
+          <div>
+            <h2 className="card-title">团队共享时间地图</h2>
+            <p>
+              {displayDay(day)} · {timezone}
+              {highlightedWindow && (
+                <span className="team-highlight-chip">
+                  已高亮 Top {highlightedWindow.rank}（{localTime(highlightedWindow.startAt, timezone)}–
+                  {localTime(highlightedWindow.endAt, timezone)}）
+                </span>
+              )}
+            </p>
+          </div>
+          <div className="team-availability-controls">
+            <DateTimeField
+              type="date"
+              label="团队状态日期"
+              timezone={timezone}
+              value={day}
+              onChange={value => {
+                if (value) setDay(value);
+              }}
+            />
+            <Link to="/settings?tab=privacy" className="team-privacy-manage-link">
+              <LockKeyhole size={13} /> 管理我的授权
+            </Link>
+          </div>
+        </header>
+
+        {availability.isError ? (
+          <ErrorState error={availability.error} retry={() => void availability.refetch()} />
+        ) : availability.isPending ? (
+          <LoadingState />
+        ) : (
+          <TeamTimeMap
+            members={view}
+            day={day}
+            timezone={timezone}
+            highlightedWindow={highlightedWindow}
+          />
+        )}
+      </section>
+
+      <section className="team-member-section">
+        <div className="team-section-heading">
+          <h2>
+            <Users size={19} />
+            成员的共享状态
+          </h2>
+          <span className="badge">
+            当前视图：{displayDay(day, { month: "numeric", day: "numeric" })}
+          </span>
+        </div>
+        <p className="team-section-note">
+          <LockKeyhole size={13} />
+          这里只显示已授权的忙闲、精力等级或日程标题；不会显示他人的心率、HRV 或睡眠数据。
+        </p>
+
+        {members.isPending || availability.isPending ? (
+          <div className="surface-card">
+            <LoadingState label="正在读取成员隐私投影" />
+          </div>
+        ) : members.isError || availability.isError ? (
+          <div className="surface-card">
+            <ErrorState
+              error={members.error ?? availability.error}
+              retry={() => {
+                void members.refetch();
+                void availability.refetch();
+              }}
+            />
+          </div>
+        ) : (
+          <div className="team-member-grid">
+            {members.data.members.map(member => {
+              const projection = view.find(p => p.userId === member.userId);
+              const slot = projection?.slots.find(
+                s => Date.parse(s.startAt) <= now && Date.parse(s.endAt) > now,
+              );
+              const bucket =
+                member.privacyLevel !== "busy_only"
+                  ? projection?.energyBuckets?.find(
+                      b => Date.parse(b.hourStartAt) <= now && Date.parse(b.hourStartAt) + 3600_000 > now,
+                    )
+                  : undefined;
+
+              return (
+                <article
+                  key={member.userId}
+                  className={`surface-card team-member-card ${slot?.kind ?? "unoccupied"}`}
+                >
+                  <header>
+                    <span className="avatar">{member.displayName.slice(0, 1)}</span>
+                    <div>
+                      <h3>
+                        {member.displayName}
+                        {member.userId === user?.id && <small>（我）</small>}
+                      </h3>
+                      <p>{member.role === "owner" ? "工作区负责人" : "团队成员"}</p>
+                    </div>
+                    <span className="badge">{slot ? slotLabels[slot.kind] : "暂无共享占用"}</span>
+                  </header>
+                  <div className="member-shared-status">
+                    <strong>
+                      <ShieldCheck size={13} />
+                      {privacyLabels[member.privacyLevel]}
+                    </strong>
+                    <p>
+                      {(member.privacyLevel === "full_title" ? slot?.title : undefined) ??
+                        (slot ? slotLabels[slot.kind] : "不显示未授权的活动细节")}
+                    </p>
+                    {bucket && member.privacyLevel !== "busy_only" && (
+                      <span className={`badge energy-tier-pill tier-${bucket.tier}`}>
+                        {tierLabels[bucket.tier]}
+                      </span>
+                    )}
+                  </div>
+                  <div className="member-working-time">
+                    <Clock3 size={12} />
+                    <span>
+                      {projection
+                        ? `${minuteLabel(projection.workStartMinute)}–${minuteLabel(projection.workEndMinute)}`
+                        : "工作时间读取中"}
+                    </span>
+                    <small>{member.timezone}</small>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        )}
+      </section>
+
+      <div className="team-bottom-grid">
+        <section className="surface-card team-meetings">
+          <header className="card-header">
+            <h2 className="card-title">会议与邀请</h2>
+            <span className="badge">{meetings.data?.meetings.length ?? "—"} 条记录</span>
+          </header>
+          {meetings.isPending ? (
+            <LoadingState label="读取会议邀请" />
+          ) : meetings.isError ? (
+            <ErrorState error={meetings.error} retry={() => void meetings.refetch()} />
+          ) : meetings.data.meetings.length === 0 ? (
+            <EmptyState
+              title="还没有会议安排"
+              description="发起智能排会，比较窗口并确认后，会议与成员回执会显示在这里。"
+              icon={CalendarCheck}
+            />
+          ) : (
+            <div className="meeting-list">
+              {meetings.data.meetings.map(meeting => {
+                const mine = meeting.participants.find(p => p.userId === user?.id);
+                const cancelled = meeting.status === "cancelled";
+                return (
+                  <article key={meeting.id} className={cancelled ? "cancelled" : ""}>
+                    <div className="meeting-list-main">
+                      <span className="meeting-date-icon">
+                        <CalendarCheck size={20} />
+                      </span>
+                      <div>
+                        <h3>
+                          {meeting.title}
+                          <span className="badge ml-2">
+                            {cancelled ? "已取消" : meeting.status === "confirmed" ? "已确认" : "待确认"}
+                          </span>
+                        </h3>
+                        <p>
+                          {meeting.confirmedStartAt &&
+                            `${displayDay(localDate(meeting.confirmedStartAt, timezone), {
+                              month: "long",
+                              day: "numeric",
+                            })} ${localTime(meeting.confirmedStartAt, timezone)}`}
+                          {meeting.confirmedEndAt && `–${localTime(meeting.confirmedEndAt, timezone)}`} ·{" "}
+                          {meeting.durationMinutes} 分钟
+                        </p>
+                        {meeting.description && <p>{meeting.description}</p>}
+                        <div className="meeting-response-list">
+                          {meeting.participants.map(p => (
+                            <span key={p.userId} className={`badge response-${p.responseStatus}`}>
+                              {p.displayName} · {responseLabels[p.responseStatus]}
+                              {!p.required && "（可选）"}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="meeting-list-actions">
+                      {!cancelled && mine && (
+                        <>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            disabled={respond.isPending || mine.responseStatus === "accepted"}
+                            onClick={() => respond.mutate({ id: meeting.id, status: "accepted" })}
+                          >
+                            接受会议
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            disabled={respond.isPending || mine.responseStatus === "declined"}
+                            onClick={() => respond.mutate({ id: meeting.id, status: "declined" })}
+                          >
+                            拒绝会议
+                          </Button>
+                        </>
+                      )}
+                      {!cancelled && meeting.organizerId === user?.id && (
+                        <Button variant="ghost" size="sm" onClick={() => setCancelId(meeting.id)}>
+                          取消会议
+                        </Button>
+                      )}
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          )}
+        </section>
+
+        <aside className="surface-card team-privacy-card">
+          <LockKeyhole size={26} />
+          <h2>协作，也尊重边界。</h2>
+          <p>
+            你的工作区当前共享范围为「{privacyLabels[workspace.myPrivacyLevel]}」。其他人只能看到服务端脱敏后的信息，心率与睡眠等生理指标永不暴露。
+          </p>
+          <Link to="/settings?tab=privacy" className="button button-outline">
+            调整共享范围 <ArrowRight size={14} />
+          </Link>
+        </aside>
+      </div>
+
+      {members.data && (
+        <MeetingPlanner
+          open={planning || params.has("meeting")}
+          workspaceId={workspace.id}
+          members={members.data.members}
+          onClose={closePlanner}
+          onRecommended={handleRecommended}
+          onConfirmed={() => setNotice("会议已创建，参会成员可接受或拒绝邀请。")}
+          onHighlight={handleSelectWindow}
+        />
+      )}
+
+      <Dialog
+        open={!!cancelId}
+        onOpenChange={open => {
+          if (!open && !cancel.isPending) setCancelId(undefined);
+        }}
+        title="取消这个会议？"
+        description="取消后，所有成员由此会议创建的日程占用将一并释放。"
+      >
+        <InlineError error={cancel.error} />
+        <div className="form-actions">
+          <Button variant="outline" disabled={cancel.isPending} onClick={() => setCancelId(undefined)}>
+            保留会议
+          </Button>
+          <Button variant="danger" pending={cancel.isPending} onClick={() => cancel.mutate()}>
+            确认取消会议
+          </Button>
+        </div>
+      </Dialog>
+    </div>
+  );
 }
