@@ -10,6 +10,7 @@ import uuid
 from .database import get_connection
 from .session_store import initialize_sessions
 from .services_rescue import build_rescue_event, compute_baseline_hash
+from .passwords import hash_password, needs_upgrade, new_salt, verify_password
 
 
 class TaskEventConflictError(Exception):
@@ -119,13 +120,11 @@ def _parse_bool(value: object | None, default: bool = False) -> bool:
 
 
 def _password_salt() -> str:
-    return uuid.uuid4().hex
+    return new_salt()
 
 
 def _password_hash(password: str, salt: str) -> str:
-    digest = hashlib.sha256()
-    digest.update(f"{salt}:{password}".encode("utf-8"))
-    return digest.hexdigest()
+    return hash_password(password, salt)
 
 
 def _connect(db_path: str | Path | None = None) -> sqlite3.Connection:
@@ -481,9 +480,23 @@ def verify_user(db_path: str | Path | None, contact_address: str, password: str)
     user = find_user_by_account(db_path, contact_address)
     if user is None:
         return None
-    expected = _password_hash(password, str(user["passwordSalt"]))
-    if expected != user["passwordHash"]:
+    if not verify_password(password, str(user["passwordSalt"]), str(user["passwordHash"])):
         return None
+    if needs_upgrade(str(user["passwordHash"])):
+        salt = _password_salt()
+        encoded = _password_hash(password, salt)
+        with _connect(db_path) as connection:
+            connection.execute(
+                "UPDATE users SET password_salt = ?, password_hash = ?, updated_at = ? "
+                "WHERE id = ? AND password_salt = ? AND password_hash = ?",
+                (salt, encoded, _now(), user["id"], user["passwordSalt"], user["passwordHash"]),
+            )
+            connection.commit()
+        # A concurrent credential change must not authorize a stale password.
+        current = find_user_by_account(db_path, contact_address)
+        if current is None or not verify_password(password, str(current["passwordSalt"]), str(current["passwordHash"])):
+            return None
+        return current
     return user
 
 
