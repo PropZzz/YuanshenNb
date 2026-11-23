@@ -1,6 +1,6 @@
 # Ruanchuang Backend
 
-唯一的 FastAPI + SQLite 后端，同时承接当前 HTML/JS Web 与 Flutter 原生客户端的账号、日程、微任务和算法推荐接口。目录边界见 `docs/current-architecture.md`。
+唯一的 FastAPI + SQLite 后端，承接当前 HTML/JS Web 的账号、日程、微任务和算法推荐接口。旧Flutter客户端已经移除。目录边界见 `docs/current-architecture.md`；本轮模块结构与兼容说明见 [服务器与数据库基础](../docs/server-database-foundation-2026-11-23.md)。
 
 ## 安装依赖
 
@@ -71,6 +71,10 @@ AI、设备、第三方集成、文件、推送和密码重置仍返回结构化
 
 ## 生产配置与维护
 
+密码使用标准库PBKDF2-HMAC-SHA256（600000次迭代、独立随机盐、恒定时间比较）。旧SHA256账号仅在正确登录时惰性升级，无需修改表结构。升级后回滚代码必须保留双格式验证能力；不得直接回滚到仅理解旧哈希的版本。
+
+仓储位于 `backend/repositories/`，原 `from backend.repositories import ...` 继续可用；初始化位于 `backend/schema.py`。发布必须包含整个backend包，历史单文件日程增量脚本会拒绝不完整发布。
+
 - `SHIXUZHIPEI_DB_PATH`：持久化 SQLite 路径。
 - `SHIXUZHIPEI_SESSION_TTL_SECONDS`：正整数秒，默认 `604800`。
 - `SHIXUZHIPEI_CORS_ORIGINS`：逗号分隔的显式 HTTP(S) origin；默认 `http://8.133.250.216,http://127.0.0.1:5353,http://localhost:5353`。其他本地端口也需配置；`*`、带路径或凭据的 URL 会被拒绝。
@@ -78,25 +82,13 @@ AI、设备、第三方集成、文件、推送和密码重置仍返回结构化
 示例见 `deploy/backend.env.example`。备份使用 SQLite backup API，包含 WAL；恢复会验证完整性、表计数，并保留操作前备份。工具、Linux 初始化和待配置 TLS 模板见 [生产准备](../docs/production-preparation-2026-10-31.md)。
 本轮为源码和本地恢复验收，用户暂无域名；不能据此认定现有生产服务器已经升级。
 
-## Flutter 连接后端
-
-原生桌面运行：
-
-```powershell
-flutter run --dart-define=API_BASE_URL=http://127.0.0.1:8000
-```
-
-Android 模拟器运行时可以不传参数，客户端默认使用 `http://10.0.2.2:8000`；真机调试需要把 `API_BASE_URL` 改成电脑在同一局域网内的 IP。
-
-客户端采用远程优先、本地兜底策略：后端可用时读写 REST API，同时同步本地；后端不可用时保留本地模式的基本功能。
-
 ## 验证
 
 ```powershell
 python -m pytest backend/tests -q
-dart pub get --enforce-lockfile
-flutter test --no-pub --reporter expanded
-flutter analyze --no-pub
+node --test tools/tests/*.test.mjs
+node tools/check_web_sources.mjs
+git diff --check
 ```
 
 2026-10-31：后端连续两轮全量各 265 passed。完整客户端、Web、对拍和环境证据见 [验证记录](../docs/verification-2026-10-31.md)。

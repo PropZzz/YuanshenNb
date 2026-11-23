@@ -6,9 +6,6 @@ import json
 from pathlib import Path
 import subprocess
 
-import paramiko
-
-
 ROOT = Path(__file__).resolve().parents[1]
 FILES = ["schemas.py", "repositories.py", "routers_schedule.py", "services_rescue.py"]
 
@@ -28,6 +25,7 @@ def run(client, source):
 
 def prepare(previous, stage, base_directory=None, resolved_directory=None):
     """Merge this change onto the inspected server source, retaining its other differences."""
+    require_monolithic_source()
     stage.mkdir(parents=True, exist_ok=True)
     normalize = lambda data: data.replace(b"\r\n", b"\n").replace(b"\r", b"")
     for name in FILES:
@@ -58,6 +56,14 @@ def prepare(previous, stage, base_directory=None, resolved_directory=None):
         (stage / name).write_bytes(merged)
 
 
+def require_monolithic_source():
+    if (ROOT / "backend" / "repositories").is_dir():
+        raise RuntimeError(
+            "A full backend release is required for the modular repositories layout; "
+            "this historical single-file increment deployer cannot publish it safely."
+        )
+
+
 def main():
     global FILES
     parser = argparse.ArgumentParser()
@@ -66,10 +72,17 @@ def main():
     parser.add_argument("--base-directory", type=Path, help="Source snapshot from before the current incremental change")
     parser.add_argument("--resolved-directory", type=Path, help="Reviewed merges plus matching .py.before server snapshots")
     args = parser.parse_args()
+    if not args.inspect:
+        try:
+            require_monolithic_source()
+        except RuntimeError as error:
+            parser.error(str(error))
     if args.change == "calendar-import":
         FILES = [*FILES, "routers_rescue.py"]
         if not args.inspect and args.base_directory is None:
             parser.error("calendar-import requires --base-directory with the pre-change local source")
+    import paramiko
+
     client = paramiko.SSHClient()
     client.load_system_host_keys()
     client.connect("8.133.250.216", username="root", password=getpass.getpass("SSH password: "),

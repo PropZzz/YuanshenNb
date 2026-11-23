@@ -106,3 +106,41 @@ def test_concurrent_legacy_logins_do_not_overwrite_an_already_upgraded_hash(tmp_
     assert all(user["id"] == "legacy-id" for user in users)
     assert stored(database)[2].startswith("pbkdf2_sha256$600000$")
     assert verify_user(database, "legacy@example.test", "old-password") is not None
+
+
+def test_failed_legacy_upgrade_rolls_back_without_invalidating_existing_session(tmp_path):
+    from backend.auth import issue_token, resolve_token
+    database = tmp_path / "upgrade-failed.sqlite3"
+    before = legacy_database(database)
+    token = issue_token("legacy-id", database)
+    with sqlite3.connect(database) as connection:
+        connection.execute("CREATE TRIGGER reject_upgrade BEFORE UPDATE OF password_hash ON users "
+                           "BEGIN SELECT RAISE(ABORT, 'upgrade rejected'); END")
+    with pytest.raises(sqlite3.IntegrityError, match="upgrade rejected"):
+        verify_user(database, "legacy@example.test", "old-password")
+    assert stored(database) == before
+    assert resolve_token(token, database) == "legacy-id"
+    with sqlite3.connect(database) as connection:
+        connection.execute("DROP TRIGGER reject_upgrade")
+    assert verify_user(database, "legacy@example.test", "old-password") is not None
+
+
+def test_legacy_upgrade_cannot_authorize_a_concurrently_replaced_password(tmp_path, monkeypatch):
+    from backend.repositories import users
+    from backend.passwords import hash_password, new_salt
+    database = tmp_path / "credential-changed.sqlite3"
+    legacy_database(database)
+    replacement_salt = new_salt()
+    replacement = hash_password("replacement-password", replacement_salt)
+    actual_hash = users._password_hash
+
+    def changed_before_upgrade(password, salt):
+        with sqlite3.connect(database) as connection:
+            connection.execute("UPDATE users SET password_salt=?, password_hash=? WHERE id='legacy-id'",
+                               (replacement_salt, replacement))
+        return actual_hash(password, salt)
+
+    monkeypatch.setattr(users, "_password_hash", changed_before_upgrade)
+    assert verify_user(database, "legacy@example.test", "old-password") is None
+    assert stored(database)[1:] == (replacement_salt, replacement)
+    assert verify_user(database, "legacy@example.test", "replacement-password") is not None
