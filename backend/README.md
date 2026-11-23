@@ -61,6 +61,8 @@ python -m uvicorn backend.main:app --host 127.0.0.1 --port 8000 --reload
 
 AI、设备、第三方集成、文件、推送和密码重置仍返回结构化 HTTP 501 `RESERVED_ENDPOINT`，直到对应外部服务或硬件完成接入。
 
+提醒配置 `GET/POST /reminders`、`PUT/DELETE /reminders/{id}` 与审计删除 `DELETE /events/{id}` 已实现。提醒时间按当前日程投影，自动跟随编辑和救援采用/撤销；保存配置不表示发送通知。删除事件会原子保留审计，已删 ID 重传返回 409。字段、状态、墙上时间及回滚限制见 [接口契约](../docs/reminders-events-api-2026-11-24.md)。
+
 ## 错误语义与并发设置
 
 - `401`：缺少/无效/已过期/已退出的 Bearer token；`404`：资源不存在；`409`：跨用户复用同一资源 ID、基线哈希过期或重复写入冲突；`422`：请求体字段校验失败；`501`：预留接口。
