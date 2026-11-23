@@ -24,21 +24,28 @@ def hash_password(password: str, salt: str) -> str:
     return f"{ALGORITHM}${ITERATIONS}${digest.hex()}"
 
 
+def _failed_verification(password: str, *, spent: int = 0) -> bool:
+    remaining = ITERATIONS - spent
+    if remaining > 0:
+        hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), b"invalid-credential", remaining)
+    return False
+
+
 def verify_password(password: str, salt: str, encoded: str) -> bool:
     if _HEX_DIGEST.fullmatch(encoded):
         legacy = hashlib.sha256(f"{salt}:{password}".encode("utf-8")).hexdigest()
-        return hmac.compare_digest(legacy, encoded)
+        return True if hmac.compare_digest(legacy, encoded) else _failed_verification(password)
     parts = encoded.split("$")
     if len(parts) != 3 or parts[0] != ALGORITHM or not _HEX_DIGEST.fullmatch(parts[2]):
-        return False
+        return _failed_verification(password)
     # Restrict both parsing and CPU consumption for corrupt/unsupported hashes.
     if not parts[1].isascii() or not parts[1].isdecimal() or len(parts[1]) > 7:
-        return False
+        return _failed_verification(password)
     iterations = int(parts[1])
     if not 100_000 <= iterations <= MAX_VERIFY_ITERATIONS:
-        return False
+        return _failed_verification(password)
     digest = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt.encode("utf-8"), iterations)
-    return hmac.compare_digest(digest.hex(), parts[2])
+    return True if hmac.compare_digest(digest.hex(), parts[2]) else _failed_verification(password, spent=iterations)
 
 
 def needs_upgrade(encoded: str) -> bool:

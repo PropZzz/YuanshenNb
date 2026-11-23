@@ -22,5 +22,18 @@
 
 ## 记录
 
-- 全局Python现为D:/python/python.exe，已有fastapi/starlette/jsonschema但无pytest；隔离环境build/p3-backend-venv（忽略目录）。固定依赖镜像首次不可用，转官方PyPI重试中。
+- 全局Python现为D:/python/python.exe，已有fastapi/starlette/jsonschema但无pytest；隔离环境build/p3-backend-venv（忽略目录）。固定依赖镜像首次不可用，转官方PyPI安装已有requirements成功，项目依赖清单未改。
 - 600000参数依据OWASP Password Storage Cheat Sheet：https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html 。不宣称本机实现具备FIPS认证。
+- 基线：隔离Python执行 `-m pytest backend/tests -q`，273 passed、115个既有弃用警告，24.18s。
+- 认证TDD：新测试首先3 failed、7 passed（新用户仍SHA256，旧用户不升级），最小修复后认证/会话定向25 passed。提交450ec1a。
+- 模块TDD：领域导入和schema测试首先13 failed，抽取后发现遗漏SQL与偏好常量导致14项现有测试失败；完整迁移常量后恢复。连接关闭/回滚回归首先3 failed，修复后模块/认证/救援/旧库定向72 passed；未改旧测试断言。
+- 旧部署器保护：首先因缺少前置保护失败（提前import可选paramiko），改为SSH前布局检查并延迟可选依赖导入后1 passed；未安装paramiko。
+- 全量：`build/p3-backend-venv/Scripts/python.exe -m pytest backend/tests -q`，302 passed、117个弃用警告，49.88s，exit0。完整输出build/p3-final-tests.log。
+- 前端：`node --test tools/tests/*.test.mjs`，34 passed，exit0；`node tools/check_web_sources.mjs`，111文件/27路由/296引用通过。未修改前端。
+- Python编译：隔离Python `-m compileall -q backend deploy`，exit0。应用导入/OpenAPI生成成功（88个path）。初次独立smoke命令有shell引号错误，改为stdin脚本后成功，不计作产品失败。
+- AST核对原有函数/类均保留，除_connect生命周期外，拆分函数体与450ec1a一致；仓储最大文件384行。git diff --check与提交差异检查通过。
+- 本地测试均用临时数据库，未读取生产业务数据、未连接生产主机。预先存在的ios/Flutter/flutter_export_environment.sh未跟踪残留保留，不纳入提交。
+- 独立整分支审查发现两个P2：缺失账号/旧哈希失败路径KDF工作量不足，以及并发注册同一账号可能返回500。新增确定性回归首先5 failed、14 passed，修复后19 passed；并修正损坏迭代数测试的摘要长度，使其真正走到迭代数校验。未放宽断言。
+- 最终安全修复后再次执行全量后端：309 passed、118个既有接口/依赖弃用警告，52.56s，exit0；compileall和差异检查再次通过。Node34和源码引用检查未受后端认证修复影响，无前端变更。
+- 推送发现原仓库已重定向为PropZzz/YuanshenNb，已通过GitHub查询核实，PR使用该正式地址；origin配置未自行改写。
+- 审查未覆盖生产吞吐、真实部署、历史客户全量数据和已失效Flutter parity；这些是后续验收，不作为本轮通过项。浏览器token存储迁移仍交P1，提醒及新业务接口不纳入本批。

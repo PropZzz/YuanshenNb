@@ -85,8 +85,8 @@ def test_legacy_login_upgrades_once_and_preserves_existing_session_and_schedule(
 
 
 @pytest.mark.parametrize("digest", [
-    "", "unknown$600000$abcdef", "pbkdf2_sha256$bad$abcdef",
-    "pbkdf2_sha256$999999999999$abcdef", "pbkdf2_sha256$600000$not-hex", "A" * 64,
+    "", "unknown$600000$" + "a" * 64, "pbkdf2_sha256$bad$" + "a" * 64,
+    "pbkdf2_sha256$999999999999$" + "a" * 64, "pbkdf2_sha256$600000$not-hex", "A" * 64,
 ])
 def test_malformed_stored_credentials_fail_closed_without_rewrite(tmp_path, digest):
     database = tmp_path / "malformed.sqlite3"
@@ -144,3 +144,64 @@ def test_legacy_upgrade_cannot_authorize_a_concurrently_replaced_password(tmp_pa
     assert verify_user(database, "legacy@example.test", "old-password") is None
     assert stored(database)[1:] == (replacement_salt, replacement)
     assert verify_user(database, "legacy@example.test", "replacement-password") is not None
+
+
+@pytest.mark.parametrize("account_kind", ["absent", "legacy", "corrupt", "low-cost", "current"])
+def test_failed_logins_do_current_cost_kdf_work_without_exposing_account_existence(tmp_path, monkeypatch, account_kind):
+    from backend import passwords
+    database = tmp_path / "work.sqlite3"
+    legacy_database(database)
+    real_pbkdf2 = hashlib.pbkdf2_hmac
+    if account_kind in {"low-cost", "current"}:
+        count = 100_000 if account_kind == "low-cost" else 600_000
+        digest = real_pbkdf2("sha256", b"old-password", b"salt", count).hex()
+        with sqlite3.connect(database) as connection:
+            connection.execute("UPDATE users SET password_salt='salt', password_hash=?", (f"pbkdf2_sha256${count}${digest}",))
+    elif account_kind == "corrupt":
+        with sqlite3.connect(database) as connection:
+            connection.execute("UPDATE users SET password_hash='corrupt'")
+    rounds = []
+
+    def recorded(algorithm, password, salt, iterations):
+        rounds.append(iterations)
+        return real_pbkdf2(algorithm, password, salt, iterations)
+
+    monkeypatch.setattr(passwords.hashlib, "pbkdf2_hmac", recorded)
+    contact = "missing@example.test" if account_kind == "absent" else "legacy@example.test"
+    assert verify_user(database, contact, "wrong-password") is None
+    assert sum(rounds) == 600_000
+
+
+def test_successful_low_cost_pbkdf2_login_upgrades_the_work_factor(tmp_path):
+    database = tmp_path / "low-cost.sqlite3"
+    legacy_database(database)
+    digest = hashlib.pbkdf2_hmac("sha256", b"old-password", b"salt", 100_000).hex()
+    with sqlite3.connect(database) as connection:
+        connection.execute("UPDATE users SET password_salt='salt', password_hash=?", (f"pbkdf2_sha256$100000${digest}",))
+    assert verify_user(database, "legacy@example.test", "old-password") is not None
+    assert stored(database)[2].startswith("pbkdf2_sha256$600000$")
+
+
+def test_concurrent_duplicate_registration_returns_200_and_409_not_500(tmp_path, monkeypatch):
+    from threading import Barrier
+    from backend.repositories import users
+    database = tmp_path / "duplicate.sqlite3"
+    barrier = Barrier(2)
+    actual_hash = users._password_hash
+
+    def synchronized_hash(password, salt):
+        digest = actual_hash(password, salt)
+        barrier.wait(timeout=10)
+        return digest
+
+    monkeypatch.setattr(users, "_password_hash", synchronized_hash)
+    with TestClient(create_app(database)) as client:
+        def register(_):
+            return client.post("/auth/register", json={
+                "contactAddress": "duplicate@example.test", "displayName": "Duplicate", "password": "test-password",
+            }).status_code
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            assert sorted(pool.map(register, range(2))) == [200, 409]
+    with sqlite3.connect(database) as connection:
+        assert connection.execute("SELECT COUNT(*) FROM users").fetchone()[0] == 1
+        assert connection.execute("SELECT COUNT(*) FROM settings").fetchone()[0] == 1

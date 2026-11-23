@@ -42,13 +42,16 @@ def create_user(
         salt = _password_salt()
         password_hash = _password_hash(password, salt)
         now = _now()
-        connection.execute(
+        inserted = connection.execute(
             """
             INSERT INTO users (id, contact_address, display_name, password_salt, password_hash, created_at, updated_at)
             VALUES (?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(contact_address) DO NOTHING
             """,
             (user_id, contact_address, display_name, salt, password_hash, now, now),
         )
+        if inserted.rowcount == 0:
+            raise ValueError("user already exists")
         connection.execute(
             """
             INSERT INTO settings (user_id, scheduling_tuning_json, updated_at)
@@ -105,6 +108,8 @@ def find_user_by_id(db_path: str | Path | None, user_id: str) -> dict[str, objec
 def verify_user(db_path: str | Path | None, contact_address: str, password: str) -> dict[str, object] | None:
     user = find_user_by_account(db_path, contact_address)
     if user is None:
+        # Same current-cost KDF work as a wrong password on a modern account.
+        verify_password(password, "", "")
         return None
     if not verify_password(password, str(user["passwordSalt"]), str(user["passwordHash"])):
         return None
