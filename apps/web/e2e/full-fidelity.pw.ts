@@ -10,7 +10,7 @@ async function account(page:Page,request:APIRequestContext,project:string){
 }
 test("covers all 21 reference entries with real authenticated data and intact shared styles",async({page,request},info)=>{
  test.setTimeout(240_000);await mkdir(output,{recursive:true});const errors:string[]=[];page.on("pageerror",error=>errors.push(error.message));
- await page.goto("/login");await expect(page.getByRole("button",{name:"以游客身份继续"})).toBeDisabled();await page.screenshot({path:path.join(output,`${info.project.name}-login.png`)});
+ await page.goto("/login");await expect(page.getByRole("dialog",{name:"账户通行证"})).toBeVisible();await page.screenshot({path:path.join(output,`${info.project.name}-login.png`)});
  const session=await account(page,request,info.project.name),day=new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Shanghai",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());
  const created=await request.post("/api/v1/schedule/items",{headers:{Authorization:`Bearer ${session.accessToken}`},data:{title:"全界面验收·真实日程",notes:"用于详情、编辑与专注界面的可验证记录",category:"deep_work",cognitiveLoad:"medium",flexibility:"flexible",startAt:new Date(`${day}T09:00:00+08:00`).toISOString(),endAt:new Date(`${day}T10:00:00+08:00`).toISOString(),reminderMinutes:10}});expect(created.ok()).toBe(true);const item=(await created.json()).item;
  const cases=[
@@ -24,7 +24,7 @@ test("covers all 21 reference entries with real authenticated data and intact sh
   if(drawer){const panel=page.getByRole("dialog").last();await expect(panel).toHaveAttribute("data-surface","drawer");await expect(panel).toHaveAttribute("data-motion-state","open");const rect=await panel.boundingBox();expect(rect!.x).toBeGreaterThanOrEqual(-1);expect(rect!.x+rect!.width).toBeLessThanOrEqual(info.project.use.viewport!.width+1);if(info.project.name==="mobile"&&name!=="calendar-import")expect(rect!.height).toBeLessThanOrEqual(info.project.use.viewport!.height*.92+1);}
   else await expect(page.getByRole("main").getByRole("heading").first()).toBeVisible();
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
-  const styles=await page.evaluate(()=>{const main=document.querySelector(".workbench-main")!,brand=document.querySelector(".sidebar-brand img")!,button=document.querySelector(".button")!;return{canvas:getComputedStyle(main).backgroundColor,brandHeight:getComputedStyle(brand).height,buttonPadding:getComputedStyle(button).padding};});expect(styles.canvas).toBe("rgb(247, 247, 251)");expect(styles.brandHeight).toBe("32px");
+  const styles=await page.evaluate(()=>{const main=document.querySelector(".workbench-main")!,brand=document.querySelector(".sidebar-brand img")!,button=document.querySelector(".button")!;return{canvas:getComputedStyle(main).backgroundColor,brandHeight:getComputedStyle(brand).height,buttonPadding:getComputedStyle(button).padding};});expect(styles.canvas).toBe("rgb(246, 248, 249)");expect(styles.brandHeight).toBe("32px");
   await page.screenshot({path:path.join(output,`${info.project.name}-${name}.png`),fullPage:!drawer});report.push({name,url:page.url(),...styles});
  }
  expect(errors).toEqual([]);await writeFile(path.join(output,`${info.project.name}-route-matrix.json`),JSON.stringify(report,null,2));

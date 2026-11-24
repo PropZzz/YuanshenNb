@@ -1,212 +1,88 @@
 @layer components {
-  .focus-local-steps {
-    padding: 0;
-    display: grid;
-    gap: 14px;
-    min-width: 0;
-  }
-  .focus-local-steps > header,
-  .focus-local-steps > header > div {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-    min-width: 0;
-  }
-  .focus-local-steps h2 { font-size: 15px; font-weight: 700; color: var(--rc-primary); }
-  .focus-local-steps > header > div > span {
-    border-radius: 20px;
-    background: var(--rc-surface-container-high);
-    padding: 3px 9px;
-    font-size: 12px;
-    color: var(--rc-on-surface-variant);
-  }
-  .focus-local-steps > header > .button { font-size: 12px; color: var(--rc-secondary); gap: 5px; }
-  .focus-local-scope { font-size: 12px; line-height: 1.65; color: var(--rc-outline); }
-
+  .focus-local-steps { padding: 24px; display: grid; gap: 14px; min-width: 0; }
+  .focus-local-steps > header,.focus-local-steps > header > div { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; min-width: 0; }
+  .focus-local-steps h2 { font-size: 16px; font-weight: 700; }
+  .focus-local-steps > header > div > span { border-radius: 20px; background: var(--rc-surface-container-high); padding: 2px 8px; font-size: 11px; color: var(--rc-on-surface-variant); }
+  .focus-local-steps > header > .button { font-size: 11px; color: var(--rc-secondary); gap: 4px; padding-inline: 4px; }
+  .focus-local-steps > header .ui-icon { font-size: 16px; }
+  .focus-local-scope { font-size: 10px; line-height: 1.7; color: var(--rc-outline); }
   .focus-step-list { display: grid; gap: 8px; }
-  .focus-step {
-    display: flex;
-    position: relative;
-    gap: 10px;
-    align-items: flex-start;
-    padding: 11px 12px;
-    border-radius: 9px;
-    background: var(--rc-surface-container-low);
-    cursor: pointer;
-  }
+  .focus-step { display: flex; position: relative; gap: 10px; align-items: flex-start; padding: 12px; border-radius: 8px; background: var(--rc-surface-container-low); cursor: pointer; }
   .focus-step > input { position: absolute; opacity: 0; width: 20px; height: 20px; }
   .focus-step:focus-within { outline: 2px solid var(--rc-secondary); outline-offset: 2px; }
-  .focus-step-indicator { display: flex; flex: none; color: var(--rc-outline); padding-top: 2px; }
+  .focus-step-indicator { display: flex; flex: none; color: var(--rc-outline); padding-top: 1px; }
+  .focus-step-indicator .ui-icon { font-size: 20px; }
   .focus-step strong { font-size: 13px; font-weight: 500; overflow-wrap: anywhere; line-height: 1.5; }
   .focus-step small { display: block; margin-top: 3px; font-size: 11px; color: var(--rc-outline); }
   .focus-step.completed strong { text-decoration: line-through; color: var(--rc-outline); }
   .focus-step.completed .focus-step-indicator { color: var(--rc-on-tertiary-container); }
-  .focus-steps-empty {
-    padding: 13px 12px;
-    border-radius: 9px;
-    background: var(--rc-surface-container-low);
-    color: var(--rc-outline);
-    font-size: 12px;
-    line-height: 1.7;
-  }
+  .focus-steps-empty { padding: 14px 12px; border-radius: 8px; background: var(--rc-surface-container-low); color: var(--rc-outline); font-size: 12px; line-height: 1.8; }
   .focus-add-step { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; min-width: 0; }
-  .focus-add-step > input {
-    flex: 1 1 160px;
-    min-width: 0;
-    border: 1px solid var(--rc-line);
-    border-radius: 8px;
-    padding: 9px 11px;
-    font-size: 13px;
-  }
-  .focus-fleeting-form {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    align-items: center;
-    padding: 8px 12px;
-    border-radius: 9px;
-    background: var(--rc-surface-container-low);
-    min-width: 0;
-  }
-  .focus-fleeting-form > svg { color: var(--rc-outline); flex: none; }
-  .focus-fleeting-form > input {
-    flex: 1 1 140px;
-    min-width: 0;
-    background: transparent;
-    border: 0;
-    font-size: 13px;
-    padding: 5px 0;
-    outline-offset: 3px;
-  }
-  .focus-fleeting-form > .button {
-    min-height: 30px;
-    background: var(--rc-surface-container);
-    font-size: 12px;
-    padding: 4px 10px;
-    flex-shrink: 0;
-  }
-  .focus-saved-notes summary { color: var(--rc-secondary); font-size: 12px; cursor: pointer; }
+  .focus-add-step > input { flex: 1 1 140px; min-width: 0; border: 1px solid var(--rc-line); border-radius: 8px; padding: 10px; font-size: 12px; }
+  .focus-fleeting-form { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 8px 10px; border-radius: 8px; background: var(--rc-surface-container-low); min-width: 0; }
+  .focus-fleeting-form > .ui-icon { font-size: 18px; color: var(--rc-outline); flex: none; }
+  .focus-fleeting-form > input { flex: 1 1 120px; min-width: 0; background: transparent; border: 0; font-size: 12px; padding: 6px 0; outline-offset: 3px; }
+  .focus-fleeting-form > .button { min-height: 30px; background: var(--rc-surface-container); font-size: 11px; padding: 4px 10px; flex-shrink: 0; }
+  .focus-saved-notes summary { color: var(--rc-secondary); font-size: 11px; cursor: pointer; }
   .focus-saved-notes ul { display: grid; gap: 8px; margin-top: 10px; }
-  .focus-saved-notes li {
-    position: relative;
-    padding: 10px 34px 10px 12px;
-    background: var(--rc-surface-container-low);
-    border-radius: 8px;
-  }
-  .focus-saved-notes p { font-size: 13px; line-height: 1.65; overflow-wrap: anywhere; }
-  .focus-saved-notes time { color: var(--rc-outline); font-size: 11px; }
-  .focus-saved-notes li > button {
-    position: absolute;
-    right: 5px;
-    top: 6px;
-    display: grid;
-    place-items: center;
-    width: 28px;
-    height: 28px;
-    border-radius: 6px;
-    color: var(--rc-outline);
-  }
+  .focus-saved-notes li { position: relative; padding: 10px 30px 10px 12px; background: var(--rc-surface-container-low); border-radius: 8px; }
+  .focus-saved-notes p { font-size: 12px; line-height: 1.7; overflow-wrap: anywhere; }
+  .focus-saved-notes time { color: var(--rc-outline); font-size: 10px; }
+  .focus-saved-notes li > button { position: absolute; right: 5px; top: 5px; display: grid; place-items: center; width: 28px; height: 28px; border-radius: 6px; color: var(--rc-outline); }
   .focus-saved-notes li > button:hover { background: var(--rc-surface-container-high); }
-
-  .focus-soundscape {
-    padding: 18px 20px;
-    border-radius: 14px;
-    border: 1px solid var(--rc-line);
-    background: var(--rc-surface-container-lowest);
-    display: grid;
-    gap: 12px;
-    min-width: 0;
-  }
-  .focus-soundscape.is-compact {
-    padding: 10px 14px;
-    border-radius: 12px;
-    background: var(--rc-surface-container-low);
-    margin-top: 12px;
-    width: 100%;
-  }
-  .focus-soundscape header,
-  .focus-soundscape header > h2,
-  .focus-soundscape header > label {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex-wrap: wrap;
-    min-width: 0;
-  }
-  .focus-soundscape header { justify-content: space-between; }
-  .focus-soundscape h2 { font-size: 13px; font-weight: 700; color: var(--rc-primary); }
+  .focus-saved-notes .ui-icon { font-size: 16px; }
+  .focus-soundscape { padding: 20px; display: grid; gap: 14px; min-width: 0; }
+  .focus-soundscape header,.focus-soundscape header > h2,.focus-soundscape header > label { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; min-width: 0; }
+  .focus-soundscape header { justify-content: space-between; flex-wrap: wrap; }
+  .focus-soundscape h2 { font-size: 13px; font-weight: 700; }
+  .focus-soundscape .ui-icon { font-size: 19px; color: var(--rc-primary); }
   .focus-soundscape header > label { color: var(--rc-outline); gap: 6px; }
-  .focus-soundscape input[type="range"] { width: 76px; accent-color: var(--rc-primary); height: 4px; }
-  .focus-soundscape output { font-size: 11px; min-width: 28px; font-variant-numeric: tabular-nums; }
-
-  .focus-sound-options {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(min(100%, 148px), 1fr));
-    gap: 10px;
-  }
-  .focus-soundscape.is-compact .focus-sound-options {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 8px;
-  }
-  .focus-sound-options > button {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    min-width: 0;
-    padding: 10px 12px;
-    text-align: left;
-    background: var(--rc-surface-container-low);
-    border-radius: 9px;
-    transition: background-color 150ms;
-  }
-  .focus-soundscape.is-compact .focus-sound-options > button {
-    padding: 8px 10px;
-    justify-content: center;
-    background: var(--rc-surface-container-lowest);
-  }
+  .focus-soundscape input[type=range] { width: 72px; accent-color: var(--rc-primary); height: 4px; }
+  .focus-soundscape output { font-size: 10px; min-width: 26px; font-variant-numeric: tabular-nums; }
+  .focus-sound-options { display: grid; grid-template-columns: repeat(auto-fit,minmax(min(100%,148px),1fr)); gap: 10px; }
+  .focus-sound-options > button { display: flex; align-items: center; gap: 8px; min-width: 0; padding: 10px; text-align: left; background: var(--rc-surface-container-low); border-radius: 8px; transition: background-color 150ms; }
   .focus-sound-options > button:hover { background: var(--rc-surface-container-high); }
   .focus-sound-options > button > span:last-child { flex: 1; min-width: 0; }
-  .focus-sound-options strong { display: block; font-size: 12px; font-weight: 600; overflow-wrap: anywhere; }
-  .focus-sound-options small { display: block; color: var(--rc-outline); font-size: 11px; line-height: 1.45; margin-top: 2px; }
+  .focus-sound-options strong { display: block; font-size: 11px; font-weight: 600; overflow-wrap: anywhere; }
+  .focus-sound-options small { display: block; color: var(--rc-outline); font-size: 9px; line-height: 1.5; margin-top: 3px; }
   .focus-sound-options > button.playing { background: var(--rc-primary-container); color: var(--rc-on-primary); }
-  .focus-sound-options > button.playing small { color: var(--rc-primary-fixed); }
+  .focus-sound-options > button.playing .ui-icon { color: var(--rc-tertiary-fixed); }
+  .focus-sound-options > button.playing small { color: var(--rc-on-primary-container); }
   .focus-sound-status { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
-  .focus-sound-status > p { font-size: 11px; color: var(--rc-outline); line-height: 1.5; }
-
-  .focus-quick-feelings { padding-top: 14px; border-top: 1px solid var(--rc-line); display: grid; gap: 8px; }
-  .focus-quick-feelings > p { font-size: 12px; font-weight: 600; color: var(--rc-primary); }
-  .focus-quick-feelings > p > span { display: block; margin-top: 2px; font-size: 11px; font-weight: 400; color: var(--rc-outline); }
-  .focus-quick-feelings > div { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; }
-  .focus-quick-feelings > div > button {
-    min-width: 0;
-    padding: 8px 6px;
-    border-radius: 7px;
-    background: var(--rc-surface-container);
-    color: var(--rc-on-surface-variant);
-    font-size: 12px;
-    font-weight: 500;
-  }
+  .focus-sound-status > p { font-size: 10px; color: var(--rc-outline); line-height: 1.6; }
+  .focus-sound-status > .button { flex: none; font-size: 10px; }
+  .focus-quick-feelings { padding-top: 18px; display: grid; gap: 7px; }
+  .focus-quick-feelings > p { font-size: 11px; color: var(--rc-outline); }
+  .focus-quick-feelings > p > span { display: block; margin-top: 2px; font-size: 9px; }
+  .focus-quick-feelings > div { display: grid; grid-template-columns: repeat(auto-fit,minmax(min(100%,68px),1fr)); gap: 6px; }
+  .focus-quick-feelings > div > button { min-width: 0; padding: 6px 3px; border-radius: 6px; background: var(--rc-surface-container); color: var(--rc-on-surface-variant); font-size: 10px; }
   .focus-quick-feelings > div > button:hover { background: var(--rc-primary-fixed); color: var(--rc-on-primary-fixed); }
-  .focus-quick-feelings > small { font-size: 11px; color: var(--rc-outline); line-height: 1.6; }
-
-  .focus-immersion-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 18px; flex-wrap: wrap; }
+  .focus-quick-feelings > small { font-size: 9px; color: var(--rc-outline); line-height: 1.7; }
+  .focus-support-card { padding: 20px; display: grid; gap: 12px; min-width: 0; }
+  .focus-support-card > header { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; min-width: 0; }
+  .focus-support-card .ui-icon { font-size: 18px; color: var(--rc-secondary); flex: none; }
+  .focus-support-card h2 { font-size: 13px; font-weight: 700; }
+  .focus-support-card > header > span:last-child { margin-left: auto; font-size: 9px; padding: 3px 6px; border-radius: 20px; background: var(--rc-secondary-fixed); color: var(--rc-on-secondary-fixed); white-space: nowrap; }
+  .focus-support-card > p { font-size: 11px; color: var(--rc-on-surface-variant); line-height: 1.8; }
+  .focus-support-empty { display: flex; align-items: flex-start; gap: 8px; padding: 12px; border-radius: 8px; background: var(--rc-surface-container-low); color: var(--rc-outline); font-size: 11px; line-height: 1.7; }
+  .focus-support-empty .ui-icon { color: var(--rc-outline); }
+  .focus-support-list { display: grid; gap: 8px; }
+  .focus-support-item { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 12px; border-radius: 8px; background: var(--rc-surface-container-low); }
+  .focus-support-item strong { display: block; font-size: 12px; font-weight: 600; color: var(--rc-on-surface); overflow-wrap: anywhere; }
+  .focus-support-item small { display: block; margin-top: 2px; font-size: 10px; color: var(--rc-outline); }
+  .focus-support-action { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 8px; color: var(--rc-secondary); background: var(--rc-surface-container-lowest); flex-shrink: 0; }
+  .focus-support-action:hover { background: var(--rc-secondary-fixed); }
+  .focus-support-card > .button { font-size: 11px; background: var(--rc-surface-container-low); }
+  .focus-immersion-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 20px; }
   .focus-immersion-toolbar > div { display: flex; gap: 8px; }
-  .focus-immersion-toolbar p { color: var(--rc-outline); font-size: 12px; line-height: 1.6; }
-  .focus-page.is-immersive { position: fixed; inset: 0; z-index: 70; overflow: auto; background: var(--rc-surface); padding: 28px; }
-  .focus-page.is-immersive > .focus-briefing-bar,
-  .focus-page.is-immersive .focus-side-column,
-  .focus-page.is-immersive .focus-main-column > :not(.focus-control) { display: none; }
+  .focus-immersion-toolbar p { color: var(--rc-outline); font-size: 11px; line-height: 1.7; }
+  .focus-page.is-immersive { position: fixed; inset: 0; z-index: 70; overflow: auto; background: var(--rc-surface); padding: 32px; }
+  .focus-page.is-immersive > .metric-grid,.focus-page.is-immersive > .focus-mobile-summary,.focus-page.is-immersive .focus-side-column,.focus-page.is-immersive .focus-main-column > :not(.focus-control) { display: none; }
   .focus-page.is-immersive .focus-columns { display: block; max-width: 920px; margin: auto; }
-  .focus-page.is-immersive .focus-control { min-height: calc(100dvh - 56px); }
-  .focus-page.is-immersive .focus-timer-panel { min-height: 440px; justify-content: center; }
+  .focus-page.is-immersive .focus-control { min-height: calc(100dvh - 64px); }
+  .focus-page.is-immersive .focus-timer-panel { min-height: 460px; justify-content: center; }
 }
-@media (max-width: 1100px) {
-  .focus-sound-options { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .focus-soundscape.is-compact .focus-sound-options { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-}
-@media (max-width: 780px) {
-  .focus-page.is-immersive { padding: 14px; }
-  .focus-page.is-immersive .focus-control { min-height: calc(100dvh - 28px); }
-}
+@media (max-width:1100px) { .focus-sound-options { grid-template-columns: repeat(2,minmax(0,1fr)); } }
+@media (max-width:780px) { .focus-local-steps { padding: 18px 16px; } .focus-local-steps > header { flex-wrap: wrap; } .focus-local-steps h2 { font-size: 14px; } .focus-local-steps > header > div > span { font-size: 10px; } .focus-soundscape { padding: 18px 16px; } .focus-soundscape header { gap: 12px; } .focus-sound-options strong { font-size: 12px; } .focus-sound-options small { font-size: 10px; } .focus-quick-feelings > div > button { font-size: 11px; min-height: 36px; } .focus-page.is-immersive { padding: 12px; } .focus-page.is-immersive .focus-control { min-height: calc(100dvh - 24px); } .focus-immersion-toolbar { align-items: flex-start; flex-direction: column; } .focus-immersion-toolbar > div { align-self: flex-end; } .focus-page.is-immersive .focus-timer-panel { padding-inline: 6px; } .focus-timer-panel > .segmented { max-width: 100%; flex-wrap: wrap; justify-content: center; } .focus-timer-panel > .segmented > button { font-size: 11px; padding-inline: 8px; } }
+
+@media (max-width:780px) { .focus-page.is-immersive > .focus-mobile-summary { display: none; } }

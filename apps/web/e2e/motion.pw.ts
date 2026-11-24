@@ -17,12 +17,68 @@ async function prepare(page:Page){
   else if(url.pathname.endsWith('/health'))body={ok:true,dbStatus:'up'};
   else if(url.pathname.endsWith('/schedule/items'))body={items:[]};
   else if(url.pathname.endsWith('/rescue/history'))body={snapshots:[]};
-  else if(url.pathname.endsWith('/energy/today'))body={localDay:url.searchParams.get('day'),score:70,dataFreshness:'baseline_only',hourlyCurve:[],focusShields:[]};
+  else if(url.pathname.endsWith('/energy/today'))body={localDay:url.searchParams.get('day'),score:70,tier:'steady',dataFreshness:'baseline_only',hourlyCurve:[],focusShields:[],drivers:{sleepRecoveryScore:30,autonomicDeltaScore:0,circadianScore:40,cognitiveLoadDrainScore:0,recoveryBufferBonusScore:0,summary:'动效验收的基线样本'},diagnostics:{baselineReadyDays:0}};
   else if(url.pathname.endsWith('/workspaces'))body={workspaces:[]};
   await route.fulfill({json:body});
  });
  return {writes,errors};
 }
+
+test('navigation selection stays behind the content and follows the collapsed rail', async ({ page }, info) => {
+ const { writes, errors } = await prepare(page);
+ await page.goto('/calendar');
+ const nav = page.getByRole('navigation', { name: info.project.name === 'desktop' ? '主导航' : '移动端导航' });
+ const selected = nav.getByRole('link', { name: '智能日历', exact: true });
+ const indicator = selected.locator('.nav-active-indicator,.mobile-nav-indicator');
+ await expect(selected).toHaveAttribute('aria-current', 'page');
+ await expect(indicator).toHaveCSS('position', 'absolute');
+ await expect(indicator).toHaveAttribute('aria-hidden', 'true');
+ const assertBounds = async () => {
+  const link = (await selected.boundingBox())!, plate = (await indicator.boundingBox())!;
+  expect(plate.width).toBeGreaterThan(link.width * .7);
+  expect(plate.height).toBeGreaterThan(link.height * .6);
+  expect(plate.x).toBeGreaterThanOrEqual(link.x - 1);
+  expect(plate.y).toBeGreaterThanOrEqual(link.y - 1);
+  expect(plate.x + plate.width).toBeLessThanOrEqual(link.x + link.width + 1);
+  expect(plate.y + plate.height).toBeLessThanOrEqual(link.y + link.height + 1);
+ };
+ await assertBounds();
+ await expect(page.getByRole('button', { name: '月视图', exact: true })).toBeVisible();
+ await page.evaluate(() => document.fonts.ready);
+ const output = path.resolve('../../.appdata/qa/navigation-motion');
+ await mkdir(output, { recursive: true });
+ for (const theme of ['light', 'dark']) {
+  await page.evaluate(dark => document.documentElement.classList.toggle('dark', dark), theme === 'dark');
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  await page.screenshot({ path: path.join(output, `${info.project.name}-${theme}.png`) });
+ }
+ await page.evaluate(() => document.documentElement.classList.remove('dark'));
+ if (info.project.name === 'desktop') {
+  const icon = selected.locator('.ui-icon');
+  const before = (await icon.boundingBox())!;
+  await page.getByRole('button', { name: '折叠侧栏', exact: true }).click();
+  await expect(page.locator('.workbench-shell')).toHaveClass(/sidebar-collapsed/);
+  await expect(async () => { await assertBounds(); }).toPass();
+  const link = (await selected.boundingBox())!, glyph = (await icon.boundingBox())!;
+  expect(Math.abs(glyph.x + glyph.width / 2 - link.x - link.width / 2)).toBeLessThan(1);
+  expect(glyph.width).toBe(before.width);
+ }
+ await nav.getByRole('link', { name: '专注', exact: true }).click();
+ await expect(nav.locator('[aria-current="page"]')).toHaveCount(1);
+ await expect(nav.locator('[aria-current="page"]')).toHaveAttribute('href', '/focus');
+ expect(writes).toEqual([]); expect(errors).toEqual([]);
+});
+
+test('secondary pages keep their owning navigation item selected', async ({ page }, info) => {
+ const { writes, errors } = await prepare(page);
+ const nav = page.getByRole('navigation', { name: info.project.name === 'desktop' ? '主导航' : '移动端导航' });
+ for (const [route, parent] of [['/energy', info.project.name === 'desktop' ? '/energy' : '/profile'], ['/settings', '/profile'], ['/bluetooth', info.project.name === 'desktop' ? '/diagnostics' : '/profile'], ['/integrations', '/calendar']]) {
+  await page.goto(route);
+  await expect(nav.locator('[aria-current="page"]')).toHaveCount(1);
+  await expect(nav.locator('[aria-current="page"]')).toHaveAttribute('href', parent);
+ }
+ expect(writes).toEqual([]); expect(errors).toEqual([]);
+});
 
 test('mobile drawer follows the pointer, settles, cancels and dismisses from its current position',async({page},info)=>{
  test.skip(info.project.name!=='mobile','Bottom-sheet gesture coverage');
@@ -110,11 +166,56 @@ test('rapid navigation keeps the latest destination and fallback handles browser
  await page.goto('/calendar');
  await expect(page.getByRole('button',{name:'月视图',exact:true})).toBeVisible();
  await page.locator(selector).getByRole('link',{name:'我的',exact:true}).click();
- await expect(page).toHaveURL(/\/profile$/);await expect(page.locator('.route-surface')).toHaveAttribute('data-motion-state','open');
- await page.goBack();await expect(page).toHaveURL(/\/calendar$/);await expect(page.locator('.route-surface')).toHaveAttribute('data-motion-state','open');
+ await expect(page).toHaveURL(/\/profile$/);
+ await expect(page.locator(selector).getByRole('link',{name:'我的',exact:true})).toHaveAttribute('aria-current','page');
+ await expect(page.locator('.route-surface')).toHaveAttribute('data-motion-state','open');
+ await page.goBack();await expect(page).toHaveURL(/\/calendar$/);
+ await expect(page.locator(selector).getByRole('link',{name:'智能日历',exact:true})).toHaveAttribute('aria-current','page');
+ await expect(page.locator('.route-surface')).toHaveAttribute('data-motion-state','open');
  expect(await page.evaluate(()=>(window as unknown as {motionStarts:number}).motionStarts)).toBeGreaterThanOrEqual(2);
  expect(await page.locator('.route-surface').evaluate(el=>getComputedStyle(el).willChange)).toBe('auto');
  expect(writes).toEqual([]);expect(errors).toEqual([]);
+});
+
+test('fallback navigation continues from its visible position when interrupted', async ({ page }, info) => {
+ await page.emulateMedia({ reducedMotion: 'no-preference' });
+ const { writes, errors } = await prepare(page);
+ await page.addInitScript(() => {
+  Object.defineProperty(document, 'startViewTransition', { value: undefined, configurable: true });
+  const entries: { frames: Keyframe[]; animation: Animation }[] = [];
+  (window as unknown as { routeEntries: typeof entries }).routeEntries = entries;
+  const animate = Element.prototype.animate;
+  Element.prototype.animate = function (...args: Parameters<typeof animate>) {
+   const animation = animate.apply(this, args);
+   if (this.classList.contains('route-surface')) {
+    animation.pause(); entries.push({ frames: args[0] as Keyframe[], animation });
+   }
+   return animation;
+  };
+ });
+ await page.goto('/calendar');
+ const nav = page.getByRole('navigation', { name: info.project.name === 'desktop' ? '主导航' : '移动端导航' });
+ await nav.getByRole('link', { name: '我的', exact: true }).click();
+ await expect(nav.getByRole('link', { name: '我的', exact: true })).toHaveAttribute('aria-current', 'page');
+ await expect(page.locator('.route-surface')).toHaveAttribute('data-motion-state', 'opening');
+ await page.evaluate(() => {
+  const entries = (window as unknown as { routeEntries: { animation: Animation }[] }).routeEntries;
+  entries.at(-1)!.animation.currentTime = 60;
+ });
+ const pose = await page.locator('.route-surface').evaluate(el => ({ opacity: getComputedStyle(el).opacity, transform: getComputedStyle(el).transform }));
+ await nav.getByRole('link', { name: '团队', exact: true }).click();
+ await expect(nav.getByRole('link', { name: '团队', exact: true })).toHaveAttribute('aria-current', 'page');
+ const entry = await page.evaluate(() => {
+  const entries = (window as unknown as { routeEntries: { frames: Keyframe[] }[] }).routeEntries;
+  return { count: entries.length, start: entries.at(-1)!.frames[0] };
+ });
+ expect(entry.count).toBe(2);
+ expect(Number(entry.start.opacity)).toBeCloseTo(Number(pose.opacity), 3);
+ expect(entry.start.transform).toBe(pose.transform);
+ await page.emulateMedia({ reducedMotion: 'reduce' });
+ await expect(page.locator('.route-surface')).toHaveAttribute('data-motion-state', 'open');
+ expect(await page.locator('.route-surface').evaluate(el => getComputedStyle(el).willChange)).toBe('auto');
+ expect(writes).toEqual([]); expect(errors).toEqual([]);
 });
 
 test('native page snapshots animate content once while navigation stays live',async({page},info)=>{
@@ -141,14 +242,39 @@ test('native page snapshots animate content once while navigation stays live',as
  expect(snapshots.some(snapshot=>snapshot==='::view-transition-new(workbench-page)')).toBe(true);
  expect(await page.locator('.route-surface').evaluate(el=>el.getAnimations().length)).toBe(0);
  await expect(nav.getByRole('link',{name:'我的',exact:true})).toHaveAttribute('aria-current','page');
+ // The navigation has its own live selection motion; let it settle before comparing snapshot coverage.
+ await expect(nav.getByRole('link',{name:'我的',exact:true}).locator('.nav-active-indicator,.mobile-nav-indicator')).toHaveCSS('transform','none');
  await page.evaluate(()=>document.getAnimations().filter(animation=>(animation.effect as KeyframeEffect)?.pseudoElement?.includes('view-transition')).forEach(animation=>{animation.currentTime=Number(animation.effect!.getTiming().duration)*.5;}));
  const output=path.resolve('../../.appdata/qa/web-motion');await mkdir(output,{recursive:true});
  await page.screenshot({path:path.join(output,`${info.project.name}-page-half.png`)});
  const selected=nav.getByRole('link',{name:'我的',exact:true});
+ const beforeStyle = await selected.evaluate(el => {
+  const plate = el.querySelector('.nav-active-indicator,.mobile-nav-indicator')!;
+  return { link: el.getBoundingClientRect().toJSON(), plate: plate.getBoundingClientRect().toJSON(), style: plate.getAttribute('style'), background: getComputedStyle(el).backgroundColor, nav: getComputedStyle(el.parentElement!).backdropFilter };
+ });
  const during=await selected.screenshot({path:path.join(output,`${info.project.name}-nav-during.png`)});
  await page.evaluate(()=>document.getAnimations().filter(animation=>(animation.effect as KeyframeEffect)?.pseudoElement?.includes('view-transition')).forEach(animation=>animation.finish()));
  await expect(page.locator('.route-surface')).toHaveAttribute('data-motion-state','open');
- const after=await selected.screenshot({path:path.join(output,`${info.project.name}-nav-after.png`)});expect(during.equals(after)).toBe(true);
+ const after=await selected.screenshot({path:path.join(output,`${info.project.name}-nav-after.png`)});
+ expect(await selected.evaluate(el => {
+  const plate = el.querySelector('.nav-active-indicator,.mobile-nav-indicator')!;
+  return { link: el.getBoundingClientRect().toJSON(), plate: plate.getBoundingClientRect().toJSON(), style: plate.getAttribute('style'), background: getComputedStyle(el).backgroundColor, nav: getComputedStyle(el.parentElement!).backdropFilter };
+ })).toEqual(beforeStyle);
+ // Chromium rounds translucent/composited colors by one channel level while snapshots exist.
+ // Compare every rendered pixel, allowing only that 1/255 rounding, not an overlay or layout shift.
+ const maxChannelDifference = await page.evaluate(async ({ before, after }) => {
+  const pixels = async (bytes: number[]) => {
+   const bitmap = await createImageBitmap(new Blob([new Uint8Array(bytes)], { type: 'image/png' }));
+   const canvas = new OffscreenCanvas(bitmap.width, bitmap.height);
+   const context = canvas.getContext('2d')!;
+   context.drawImage(bitmap, 0, 0); bitmap.close();
+   return context.getImageData(0, 0, canvas.width, canvas.height).data;
+  };
+  const [a, b] = await Promise.all([pixels(before), pixels(after)]);
+  if (a.length !== b.length) return Infinity;
+  return a.reduce((max, channel, index) => Math.max(max, Math.abs(channel - b[index])), 0);
+ }, { before: [...during], after: [...after] });
+ expect(maxChannelDifference).toBeLessThanOrEqual(1);
  expect(writes).toEqual([]);expect(errors).toEqual([]);
 });
 

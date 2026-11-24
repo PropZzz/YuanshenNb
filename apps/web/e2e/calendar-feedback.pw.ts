@@ -33,6 +33,7 @@ test('persists selected attributes, distinct event colors, goals and exclusive c
   await page.getByRole('button',{name:view,exact:true}).click();
   const event=page.locator('.calendar-map-column [data-attribute="study"]').first();await expect(event).toBeVisible();
   expect(await event.evaluate(el=>getComputedStyle(el).backgroundColor)).toBe(studyColor);
+  await page.getByRole('button',{name:'筛选',exact:true}).click();
   for(const [label,selector] of [['属性标签','.event-category'],['完成状态','.event-status'],['缓冲与提醒','.event-reminder'],['战略目标关联','.event-goal-link']]){
    const map=page.locator('.calendar-map-column');expect(await map.locator(selector).count()).toBeGreaterThan(0);
    await page.getByRole('checkbox',{name:label,exact:true}).uncheck();await expect(map.locator(selector)).toHaveCount(0);
@@ -40,8 +41,9 @@ test('persists selected attributes, distinct event colors, goals and exclusive c
   }
  }
  await page.getByRole('checkbox',{name:'时间标尺',exact:true}).uncheck();await expect(page.locator('.map-hours')).toHaveCount(0);await page.getByRole('checkbox',{name:'时间标尺',exact:true}).check();
- await expect(page.locator('.map-energy-band')).toHaveCount(1);await page.getByRole('checkbox',{name:'精力预测色带',exact:true}).uncheck();await expect(page.locator('.map-energy-band')).toHaveCount(0);
- await page.reload();await expect(page.getByRole('checkbox',{name:'精力预测色带',exact:true})).not.toBeChecked();await page.getByRole('checkbox',{name:'精力预测色带',exact:true}).check();
+ await expect(page.locator('.map-energy-wash')).toHaveCount(1);await page.getByRole('checkbox',{name:'精力预测底色',exact:true}).uncheck();await expect(page.locator('.map-energy-wash')).toHaveCount(0);
+ await page.reload();await page.getByRole('button',{name:'筛选',exact:true}).click();await expect(page.getByRole('checkbox',{name:'精力预测底色',exact:true})).not.toBeChecked();await page.getByRole('checkbox',{name:'精力预测底色',exact:true}).check();
+ await page.getByRole('button',{name:'切换摘要与救援快照栏',exact:true}).click();
  await expect(page.getByRole('region',{name:'日历真实数据概览'}).getByText('今日 2 项日程',{exact:true})).toBeVisible();await expect(page.getByRole('region',{name:'日历真实数据概览'})).toContainText('节律估算');
  await mkdir(output,{recursive:true});await page.screenshot({path:path.join(output,info.project.name+'-calendar.png')});
  await page.locator('.map-event[data-attribute="study"]').click();await page.getByRole('button',{name:'编辑日程',exact:true}).click();
@@ -67,7 +69,7 @@ test('actually imports CSV, ICS, JSON and an Excel course file only after confir
   const book=XLSX.utils.book_new();XLSX.utils.book_append_sheet(book,XLSX.utils.aoa_to_sheet([['课程名称','星期','周次','节次','教师','教室'],['Excel真实课表','2','1-2','3-4','老师','A201']]),'课程表');return XLSX.write(book,{type:'base64',bookType:'xlsx'});
  });
  await page.getByLabel('导入文件',{exact:true}).setInputFiles({name:'real.xlsx',mimeType:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',buffer:Buffer.from(base64,'base64')});
- await page.getByLabel('学期第一周周一',{exact:true}).fill(day);await page.getByLabel('第 3-4 节开始时间',{exact:true}).fill('14:00');await page.getByLabel('第 3-4 节结束时间',{exact:true}).fill('15:30');await page.getByRole('button',{name:'生成日程预览',exact:true}).click();
+ await page.getByText('调整第1周日期',{exact:true}).click();await page.getByLabel('学期第一周周一',{exact:true}).fill(day);await page.getByLabel('第 3-4 节开始时间',{exact:true}).fill('14:00');await page.getByLabel('第 3-4 节结束时间',{exact:true}).fill('15:30');await expect(page.getByRole('button',{name:/确认导入/})).toBeEnabled();
  await expect(page.getByText('Excel真实课表',{exact:true})).toHaveCount(2);expect(writes).toBe(4);await page.getByRole('button',{name:/确认导入/}).click();await expect(page.getByRole('status').filter({hasText:/已成功导入 2 条/})).toBeVisible();
  const saved=await items(request,session.accessToken);expect(saved).toHaveLength(6);expect(writes).toBe(6);expect(saved.filter((item:{title:string})=>item.title==='Excel真实课表').every((item:{presentation?:{attributeTag:string}})=>item.presentation?.attributeTag==='study')).toBe(true);
 });

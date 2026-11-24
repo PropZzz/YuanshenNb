@@ -5,7 +5,7 @@ import { displayDay, localDate, localDateTimeToISO, localTime, minuteLabel } fro
 import { tierLabels } from "@/features/energy/queries";
 import { layoutDayEvents } from "./calendar-layout";
 import { defaultCalendarOptions, type CalendarOptions } from "./calendar-options";
-import { AttributeLegend, ScheduleMeta, scheduleStyle } from "./schedule-presentation";
+import { AttributeLegend, ScheduleLocation, ScheduleMeta, readScheduleNotes, scheduleStyle } from "./schedule-presentation";
 
 type Item = ApiComponents["ScheduleItemDTO"];
 type RescuePlan = ApiComponents["RescueOptionPlan"];
@@ -138,10 +138,13 @@ export function TimeMap({
   const dragMoveRef = useRef<DragMoveState | null>(null);
   const suppressNextClick = useRef(false);
   const help = useId();
+  const pointerHint=slot?.kind==='pointer'&&!dragCreate?.moved&&!dragMove?.moved&&!rescuePreview&&slot.minute>=startHour*60&&slot.minute<endHour*60?slot:null;
+  const pointerHintTop=pointerHint?Math.max(10,Math.min((endHour-startHour)*hourHeight-10,(pointerHint.minute/60-startHour)*hourHeight)):0;
 
   useEffect(() => {
     setSlot(previous => (previous?.day === selectedDay ? previous : null));
-  }, [selectedDay]);
+    setHoveredHour(null);
+  }, [selectedDay, showEnergy]);
 
   const clampMinute = (value: number) => Math.max(startHour * 60, Math.min(endHour * 60 - 15, 1425, value));
   const initialMinute = clampMinute(9 * 60);
@@ -202,6 +205,8 @@ export function TimeMap({
     if (rescuePreview || (event.button !== undefined && event.button !== 0)) return;
     const pointerId = event.pointerId ?? 1;
     const anchorMinute = clampMinute(minuteFromClientY(event.currentTarget, event.clientY, 15));
+    setSlot(event.pointerType==='mouse'?{day,minute:anchorMinute,kind:'pointer'}:null);
+    setHoveredHour(null);
     try {
       event.currentTarget.setPointerCapture?.(pointerId);
     } catch {
@@ -233,7 +238,11 @@ export function TimeMap({
       return;
     }
     if (event.pointerType === "mouse") {
-      setSlot({ day, minute: pointerMinute(event.currentTarget, event.clientY), kind: "pointer" });
+      const minute = pointerMinute(event.currentTarget, event.clientY);
+      setSlot(previous=>previous?.day===day&&previous.minute===minute&&previous.kind==='pointer'?previous:{day,minute,kind:'pointer'});
+      setHoveredHour(showEnergy && energy?.localDay === day
+        ? energy.hourlyCurve.find(point => Math.floor(minuteOfDay(point.hourStartAt, timezone) / 60) === Math.floor(minute / 60)) ?? null
+        : null);
     }
   }
 
@@ -380,7 +389,7 @@ export function TimeMap({
   return (
     <div className={`surface-card time-map ${rescuePreview ? "is-rescue-staging" : ""}`}>
       <div className="time-map-scroll" ref={scroll} tabIndex={0} aria-label="日程时间地图">
-        <div className="time-map-inner" style={{ minWidth: days.length > 1 ? "780px" : undefined }}>
+        <div className="time-map-inner" data-view={days.length === 1 ? "day" : "week"} style={{ minWidth: days.length > 1 ? "780px" : undefined }}>
           <div className="time-map-dates" style={{ gridTemplateColumns: columns }}>
             <div className="map-timezone">
               {options.timeRuler && (
@@ -406,6 +415,7 @@ export function TimeMap({
                 <span>{displayDay(day, { weekday: "short" })}</span>
                 <strong>{Number(day.slice(-2))}</strong>
                 <small>{events.find(value => value.day === day)?.events.length ?? 0} 项安排</small>
+                {showEnergy && energy?.localDay === day && <span className="map-date-energy" title={`${energy.score} 分 · ${tierLabels[energy.tier] ?? "精力预测"}`}>精力 {energy.score}</span>}
               </button>
             ))}
           </div>
@@ -429,6 +439,7 @@ export function TimeMap({
                 {hoveredHour && (
                   <div
                     className="map-energy-tooltip"
+                    data-pointer-time-hint={pointerHint?true:undefined}
                     style={{
                       top: Math.max(
                         6,
@@ -436,12 +447,13 @@ export function TimeMap({
                       ),
                     }}
                   >
-                    <strong>{localTime(hoveredHour.hourStartAt, timezone)}</strong>
+                    <strong>{pointerHint?minuteLabel(pointerHint.minute):localTime(hoveredHour.hourStartAt, timezone)}</strong>
                     <span>
                       {hoveredHour.score} 分 · {tierLabels[hoveredHour.tier]}
                     </span>
                   </div>
                 )}
+                {pointerHint&&!hoveredHour&&<time data-pointer-time-hint className="map-pointer-time" aria-hidden="true" style={{top:pointerHintTop}}>{minuteLabel(pointerHint.minute)}</time>}
               </div>
             ) : (
               <div aria-hidden="true" />
@@ -452,6 +464,8 @@ export function TimeMap({
               return (
                 <div
                   className="map-day"
+                  data-day={day}
+                  data-selected={day === selectedDay}
                   key={day}
                   ref={node => {
                     if (node) dayColumnRefs.current.set(day, node);
@@ -471,26 +485,6 @@ export function TimeMap({
                             <i
                               key={point.hourStartAt}
                               className={`energy-wash-${point.tier}`}
-                              style={{
-                                top: (Number(localTime(point.hourStartAt, timezone).slice(0, 2)) - startHour) * hourHeight,
-                                height: hourHeight,
-                              }}
-                            />
-                          ))}
-                      </div>
-                      <div className="map-energy-band" aria-label="精力预测色带">
-                        {energy.hourlyCurve
-                          .filter(point => {
-                            const hour = Number(localTime(point.hourStartAt, timezone).slice(0, 2));
-                            return hour >= startHour && hour < endHour;
-                          })
-                          .map(point => (
-                            <i
-                              key={point.hourStartAt}
-                              title={`${localTime(point.hourStartAt, timezone)} 精力 ${point.score} 分 · ${tierLabels[point.tier]}`}
-                              className={`energy-${point.tier}`}
-                              onMouseEnter={() => setHoveredHour(point)}
-                              onMouseLeave={() => setHoveredHour(prev => (prev === point ? null : prev))}
                               style={{
                                 top: (Number(localTime(point.hourStartAt, timezone).slice(0, 2)) - startHour) * hourHeight,
                                 height: hourHeight,
@@ -550,18 +544,20 @@ export function TimeMap({
                     aria-label={`${day} 新增日程`}
                     aria-description={`已选 ${minuteLabel(slot?.day === day ? slot.minute : initialMinute)}`}
                     onKeyDown={event => moveSlot(event, day)}
-                    onFocus={() =>
+                    onFocus={event => {
+                      if(!event.currentTarget.matches(':focus-visible'))return;
                       setSlot(previous =>
-                        previous?.day === day && previous.kind === "keyboard"
+                        previous?.day === day
                           ? previous
                           : { day, minute: initialMinute, kind: "keyboard" },
-                      )
-                    }
+                      );
+                    }}
+                    onBlur={()=>{setSlot(previous=>previous?.day===day?null:previous);setHoveredHour(null);}}
                     onPointerDown={event => handleCreatePointerDown(event, day)}
                     onPointerMove={event => handleCreatePointerMove(event, day)}
                     onPointerUp={event => handleCreatePointerUp(event, day)}
-                    onPointerCancel={() => { dragCreateRef.current = null; setDragCreate(null); }}
-                    onPointerLeave={() => setSlot(previous => (previous?.kind === "pointer" ? null : previous))}
+                    onPointerCancel={() => { dragCreateRef.current = null; setDragCreate(null);setSlot(previous=>previous?.day===day?null:previous);setHoveredHour(null); }}
+                    onPointerLeave={() => { setSlot(previous => (previous?.kind === "pointer"&&previous.day===day ? null : previous)); setHoveredHour(null); }}
                     onClick={event => {
                       if (suppressNextClick.current) {
                         suppressNextClick.current = false;
@@ -579,6 +575,8 @@ export function TimeMap({
                       );
                     }}
                   />
+
+                  {!options.timeRuler&&pointerHint?.day===day&&<time data-pointer-time-hint className="map-pointer-time is-in-grid" aria-hidden="true" style={{top:pointerHintTop}}>{minuteLabel(pointerHint.minute)}</time>}
 
                   {dragCreate && dragCreate.moved && dragCreate.day === day && (
                     <div
@@ -604,7 +602,7 @@ export function TimeMap({
                     </div>
                   )}
 
-                  {!dragCreate?.moved && slot?.day === day && slot.minute >= startHour * 60 && slot.minute < endHour * 60 && (
+                  {!dragCreate?.moved && slot?.kind==='keyboard' && slot.day === day && slot.minute >= startHour * 60 && slot.minute < endHour * 60 && (
                     <div
                       data-slot-preview
                       className="map-slot-preview"
@@ -621,6 +619,7 @@ export function TimeMap({
                   {dayEvents.map(event => {
                     const isDraggedOut = dragMove?.moved && dragMove.item.id === event.item.id;
                     const isRescueReplaced = movedOrDeferredIds.has(event.item.id);
+                    const notes=readScheduleNotes(event.item.notes).notes;
                     return (
                       <div
                         key={event.item.id}
@@ -637,7 +636,7 @@ export function TimeMap({
                         <button
                           type="button"
                           data-attribute={event.item.presentation?.attributeTag}
-                          title={event.item.meetingProposalId ? "团队会议请在团队页调整" : undefined}
+                          title={`${event.item.title} (${localTime(event.item.startAt, timezone)}–${localTime(event.item.endAt, timezone)})${event.item.notes ? `\n${event.item.notes}` : ""}${event.item.meetingProposalId ? "\n团队会议请在团队页调整" : ""}`}
                           className={`map-event event-${event.item.category} ${
                             options.completionStatus && event.item.status === "completed" ? "is-complete" : ""
                           } ${!event.item.meetingProposalId && onMoveOrResize && !rescuePreview ? "is-draggable" : ""}`}
@@ -664,18 +663,22 @@ export function TimeMap({
                           }}
                           aria-label={`${event.item.title} ${localTime(event.item.startAt, timezone)}至${localTime(event.item.endAt, timezone)}`}
                         >
-                          <span className="event-title">
-                            {event.item.flexibility === "hard_locked" ? (
-                              <LockKeyhole size={10} />
-                            ) : event.item.flexibility === "focus_shield" ? (
-                              <ShieldCheck size={10} />
-                            ) : null}
-                            {event.item.title}
+                          <span className="event-heading">
+                            <span className="event-title">
+                              {event.item.flexibility === "hard_locked" ? (
+                                <LockKeyhole size={10} />
+                              ) : event.item.flexibility === "focus_shield" ? (
+                                <ShieldCheck size={10} />
+                              ) : null}
+                              <span className="event-title-text">{event.item.title}</span>
+                            </span>
+                            <span className="event-time">
+                              {localTime(event.item.startAt, timezone)}–{localTime(event.item.endAt, timezone)}
+                            </span>
                           </span>
-                          <span className="event-time">
-                            {localTime(event.item.startAt, timezone)}–{localTime(event.item.endAt, timezone)}
-                          </span>
+                          <ScheduleLocation item={event.item}/>
                           <ScheduleMeta item={event.item} options={options} />
+                          {notes && <span className="event-detail">{notes}</span>}
                         </button>
                         {!event.item.meetingProposalId && onMoveOrResize && !rescuePreview && (
                           <div

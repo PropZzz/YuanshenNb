@@ -101,7 +101,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
                 key={item.id}
                 role={item.tone === "error" ? "alert" : "status"}
                 className={cn(
-                  "pointer-events-auto flex items-start gap-3 rounded-xl border p-3.5 shadow-lg transition-all",
+                  "pointer-events-auto flex items-start gap-3 rounded-xl border p-3.5 shadow-lg transition-[transform,opacity]",
                   toneStyles[item.tone],
                 )}
               >

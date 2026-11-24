@@ -64,6 +64,19 @@ it('shows every selected-day event and opens the full day from a month overflow'
  expect(onOpenDay).toHaveBeenCalledWith('2027-01-31');
 });
 
+it('uses a soft hourly energy background and a score instead of a vertical selection strip',()=>{
+ const energy:ApiComponents['EnergyTodayResponse']={
+  localDay:'2027-01-31',timezone:'Asia/Shanghai',computedAt:'2027-01-31T00:00:00Z',score:24,tier:'depleted',dataFreshness:'baseline_only',
+  diagnostics:{baselineReadyDays:0},drivers:{sleepRecoveryScore:0,autonomicDeltaScore:0,circadianScore:24,cognitiveLoadDrainScore:0,recoveryBufferBonusScore:0,summary:'测试用的低精力预测'},focusShields:[],
+  hourlyCurve:[{hourStartAt:'2027-01-31T01:00:00Z',score:24,tier:'depleted'},{hourStartAt:'2027-01-31T02:00:00Z',score:58,tier:'steady'}],
+ };
+ const {container}=render(<TimeMap selectedDay='2027-01-31' days={['2027-01-30','2027-01-31']} items={[]} timezone='Asia/Shanghai' energy={energy} showEnergy onEdit={vi.fn()} onCreate={vi.fn()}/>);
+ expect(container.querySelector('.map-energy-band')).toBeNull();
+ expect(container.querySelectorAll('.map-energy-wash i')).toHaveLength(2);
+ expect(within(screen.getByRole('button',{name:'选择 2027-01-31'})).getByText('精力 24')).toBeTruthy();
+ expect(container.querySelector('.map-day[data-selected="true"]')?.getAttribute('data-day')).toBe('2027-01-31');
+});
+
 it('selects 15-minute slots with the keyboard before opening a draft, without submitting',async()=>{
  const onCreate=vi.fn(),onSelectDay=vi.fn(),user=userEvent.setup();
  render(<TimeMap selectedDay='2027-01-30' days={['2027-01-30','2027-01-31']} items={[]} timezone='Asia/Shanghai' showEnergy={false} onEdit={vi.fn()} onCreate={onCreate} onSelectDay={onSelectDay}/>);

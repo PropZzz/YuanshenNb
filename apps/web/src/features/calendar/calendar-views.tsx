@@ -4,7 +4,7 @@ import type { ApiComponents } from "@/api/client";
 import { Button } from "@/components/ui/button";
 import { displayDay, localDate, localTime } from "@/lib/datetime";
 import { defaultCalendarOptions, type CalendarOptions } from "./calendar-options";
-import { AttributeLegend, ScheduleMeta, scheduleStyle } from "./schedule-presentation";
+import { AttributeLegend, ScheduleLocation, ScheduleMeta, scheduleStyle } from "./schedule-presentation";
 
 type Item = ApiComponents["ScheduleItemDTO"];
 const weekdays = ["周一", "周二", "周三", "周四", "周五", "周六", "周日"];
@@ -107,7 +107,7 @@ export function MonthMap({
                     }`}
                     onClick={() => onEdit(item)}
                     aria-label={`${item.title} ${localTime(item.startAt, timezone)}至${localTime(item.endAt, timezone)}`}
-                    title={`${item.title} (${localTime(item.startAt, timezone)}–${localTime(item.endAt, timezone)})`}
+                    title={`${item.title} (${localTime(item.startAt, timezone)}–${localTime(item.endAt, timezone)})${item.notes?`\n${item.notes}`:""}`}
                   >
                     <span className="event-title">
                       {item.flexibility === "hard_locked" ? (
@@ -115,9 +115,10 @@ export function MonthMap({
                       ) : item.flexibility === "focus_shield" ? (
                         <ShieldCheck size={9} />
                       ) : null}
-                      {item.title}
+                      <span className="event-title-text">{item.title}</span>
                     </span>
                     {options.timeRuler&&<span className="event-time">{localTime(item.startAt, timezone)}</span>}
+                    <ScheduleLocation item={item}/>
                     <ScheduleMeta item={item} options={options}/>
                   </button>
                 ))}
@@ -138,7 +139,7 @@ export function MonthMap({
       </div>
       <section className="cal-selected-agenda" aria-label="所选日期日程">
         <header><div><h2>{displayDay(selectedDay)}</h2><p>{selectedItems.length} 项安排 · {timezone}</p></div><Button variant="outline" size="sm" onClick={()=>onOpenDay(selectedDay)}>查看日视图</Button></header>
-        {selectedItems.length?<div className="cal-agenda-list">{selectedItems.map(item=><button type="button" key={item.id} data-attribute={item.presentation?.attributeTag} style={scheduleStyle(item)} className={'cal-agenda-item event-'+item.category+(options.completionStatus&&item.status==='completed'?' is-complete':'')} onClick={()=>onEdit(item)} aria-label={'查看 '+item.title}>{options.timeRuler&&<time>{localTime(item.startAt,timezone)}<span>— {localTime(item.endAt,timezone)}</span></time>}<span><strong>{item.title}</strong><small>{item.durationMinutes} 分钟</small><ScheduleMeta item={item} options={options}/></span></button>)}</div>:<p className="cal-agenda-empty">这一天还没有日程，选择空闲时间安排一件重要的事。</p>}
+        {selectedItems.length?<div className="cal-agenda-list">{selectedItems.map(item=><button type="button" key={item.id} data-attribute={item.presentation?.attributeTag} style={scheduleStyle(item)} className={'cal-agenda-item event-'+item.category+(options.completionStatus&&item.status==='completed'?' is-complete':'')} onClick={()=>onEdit(item)} aria-label={'查看 '+item.title}>{options.timeRuler&&<time>{localTime(item.startAt,timezone)}<span>— {localTime(item.endAt,timezone)}</span></time>}<span><strong>{item.title}</strong><small>{item.durationMinutes} 分钟</small><ScheduleLocation item={item}/><ScheduleMeta item={item} options={options}/></span></button>)}</div>:<p className="cal-agenda-empty">这一天还没有日程，选择空闲时间安排一件重要的事。</p>}
         <Button variant="ghost" size="sm" onClick={()=>onCreate(selectedDay,'09:00')}><Plus size={14}/>为所选日期新增日程</Button>
       </section>
       <footer className="map-legend">{options.attributeTags&&<AttributeLegend items={items}/>}
@@ -286,6 +287,7 @@ export function GanttMap({
                   className="cal-gantt-label"
                   onClick={() => onEdit(item)}
                   aria-label={`${item.title} ${localTime(item.startAt, timezone)}至${localTime(item.endAt, timezone)}`}
+                  title={`${item.title}${item.notes ? `\n${item.notes}` : ""}`}
                 >
                   <strong>
                     {item.flexibility === "hard_locked" ? (
@@ -293,14 +295,15 @@ export function GanttMap({
                     ) : item.flexibility === "focus_shield" ? (
                       <ShieldCheck size={11} />
                     ) : null}
-                    {item.title}
+                    <span className="cal-gantt-label-title">{item.title}</span>
                   </strong>
-                  {options.timeRuler&&<span>
+                  {options.timeRuler&&<time className="cal-gantt-label-time">
                     {startDay.slice(5)} {localTime(item.startAt, timezone)} –{" "}
                     {endDay !== startDay ? `${endDay.slice(5)} ` : ""}
                     {localTime(item.endAt, timezone)}
-                  </span>}
+                  </time>}
                   <small>{item.durationMinutes} 分钟</small>
+                  <ScheduleLocation item={item}/>
                   <ScheduleMeta item={item} options={options}/>
                 </button>
                 <div className="cal-gantt-track">
@@ -332,7 +335,7 @@ export function GanttMap({
                     aria-label={`查看 ${item.title}`}
                     title={`${item.title} (${localTime(item.startAt, timezone)}–${localTime(item.endAt, timezone)})`}
                   >
-                    <span>{item.title}</span>
+                    <span className="cal-gantt-bar-title">{item.title}</span>
                   </button>
                 </div>
               </div>

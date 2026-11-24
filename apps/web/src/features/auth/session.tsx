@@ -24,8 +24,29 @@ export function RequireSession({ children }: { children: ReactNode }) {
   const [error, setError] = useState<unknown>(null);
   const [attempt, setAttempt] = useState(0);
   useEffect(() => { if (status === "unknown") { let active = true; restoreSession().catch(e => { if(active) setError(e); }); return () => { active = false; }; } }, [status, attempt]);
-  if (status === "unknown") return <div className="min-h-screen grid place-items-center p-6"><div className="surface-card w-full max-w-lg">{error ? <ErrorState error={error} retry={() => { setError(null); setAttempt(a => a + 1); }} /> : <LoadingState label="正在恢复安全会话" />}</div></div>;
-  if (status !== "authenticated") return <Navigate to="/login" replace state={{ from: location.pathname }} />;
+  if (status === "unknown") return (
+    <div className="min-h-screen grid place-items-center p-6">
+      <div className="surface-card w-full max-w-lg">
+        {error ? (
+          <div className="space-y-4">
+            <ErrorState error={error} retry={() => { setError(null); setAttempt(a => a + 1); }} />
+            <div className="flex justify-center pb-4">
+              <button
+                type="button"
+                className="button button-outline button-sm"
+                onClick={() => useAuthStore.getState().markUnauthenticated()}
+              >
+                前往登录
+              </button>
+            </div>
+          </div>
+        ) : (
+          <LoadingState label="正在恢复安全会话" />
+        )}
+      </div>
+    </div>
+  );
+  if (status !== "authenticated") return <Navigate to="/login" replace state={{ from: `${location.pathname}${location.search}${location.hash}` }} />;
   return <>{children}</>;
 }
 

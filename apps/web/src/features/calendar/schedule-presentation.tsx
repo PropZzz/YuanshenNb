@@ -2,7 +2,7 @@ import type { CSSProperties } from 'react';
 import type { ApiComponents } from '@/api/client';
 import { dayRange } from '@/lib/datetime';
 import type { CalendarOptions } from './calendar-options';
-import { AlarmClock, CheckCheck, Clock3, Flag } from '@/components/ui/reference-icons';
+import { AlarmClock, CheckCheck, Clock3, Flag, MapPin } from '@/components/ui/reference-icons';
 
 type Item=ApiComponents['ScheduleItemDTO'];
 export const scheduleAttributes=[
@@ -24,6 +24,21 @@ export function scheduleStyle(item:Item):CSSProperties|undefined{
  const attribute=scheduleAttribute(item);return attribute?{'--event-accent':attribute.color} as CSSProperties:undefined;
 }
 const categories={deep_work:'深度工作',meeting:'协同会议',recovery:'恢复缓冲',routine:'日常事务',urgent:'紧急任务'};
+// Imported courses already store their classroom in notes. Read that explicit
+// metadata so existing schedules gain a location without changing saved data.
+export function readScheduleNotes(value:string):{location?:string;notes:string}{
+ const locations=new Set<string>();
+ const notes=value.split(/\r?\n/).filter(line=>{
+  const match=line.match(/^\s*(?:上课地点|上课教室|地点|教室|location)\s*[：:]\s*(.*?)\s*$/i);
+  if(!match?.[1])return true;
+  locations.add(match[1]);return false;
+ }).join('\n').trim();
+ return {location:locations.size?[...locations].join(' / '):undefined,notes};
+}
+export function ScheduleLocation({item}:{item:Item}){
+ const {location}=readScheduleNotes(item.notes);
+ return location?<span className="event-location" aria-label={'地点：'+location} title={'地点：'+location}><MapPin size={12} aria-hidden="true"/><span>{location}</span></span>:null;
+}
 export function ScheduleMeta({item,options}:{item:Item;options:CalendarOptions}){
  const goal=item.presentation?.goalId&&item.presentation?.goalTitle?item.presentation.goalTitle:null;
  return <span className="schedule-meta">

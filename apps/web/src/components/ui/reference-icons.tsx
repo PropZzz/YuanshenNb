@@ -61,6 +61,7 @@ export {
   ListTree,
   LoaderCircle,
   LockKeyhole,
+  MapPin,
   LogIn,
   LogOut,
   Mail,

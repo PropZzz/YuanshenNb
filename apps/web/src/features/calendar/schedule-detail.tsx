@@ -2,7 +2,7 @@ import { useId, useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import {
   AlarmClock, ArrowRight, Brain, CalendarDays, CheckCheck, Clock3, Edit3,
-  FileText, Flag, LockKeyhole, RefreshCw, ShieldCheck, Trash2,
+  FileText, Flag, LockKeyhole, MapPin, RefreshCw, ShieldCheck, Trash2,
 } from '@/components/ui/reference-icons';
 import { apiClient, type ApiComponents } from '@/api/client';
 import { assertSuccess, unwrap } from '@/api/unwrap';
@@ -12,7 +12,7 @@ import { Drawer } from '@/components/ui/drawer';
 import { Button } from '@/components/ui/button';
 import { ErrorState, InlineError, LoadingState, Notice } from '@/components/ui/states';
 import { categoryLabels, loadLabels, useInvalidateSchedule } from './queries';
-import { scheduleAttribute, scheduleStyle } from './schedule-presentation';
+import { readScheduleNotes, scheduleAttribute, scheduleStyle } from './schedule-presentation';
 import './schedule-detail.css';
 
 type Item = ApiComponents['ScheduleItemDTO'];
@@ -53,6 +53,7 @@ export function ScheduleDetail({ open = true, id, item, loading = false, error, 
   const reminderAt = item && item.reminderMinutes > 0 ? new Date(Date.parse(item.startAt) - item.reminderMinutes * 60_000).toISOString() : null;
   const goalTitle = item?.presentation?.goalId && item.presentation.goalTitle;
   const missedDeadline = !!item?.deadlineAt && Date.parse(item.endAt) > Date.parse(item.deadlineAt);
+  const {location,notes}=readScheduleNotes(item?.notes??'');
 
   return <Drawer open={open} onOpenChange={nextOpen => { if (!nextOpen && !pending) onClose(); }} title="日程详情" description="查看已保存的时间安排、执行信息与排期保护" className="calendar-drawer schedule-detail-drawer" footer={item && <div className="schedule-detail-actions" aria-busy={pending}>
     <InlineError error={remove.error ?? complete.error}/>
@@ -101,6 +102,7 @@ export function ScheduleDetail({ open = true, id, item, loading = false, error, 
       <section className="schedule-detail-section" aria-labelledby={sectionId + '-execution'}>
         <h4 id={sectionId + '-execution'}>执行信息</h4>
         <dl className="schedule-detail-facts">
+          {location&&<div className="schedule-detail-fact"><dt><MapPin size={17}/>{attribute?.id==='study'?'上课地点':'地点'}</dt><dd><strong className="schedule-detail-location">{location}</strong></dd></div>}
           <div className="schedule-detail-fact"><dt><AlarmClock size={17}/>提醒设置</dt><dd><strong>{reminderAt ? '提前 ' + item.reminderMinutes + ' 分钟' : '未设置提醒'}</strong>{reminderAt && <><time dateTime={reminderAt}>{stamp(reminderAt)}</time><small>仅保存提醒设置，当前未接入系统通知。</small></>}</dd></div>
           <div className="schedule-detail-fact" data-warning={missedDeadline || undefined}><dt><Flag size={17}/>截止时间</dt><dd>{item.deadlineAt ? <><time dateTime={item.deadlineAt} className="schedule-detail-fact-value">{stamp(item.deadlineAt)}</time>{missedDeadline && <small>安排结束晚于截止时间</small>}</> : <strong className="schedule-detail-empty">未设置截止时间</strong>}</dd></div>
           <div className="schedule-detail-fact"><dt><Brain size={17}/>认知负荷</dt><dd><div className="schedule-detail-load"><strong>{loadLabels[item.cognitiveLoad]}</strong><span aria-hidden="true">{[1, 2, 3].map(level => <i key={level} data-filled={level <= ({ low: 1, medium: 2, high: 3 }[item.cognitiveLoad])}/>)}</span></div><small>创建或编辑日程时设定的任务负荷</small></dd></div>
@@ -119,7 +121,7 @@ export function ScheduleDetail({ open = true, id, item, loading = false, error, 
 
       <section className="schedule-detail-section" aria-labelledby={sectionId + '-notes'}>
         <h4 id={sectionId + '-notes'}><FileText size={17}/>备注</h4>
-        <p className={'schedule-detail-notes' + (item.notes.trim() ? '' : ' schedule-detail-empty')}>{item.notes.trim() ? item.notes : '暂无备注'}</p>
+        <p className={'schedule-detail-notes' + (notes ? '' : ' schedule-detail-empty')}>{notes || '暂无备注'}</p>
       </section>
 
       {item.meetingProposalId && <Notice>团队会议请前往团队页取消或拒绝，避免单独删除成员的日程。</Notice>}

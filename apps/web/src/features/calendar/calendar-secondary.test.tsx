@@ -1,10 +1,11 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter } from "react-router-dom";
 import type { ApiComponents } from "@/api/client";
 import { CalendarPage } from "./calendar-page";
+import { ScheduleDetail } from "./schedule-detail";
 
 const item: ApiComponents["ScheduleItemDTO"] = { id:"item",userId:"self",title:"日程详情回归",notes:"课前阅读",startAt:"2026-11-20T01:00:00Z",endAt:"2026-11-20T02:00:00Z",category:"deep_work",cognitiveLoad:"high",flexibility:"hard_locked",status:"planned",durationMinutes:60,reminderMinutes:10,createdAt:"2026-11-19T00:00:00Z",updatedAt:"2026-11-19T00:00:00Z" };
 const json=(data:unknown,status=200)=>new Response(JSON.stringify(data),{status,headers:{"Content-Type":"application/json"}});
@@ -23,8 +24,19 @@ function mount(query=""){const search=new URLSearchParams(query);if(!search.has(
 it("opens a read-only schedule detail before entering edit mode",async()=>{
  mount();const user=userEvent.setup();await user.click(await screen.findByRole("button",{name:/日程详情回归 09:00至10:00/}));
  expect(await screen.findByRole("dialog",{name:"日程详情"})).toBeTruthy();
- expect(screen.queryByLabelText("日程标题")).toBeNull();expect(screen.getByText("课前阅读")).toBeTruthy();
+ expect(screen.queryByLabelText("日程标题")).toBeNull();expect(within(screen.getByRole("dialog",{name:"日程详情"})).getByText("课前阅读")).toBeTruthy();
  await user.click(screen.getByRole("button",{name:"编辑日程"}));expect(await screen.findByLabelText("日程标题")).toBeTruthy();
+});
+
+it("shows a saved course classroom as a dedicated detail field while keeping its other notes",()=>{
+ cache=new QueryClient({defaultOptions:{queries:{retry:false}}});
+ const course:ApiComponents['ScheduleItemDTO']={...item,presentation:{attributeTag:'study'},notes:'教师：王老师\n地点：B座507\n课前阅读'};
+ render(<QueryClientProvider client={cache}><ScheduleDetail id={course.id} item={course} onClose={vi.fn()} onEdit={vi.fn()}/></QueryClientProvider>);
+ const dialog=screen.getByRole('dialog',{name:'日程详情'});
+ expect(within(dialog).getByText('上课地点').closest('div')?.textContent).toContain('B座507');
+ expect(within(dialog).getByText('B座507',{exact:true})).toBeTruthy();
+ expect(dialog.querySelector('.schedule-detail-notes')?.textContent).toContain('课前阅读');
+ expect(dialog.querySelector('.schedule-detail-notes')?.textContent).not.toContain('地点：');
 });
 
 it("opens a usable editor when a deep link contains an invalid initial time",async()=>{
@@ -72,6 +84,22 @@ it("previews imported CSV rows and writes selected rows only after explicit conf
  expect(await screen.findByText(/已成功导入 1 条/)).toBeTruthy();
 });
 
+it("offers a simple drop zone and automatically previews a semicolon export without any settings",async()=>{
+ mount("?import=1");await screen.findByRole("dialog",{name:"导入日程"});
+ expect(screen.queryByRole("combobox",{name:"文件格式"})).toBeNull();
+ fireEvent.drop(screen.getByRole("button",{name:/选择或拖入文件/}),{dataTransfer:{files:[new File(["本月日程导出\n主题;日期;开始时间;结束时间\n自动识别会议;2026-11-24;09:00;10:00"],"schedule.txt")],types:["Files"]}});
+ expect(await screen.findByText("自动识别会议")).toBeTruthy();expect(writes).toHaveLength(0);
+ expect(screen.queryByRole("combobox",{name:"文本编码"})).toBeNull();
+ expect((screen.getByRole("button",{name:/确认导入/}) as HTMLButtonElement).disabled).toBe(false);
+});
+
+it("uses explicit course dates and times without asking for a semester or section timetable",async()=>{
+ mount("?import=1");const user=userEvent.setup();
+ await user.upload(await screen.findByLabelText("导入文件"),new File(["课程名称,日期,开始时间,结束时间,星期,周次,节次\n已标明时间的课程,2026-11-24,09:00,10:00,2,1,1-2"],"courses.csv"));
+ expect(await screen.findByText("已标明时间的课程")).toBeTruthy();
+ expect(screen.queryByLabelText("学期第一周周一")).toBeNull();expect(writes).toHaveLength(0);
+});
+
 it("keeps partial import failures visible and never retries already saved rows",async()=>{
  let attempts=0;vi.stubGlobal("fetch",vi.fn(async(request:Request)=>{
   if(request.method==="POST"){attempts++;return attempts===2?json({type:"https://shixu.app/errors/SCHEDULE_CONFLICT",code:"SCHEDULE_CONFLICT",title:"Conflict",detail:"这条日程存在冲突",status:409},409):json({item});}
@@ -86,6 +114,7 @@ it("does not offer blind retries when a network interruption leaves an import re
  let attempts=0;vi.stubGlobal("fetch",vi.fn(async(request:Request)=>{if(request.method==="POST"){attempts++;throw new TypeError("connection lost after sending");}if(request.url.includes("/schedule/items"))return json({items:[]});if(request.url.includes("rescue/history"))return json({snapshots:[]});return json({score:80,dataFreshness:"baseline_only",hourlyCurve:[],focusShields:[]});}));
  mount("?import=1");const user=userEvent.setup();await user.upload(await screen.findByLabelText("导入文件"),new File(["标题,日期,开始时间,结束时间\n结果未知课程,2026-11-20,09:00,10:00"],"courses.csv",{type:"text/csv"}));await user.click(await screen.findByRole("button",{name:/确认导入/}));
  expect(await screen.findByText(/结果未确认，请先刷新日历核对/)).toBeTruthy();expect((screen.getByRole("button",{name:/确认导入/}) as HTMLButtonElement).disabled).toBe(true);expect(attempts).toBe(1);
+ await user.click(screen.getByText("识别不准确？调整识别"));
  expect((screen.getByRole("button",{name:"更新预览"}) as HTMLButtonElement).disabled).toBe(true);
  expect((screen.getByLabelText("日程名称") as HTMLSelectElement).disabled).toBe(true);
 });
@@ -107,9 +136,9 @@ it("previews original JSON schedule envelopes and preserves imported metadata be
 it("expands a course table using the chosen semester Monday and explicit section times",async()=>{
  mount("?import=1");const user=userEvent.setup();
  await user.upload(await screen.findByLabelText("导入文件"),new File(["课程名称\t星期\t周次\t节次\t教师\t教室\n课程节次回归\t2\t1-3[单周]\t1-2\t李老师\tA201"],"course.tsv",{type:"text/tab-separated-values"}));
- await user.type(await screen.findByLabelText("学期第一周周一"),"2026-11-16");
+ fireEvent.change(await screen.findByLabelText("学期第一周周一"),{target:{value:"2026-11-16"}});
  await user.type(screen.getByLabelText("第 1-2 节开始时间"),"08:00");await user.type(screen.getByLabelText("第 1-2 节结束时间"),"09:35");
- await user.click(screen.getByRole("button",{name:"生成日程预览"}));
+ await waitFor(()=>expect(screen.getByRole("button",{name:/确认导入/})).toHaveProperty("disabled",false));
  expect(await screen.findAllByText("课程节次回归")).toHaveLength(2);expect(screen.getByText(/2026-11-17 08:00/)).toBeTruthy();expect(screen.getByText(/2026-12-01 08:00/)).toBeTruthy();expect(writes).toHaveLength(0);
  await user.click(screen.getByRole("button",{name:/确认导入/}));await waitFor(()=>expect(writes).toHaveLength(2));
 });
@@ -128,9 +157,9 @@ it("applies every original display filter locally to the time map",async()=>{
  it("requires fresh semester and section times after selecting a different course file",async()=>{
  mount("?import=1");const user=userEvent.setup(),course="课程名称\t星期\t周次\t节次\n新课表课程\t1\t1\t1-2";
  await user.upload(await screen.findByLabelText("导入文件"),new File([course],"first.tsv"));
- await user.type(await screen.findByLabelText("学期第一周周一"),"2026-11-16");await user.type(screen.getByLabelText("第 1-2 节开始时间"),"08:00");await user.type(screen.getByLabelText("第 1-2 节结束时间"),"09:35");
+ fireEvent.change(await screen.findByLabelText("学期第一周周一"),{target:{value:"2026-11-16"}});await user.type(screen.getByLabelText("第 1-2 节开始时间"),"08:00");await user.type(screen.getByLabelText("第 1-2 节结束时间"),"09:35");
  await user.upload(screen.getByLabelText("导入文件"),new File([course],"second.tsv"));
- await waitFor(()=>expect((screen.getByLabelText("学期第一周周一") as HTMLInputElement).value).toBe(""));
+ await waitFor(()=>expect((screen.getByLabelText("学期第一周周一") as HTMLInputElement).value).toBe("2026-11-16"));
  expect((screen.getByLabelText("第 1-2 节开始时间") as HTMLInputElement).value).toBe("");expect((screen.getByLabelText("第 1-2 节结束时间") as HTMLInputElement).value).toBe("");
 });
 

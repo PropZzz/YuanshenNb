@@ -20,9 +20,10 @@ export function useRouteMotion() {
       if (surfaceRef.current && !entrance.current) surfaceRef.current.dataset.motionState = 'open';
       navigate(to); return;
     }
+    if (!doc.startViewTransition || window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) { active.current = null; navigate(to); return; }
+    // The fallback effect reads the in-flight pose before replacing its animation.
     entrance.current?.cancel(); entrance.current = null;
     surfaceRef.current?.style.removeProperty('will-change');
-    if (!doc.startViewTransition || window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) { active.current = null; navigate(to); return; }
     const header = document.querySelector('.workbench-topbar')?.getBoundingClientRect();
     const navigation = document.querySelector('.mobile-navigation')?.getBoundingClientRect();
     const content = surfaceRef.current?.parentElement?.getBoundingClientRect();

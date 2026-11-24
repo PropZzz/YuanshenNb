@@ -5,9 +5,14 @@
 @import "../components/shell/shell.css";
 @import "../features/calendar/calendar.css";
 @import "../features/focus/focus.css";
+
 @import "../features/team/team.css";
+
 @import "../features/energy/energy.css";
+
 @import "../features/settings/settings.css";
+@import "./reference.css";
+@import "./visual-system.css";
 
 @theme inline {
   --color-primary: var(--rc-primary);
@@ -25,15 +30,6 @@
   --color-error: var(--rc-error);
   --color-error-container: var(--rc-error-container);
   --color-on-error-container: var(--rc-on-error-container);
-  --color-energy-peak: var(--rc-energy-peak);
-  --color-energy-peak-bg: var(--rc-energy-peak-bg);
-  --color-energy-steady: var(--rc-energy-steady);
-  --color-energy-steady-bg: var(--rc-energy-steady-bg);
-  --color-energy-strained: var(--rc-energy-strained);
-  --color-energy-strained-bg: var(--rc-energy-strained-bg);
-  --color-energy-depleted: var(--rc-energy-depleted);
-  --color-energy-depleted-bg: var(--rc-energy-depleted-bg);
-  --color-canvas: var(--rc-canvas);
   --color-surface: var(--rc-surface);
   --color-surface-container-lowest: var(--rc-surface-container-lowest);
   --color-surface-container-low: var(--rc-surface-container-low);
@@ -44,6 +40,14 @@
   --color-on-surface-variant: var(--rc-on-surface-variant);
   --color-outline: var(--rc-outline);
   --color-outline-variant: var(--rc-outline-variant);
+  --color-energy-peak: var(--rc-energy-peak);
+  --color-energy-peak-bg: var(--rc-energy-peak-bg);
+  --color-energy-steady: var(--rc-energy-steady);
+  --color-energy-steady-bg: var(--rc-energy-steady-bg);
+  --color-energy-strained: var(--rc-energy-strained);
+  --color-energy-strained-bg: var(--rc-energy-strained-bg);
+  --color-energy-depleted: var(--rc-energy-depleted);
+  --color-energy-depleted-bg: var(--rc-energy-depleted-bg);
   --font-headline: var(--rc-font-headline);
   --font-body: var(--rc-font-body);
 }

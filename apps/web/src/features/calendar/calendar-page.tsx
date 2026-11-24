@@ -1,32 +1,18 @@
 import { useEffect, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
-import {
-  ChevronLeft,
-  ChevronRight,
-  FileUp,
-  History,
-  Plus,
-  RefreshCw,
-  ShieldCheck,
-  SlidersHorizontal,
-  Zap,
-} from "@/components/ui/reference-icons";
+import { ShieldCheck } from "@/components/ui/reference-icons";
 import { apiClient, type ApiComponents } from "@/api/client";
 import { isProblemCode } from "@/api/errors";
 import { unwrap } from "@/api/unwrap";
 import { Button } from "@/components/ui/button";
-import { DateTimeField } from "@/components/ui/date-time-field";
 import { Dialog } from "@/components/ui/dialog";
-import { Popover } from "@/components/ui/popover";
 import { ErrorState, InlineError, LoadingState } from "@/components/ui/states";
 import { useToast } from "@/components/ui/toast";
 import { useEnergy } from "@/features/energy/queries";
 import {
   dayRange,
-  displayDay,
   isValidDay,
-  isoWeekNumber,
   localDate,
   localTime,
   monthDays,
@@ -35,8 +21,9 @@ import {
   weekDays,
 } from "@/lib/datetime";
 import { useAuthStore } from "@/stores/auth-store";
-import { CalendarOptionsDrawer, calendarDisplayFilters, useCalendarOptions } from "./calendar-options";
+import { CalendarOptionsDrawer, useCalendarOptions } from "./calendar-options";
 import { CalendarSummary } from "./calendar-summary";
+import { CalendarToolbar, type CalendarView } from "./calendar-toolbar";
 import { GanttMap, MonthMap } from "./calendar-views";
 import { useInvalidateSchedule, useSchedules } from "./queries";
 import { RescuePanel } from "./rescue-panel";
@@ -86,8 +73,6 @@ function supportsCalendarDate(value: string | null | undefined, timezone: string
     return false;
   }
 }
-
-type CalendarView = "day" | "week" | "month" | "gantt";
 
 export function CalendarPage() {
   const timezone = useAuthStore(s => s.user?.timezone ?? "Asia/Shanghai");
@@ -257,171 +242,24 @@ export function CalendarPage() {
 
   return (
     <div className="calendar-page">
-      {/* Compact Single-Row Command Toolbar */}
-      <section className="calendar-controller surface-card" aria-label="日历控制栏">
-        <div className="calendar-toolbar-row">
-          <div className="calendar-toolbar-left">
-            <div className="segmented">
-              <Button variant="ghost" size="icon" aria-label={`上一${periodUnit}`} onClick={() => stepPeriod(-1)}>
-                <ChevronLeft size={16} />
-              </Button>
-              <button type="button" onClick={() => setDay(today)}>
-                今天
-              </button>
-              <Button variant="ghost" size="icon" aria-label={`下一${periodUnit}`} onClick={() => stepPeriod(1)}>
-                <ChevronRight size={16} />
-              </Button>
-            </div>
-            <div className="calendar-heading-group">
-              <h1>
-                {displayDay(day, { year: "numeric", month: "long" })}
-                {view === "week" || (view === "gantt" && ganttScale === "week") ? ` 第${isoWeekNumber(day)}周` : ""}
-              </h1>
-              <small>
-                {view === "month"
-                  ? `${day.slice(0, 7)} 全月视图`
-                  : view === "week" || (view === "gantt" && ganttScale === "week")
-                    ? `${days[0].slice(5)} — ${days[6].slice(5)}`
-                    : displayDay(day, { day: "numeric", weekday: "long" })}
-              </small>
-            </div>
-            <div className="calendar-jump-date">
-              <DateTimeField label="跳转日期" type="date" value={day} onChange={setDay} timezone={timezone} />
-            </div>
-          </div>
-
-          <div className="calendar-toolbar-center">
-            <div className="segmented" aria-label="日历视图">
-              <button type="button" aria-pressed={view === "day"} onClick={() => setView("day")}>
-                日视图
-              </button>
-              <button type="button" aria-pressed={view === "week"} onClick={() => setView("week")}>
-                周视图
-              </button>
-              <button type="button" aria-pressed={view === "month"} onClick={() => setView("month")}>
-                月视图
-              </button>
-              <button type="button" aria-pressed={view === "gantt"} onClick={() => setView("gantt")}>
-                甘特视图
-              </button>
-            </div>
-          </div>
-
-          <div className="calendar-toolbar-right">
-            <label
-              className="calendar-energy-pill"
-              title="逐时精力预测仅在日 / 周视图显示"
-            >
-              <input
-                type="checkbox"
-                aria-label="精力预测色带"
-                disabled={view === "month" || view === "gantt"}
-                checked={displayOptions.options.energyBands}
-                onChange={event =>
-                  displayOptions.update({ ...displayOptions.options, energyBands: event.target.checked })
-                }
-              />
-              <span>精力色带</span>
-            </label>
-
-            <Popover
-              label="显示筛选"
-              trigger={({ toggle, ...aria }) => (
-                <Button variant="outline" size="sm" onClick={toggle} {...aria}>
-                  <SlidersHorizontal size={14} /> 筛选
-                </Button>
-              )}
-              panelClassName="w-72"
-            >
-              {close => (
-                <div className="flex flex-col gap-3">
-                  <div className="flex items-center justify-between">
-                    <strong className="text-xs font-bold text-primary">视域滤镜</strong>
-                    <button
-                      type="button"
-                      className="text-xs font-semibold text-secondary hover:underline"
-                      onClick={() => {
-                        close();
-                        openSecondary("options");
-                      }}
-                    >
-                      更多显示选项
-                    </button>
-                  </div>
-                  <div className="flex flex-col gap-1.5">
-                    {calendarDisplayFilters.map(({ key, label }) => (
-                      <label
-                        key={key}
-                        className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-xs hover:bg-surface-container-low cursor-pointer"
-                      >
-                        <input
-                          type="checkbox"
-                          className="accent-secondary"
-                          checked={displayOptions.options[key]}
-                          onChange={event =>
-                            displayOptions.update({ ...displayOptions.options, [key]: event.target.checked })
-                          }
-                        />
-                        <span>{label}</span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </Popover>
-
-            <Button variant="outline" size="sm" onClick={() => openSecondary("import")}>
-              <FileUp size={14} /> 导入
-            </Button>
-            <Button variant="secondary" size="sm" onClick={() => openSecondary("new")}>
-              <Plus size={14} /> 新增日程
-            </Button>
-            <Button variant="danger" size="sm" onClick={() => openSecondary("rescue")}>
-              <Zap size={14} /> 紧急救援
-            </Button>
-            <Button
-              variant={railOpen ? "default" : "ghost"}
-              size="sm"
-              aria-pressed={railOpen}
-              aria-label="切换摘要与救援快照栏"
-              title="查看日程摘要与救援快照"
-              onClick={() => setRailOpen(open => !open)}
-            >
-              <History size={15} />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => void schedule.refetch()}
-              aria-label="刷新日历"
-            >
-              <RefreshCw size={15} />
-            </Button>
-          </div>
-        </div>
-
-        <nav className="calendar-week-picker" aria-label="本周日期">
-          {weekDays(day).map(date => (
-            <button
-              type="button"
-              key={date}
-              aria-pressed={date === day}
-              aria-label={displayDay(date, { month: "long", day: "numeric", weekday: "long" })}
-              onClick={() => setDay(date)}
-            >
-              <span>{displayDay(date, { weekday: "short" })}</span>
-              <time dateTime={date}>{Number(date.slice(-2))}</time>
-              <i aria-hidden="true" />
-            </button>
-          ))}
-        </nav>
-
-        {(selectionError || (requestedDay && !supportsCalendarDate(requestedDay, timezone))) && (
-          <p className="calendar-selection-status" role="alert">
-            {selectionError || "日期无效或超出可显示范围，已显示今天，请重新选择。"}
-          </p>
-        )}
-      </section>
+      <CalendarToolbar
+        day={day}
+        today={today}
+        timezone={timezone}
+        view={view}
+        periodUnit={periodUnit}
+        weekly={view === "week" || (view === "gantt" && ganttScale === "week")}
+        options={displayOptions.options}
+        railOpen={railOpen}
+        error={selectionError || (requestedDay && !supportsCalendarDate(requestedDay, timezone) ? "日期无效或超出可显示范围，已显示今天，请重新选择。" : undefined)}
+        onSelectDay={setDay}
+        onChangeView={setView}
+        onStepPeriod={stepPeriod}
+        onChangeOptions={displayOptions.update}
+        onOpen={openSecondary}
+        onToggleRail={() => setRailOpen(open => !open)}
+        onRefresh={() => void schedule.refetch()}
+      />
 
       {moveOrResize.error && !isProblemCode(moveOrResize.error, "CONFLICT_SCHEDULE_OVERLAP") && (
         <div className="my-3">
@@ -575,6 +413,7 @@ export function CalendarPage() {
       {retainedImport && (
         <ScheduleImport
           open={params.has("import")}
+          referenceDay={day}
           existing={schedule.data?.items}
           onClose={() => (params.get("return") === "new" ? openSecondary("new") : closeSecondary())}
         />
