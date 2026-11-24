@@ -87,7 +87,13 @@ func (s *Service) Login(ctx context.Context, email, password, device string) (To
 	var hash string
 	var id uuid.UUID
 	e := s.pool.QueryRow(ctx, "SELECT id,password_hash FROM users WHERE email=$1", strings.ToLower(strings.TrimSpace(email))).Scan(&id, &hash)
-	if e != nil || !VerifyPassword(hash, password) {
+	if errors.Is(e, pgx.ErrNoRows) {
+		return Tokens{}, ErrCredentials
+	}
+	if e != nil {
+		return Tokens{}, e
+	}
+	if !VerifyPassword(hash, password) {
 		return Tokens{}, ErrCredentials
 	}
 	user, e := s.Me(ctx, id)
@@ -128,15 +134,21 @@ func (s *Service) Refresh(ctx context.Context, token, device string) (Tokens, er
 	var expires time.Time
 	var revoked *time.Time
 	e = tx.QueryRow(ctx, "SELECT user_id FROM refresh_tokens WHERE token_hash=$1", TokenHash(token)).Scan(&id)
-	if e != nil {
+	if errors.Is(e, pgx.ErrNoRows) {
 		return Tokens{}, ErrRefresh
+	}
+	if e != nil {
+		return Tokens{}, e
 	}
 	if _, e = tx.Exec(ctx, "SELECT id FROM users WHERE id=$1 FOR UPDATE", id); e != nil {
 		return Tokens{}, e
 	}
 	e = tx.QueryRow(ctx, "SELECT family_id,expires_at,revoked_at FROM refresh_tokens WHERE token_hash=$1 AND user_id=$2 FOR UPDATE", TokenHash(token), id).Scan(&family, &expires, &revoked)
-	if e != nil {
+	if errors.Is(e, pgx.ErrNoRows) {
 		return Tokens{}, ErrRefresh
+	}
+	if e != nil {
+		return Tokens{}, e
 	}
 	if revoked != nil {
 		if _, e = tx.Exec(ctx, "UPDATE refresh_tokens SET revoked_at=COALESCE(revoked_at,NOW()) WHERE family_id=$1 AND user_id=$2", family, id); e != nil {

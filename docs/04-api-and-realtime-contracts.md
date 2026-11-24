@@ -50,6 +50,8 @@
    - **读取顺序**：服务端**优先读取 `body.refreshToken`**（Android 端显式传参）；若 `body.refreshToken` 为空字符串或未传，则**自动回退读取请求 Cookie `rc_refresh_token`**（Web 端通过 `credentials: 'include'` 自动携带）。
    - 若两处均无令牌或令牌已过期，返回 `401 INVALID_REFRESH_TOKEN`。
 
+数据库故障不是无效凭据：登录读取密码及刷新读取令牌失败时，使用现有契约已声明的 `500 INTERNAL_SERVER_ERROR`（`application/problem+json`），不返回 `401 INVALID_CREDENTIALS` / `INVALID_REFRESH_TOKEN`。响应不包含底层 SQL 诊断，也不写入新的会话 Cookie；原始原因留给服务端诊断。不存在账号/令牌、密码不匹配等真实鉴权失败仍保持 401。本规则不改变请求、响应 DTO 或令牌轮换协议。
+
 ---
 
 ### 2.2 穿戴生理上报与精力模型 (`/biometrics/*`, `/energy/*`)
