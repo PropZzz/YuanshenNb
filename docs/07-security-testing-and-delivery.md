@@ -17,6 +17,7 @@
 3. **双端 Refresh Token 自适应存放策略**：
    - **签发**：`register` / `login` / `refresh` 同时在 JSON Body 返回 `refreshToken`（供 Android 存入硬件 Keystore 背书的 `EncryptedDataStore`）并写入 `Set-Cookie: rc_refresh_token=...; HttpOnly; SameSite=Lax; Path=/api/v1/auth`（HTTPS 下加 `Secure`）。
    - **提取**：`/auth/refresh` 与 `/auth/logout` 优先读取 Body 中的 `refreshToken`（Android 显式传参），若未传则回退读取 `rc_refresh_token` Cookie（Web 内存态持 15 分钟 `accessToken`，零 `localStorage` 持久化长效密钥）。
+4. **鉴权失败与基础设施失败必须区分**：只有不存在账号、密码不匹配、令牌不存在或过期等真实凭据问题才返回对应 `401`。登录及刷新两次令牌查询的数据库错误必须保留原始原因，交由既有 RFC 9457 错误处理返回 `500 INTERNAL_SERVER_ERROR`，不得伪装成密码错误或登录失效；请求上下文取消同样保留原因。刷新查询失败时事务回滚，不签发或作废令牌，数据库恢复后原有效令牌可以重试；失败响应不得重置会话 Cookie 或暴露 SQL 细节。
 
 ### 1.2 生理与团队隐私威胁防护
 - **对象级越权防护（BOLA/IDOR）**：所有 `/schedule/*`、`/biometrics/*`、`/energy/*` 查询强制在 SQL `WHERE` 子句中绑定从 JWT 提取的 `user_id`；所有 `/workspaces/{id}/*` 接口先验证调用者在 `workspace_members` 中的成员资格。
