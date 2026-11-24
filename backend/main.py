@@ -19,6 +19,7 @@ from .routers_goals import router as goals_router
 from .routers_microtasks import router as microtasks_router
 from .routers_platform import router as platform_router
 from .routers_profile import router as profile_router
+from .routers_reminders import router as reminders_router
 from .routers_rescue import router as rescue_router
 from .routers_reserved import router as reserved_router
 from .routers_review import router as review_router
@@ -94,6 +95,7 @@ def create_app(db_path: str | Path | None = None) -> FastAPI:
     app.include_router(team_router)
     app.include_router(sync_router)
     app.include_router(profile_router)
+    app.include_router(reminders_router)
     app.include_router(reserved_router)
 
     return app

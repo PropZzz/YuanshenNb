@@ -273,6 +273,7 @@ def collect_user_export(db_path: str | Path | None, user_id: str) -> dict[str, o
         "schedules": "SELECT * FROM schedules WHERE user_id = ? ORDER BY day, time_hour, time_minute",
         "microtasks": "SELECT * FROM microtasks WHERE user_id = ? ORDER BY created_at",
         "taskEvents": "SELECT * FROM task_events WHERE user_id = ? ORDER BY at",
+        "reminders": "SELECT * FROM reminders WHERE user_id = ? ORDER BY id",
         "goals": "SELECT * FROM goals WHERE user_id = ? ORDER BY due",
         "goalTasks": "SELECT * FROM goal_tasks WHERE user_id = ? ORDER BY goal_id",
         "emotionCheckins": "SELECT * FROM emotion_checkins WHERE user_id = ? ORDER BY day",

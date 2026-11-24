@@ -7,12 +7,7 @@ RESERVED_ENDPOINTS = [
     ("POST", "/auth/refresh"),
     ("POST", "/auth/password/reset-request"),
     ("POST", "/auth/password/reset-confirm"),
-    ("DELETE", "/events/event-1"),
     ("POST", "/goals/decompose"),
-    ("GET", "/reminders"),
-    ("POST", "/reminders"),
-    ("PUT", "/reminders/reminder-1"),
-    ("DELETE", "/reminders/reminder-1"),
     ("POST", "/notifications/devices"),
     ("DELETE", "/notifications/devices/device-1"),
     ("POST", "/notifications/test"),
@@ -38,6 +33,16 @@ RESERVED_ENDPOINTS = [
     ("DELETE", "/files/file-1"),
     ("POST", "/files/parse-task-list"),
     ("POST", "/sync/conflicts/conflict-1/resolve"),
+]
+
+# These paths now perform real operations. Keep their routing/auth assertions,
+# while the domain suites cover persistence, isolation and transaction failures.
+IMPLEMENTED_ENDPOINTS = [
+    ("DELETE", "/events/event-1", 404),
+    ("GET", "/reminders", 200),
+    ("POST", "/reminders", 422),
+    ("PUT", "/reminders/reminder-1", 404),
+    ("DELETE", "/reminders/reminder-1", 404),
 ]
 
 
@@ -77,6 +82,14 @@ def test_reserved_endpoints_return_explicit_reserved_error(tmp_path):
             assert body["detail"]["status"] == "Reserved"
 
 
+def test_implemented_reminder_and_event_paths_use_real_domain_responses(tmp_path):
+    with TestClient(create_app(tmp_path / "implemented.sqlite3")) as client:
+        headers = _headers(client)
+        for method, path, expected in IMPLEMENTED_ENDPOINTS:
+            assert _request(client, method, path).status_code == 401
+            assert _request(client, method, path, headers=headers).status_code == expected
+
+
 def test_reserved_endpoints_are_visible_in_openapi(tmp_path):
     with TestClient(create_app(tmp_path / "reserved.sqlite3")) as client:
         paths = client.get("/openapi.json").json()["paths"]
@@ -91,7 +104,7 @@ def test_reserved_endpoints_are_visible_in_openapi(tmp_path):
         .replace("calendar-google", "{provider}")
         .replace("file-1", "{file_id}")
         .replace("conflict-1", "{conflict_id}")
-        for _, path in RESERVED_ENDPOINTS
+        for _, path in RESERVED_ENDPOINTS + [(method, path) for method, path, _ in IMPLEMENTED_ENDPOINTS]
     }
 
     assert expected_paths.issubset(paths.keys())
