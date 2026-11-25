@@ -7,7 +7,7 @@
 
 ## 1. 当前项目状态与开发上下文
 
-- **仓库阶段**：处于 **V2 全面重构期**（当前主力分支：`refactor/v2-rebuild`）。V1 历史代码已移出工作树，仅作为只读历史快照保留在 `main` 分支中。
+- **仓库阶段**：处于 **V2 全面重构期**（当前主力分支：`refactor/v2-rebuild`）。按用户要求，本地仅保留该重构分支；V1 工作副本及纳入版本管理的旧后端缓存已清理。历史备份与旧构建目录不属于当前项目输入，不得恢复或重新纳入版本管理。
 - **当前进度（2026-11-19）**：已实现 Web 五视图与认证、Go 真实数据库业务服务及三个核心引擎、Android Compose 客户端与穿戴采集管线。已通过真实 PostgreSQL 并发测试、Web 单元/构建及桌面/390px 浏览器主流程；Android 已通过单元测试、Lint 与 APK 构建，尚待真机权限、Health Connect、BLE、通知和视觉验收。证据与未完成项见 [迁移执行记录](docs/plans/2026-11-19-v1-to-v2-migration.md)，不能将本地实现视为已提交、已推送或完整交付。
 - **核心产品范围（Strict Scope）**：只围绕一条闭环建设：
   1. Android 穿戴设备生理采样（Health Connect / BLE GATT / 显式测试回放）；
@@ -59,7 +59,7 @@
    - 无穿戴数据时必须标注 `baseline_only`，回放测试样本必须标注 `replay_demo`，禁止把模拟/占位数据伪装成“手环实时数据”。
    - 禁止静默覆盖用户既有日程：个人救援与团队会议确认必须走“计算方案 → 用户显式确认 → 事务落库（带快照可撤销）”。
 7. **禁止复刻 V1 静态 HTML/JS 屎山**：
-   - 开发 Web 界面时可参考 [docs/06-design-system-v2.md](docs/06-design-system-v2.md) 或按需执行 `git show main:web/stitch/screens/<page>/index.html` 对照视觉排版，但**必须**用干净的 React 组件 + Tailwind v4 + `tokens.css` 实现，严禁搬运旧 `iframe` 壳或 `router.js` 模式。
+   - 开发 Web 界面时以 [docs/06-design-system-v2.md](docs/06-design-system-v2.md)、当前 React 组件及已提取的静态资源为准，**必须**使用 React 组件 + Tailwind v4 + `tokens.css` 实现，严禁重新引入 V1 目录、旧 `iframe` 壳或 `router.js` 模式。
 8. **安全底线**：
    - 密码必须使用 **Argon2id**；Refresh Token 必须做 SHA-256 摘要入库并支持轮换重放检测（`family_id`）；对象级接口必须在 SQL 层强制校验当前 `user_id` 或 `workspace_members` 归属。
 

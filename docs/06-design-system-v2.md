@@ -11,7 +11,7 @@
    - 品牌 Logo：[apps/web/public/brand-logo.png](../apps/web/public/brand-logo.png)
    - Favicon：[apps/web/public/favicon.png](../apps/web/public/favicon.png)
    - CSS 语义令牌：[apps/web/src/styles/tokens.css](../apps/web/src/styles/tokens.css)
-2. **如需回溯 V1 旧界面参考**：所有旧 Stitch 静态页保留在 `main` 分支，随时执行 `git show main:web/stitch/screens/<page>/index.html` 查看。
+2. **当前实现基线**：以本规范、`apps/web/src/` 中的 React 组件及 `apps/web/public/` 中已提取的品牌、字体和第三方资源为准；不再以 V1 静态页、Flutter 项目或历史构建副本作为开发、构建或测试输入。
 
 ### 核心语义色板（Web CSS 变量 & Android `ColorScheme` 共用）
 

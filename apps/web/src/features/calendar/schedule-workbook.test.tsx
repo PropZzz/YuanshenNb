@@ -8,7 +8,7 @@ import { ScheduleImport } from "./schedule-import";
 import { schoolTimetableExport } from "./__fixtures__/school-timetable";
 
 // Exercise the original bundled reader/writer against real XLSX and BIFF8 bytes.
-const xlsx=runInNewContext(`${readFileSync("../../.appdata/reference/main/web/stitch/assets/vendor/xlsx.full.min.js","utf8")}\nXLSX;`) as {
+const xlsx=runInNewContext(`${readFileSync("public/vendor/xlsx.full.min.js","utf8")}\nXLSX;`) as {
  utils:{book_new:()=>unknown;aoa_to_sheet:(rows:unknown[][])=>Record<string,unknown>;book_append_sheet:(book:unknown,sheet:unknown,name:string)=>void};
  write:(book:unknown,options:Record<string,unknown>)=>ArrayBuffer;
 };
